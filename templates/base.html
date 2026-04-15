@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Bebelingue{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        {% include "partials/sidebar.html" %}
+
+        <div class="navbar">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">🐝</span>
+                <h2 class="navbar-title">{% block page_title %}Dashboard{% endblock %}</h2>
+            </div>
+            <div class="navbar-actions">
+                <div style="text-align: right;">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--text);">{{ user.get_full_name|default:user.username }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: capitalize;">{{ user.get_role_display }}</div>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

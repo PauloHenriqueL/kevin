@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Todas as Aulas — Bebelingue{% endblock %}
+{% block page_title %}Todas as Aulas{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+    <h1 style="font-size: 1.6rem; font-weight: 900; color: var(--primary-dark);">Todas as Aulas</h1>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body" style="padding: 16px 24px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                <label>Buscar</label>
+                <input type="text" name="q" class="form-control" placeholder="Nome da aula..." value="{{ q }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; min-width: 120px;">
+                <label>Year</label>
+                <select name="year" class="form-control">
+                    <option value="">Todos</option>
+                    {% for y in years_disponiveis %}
+                    <option value="{{ y }}" {% if year_filtro == y %}selected{% endif %}>Year {{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+            {% if q or year_filtro %}
+            <a href="{% url 'professor:todas_aulas' %}" class="btn btn-outline btn-sm">Limpar</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="aulas-grid">
+    {% for aula in aulas %}
+    <div class="aula-card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div class="aula-number">{{ aula.ordem }}</div>
+            <div>
+                <span class="badge badge-purple" style="font-size: 11px;">Year {{ aula.year }}</span>
+                <span class="text-muted text-sm" style="margin-left: 4px;">{{ aula.codigo }}</span>
+            </div>
+        </div>
+        <h3>{{ aula.titulo }}</h3>
+        <p class="text-muted text-sm mt-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            {{ aula.descricao|truncatewords:20 }}
+        </p>
+        <div class="aula-meta mt-2">
+            <span>📎 {{ aula.aula_conteudos.count }} conteúdos</span>
+            <span>📝 {{ aula.homeworks.count }} homeworks</span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="icon">📚</div>
+                <h3>Nenhuma aula encontrada</h3>
+                {% if q or year_filtro %}
+                <p>Tente ajustar os filtros.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

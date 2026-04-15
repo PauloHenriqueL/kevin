@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Professores — Bebelingue{% endblock %}
+{% block page_title %}👩‍🏫 Professores{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Professores</h1>
+    {% if user.role == 'admin' %}
+    <a href="#" class="btn btn-primary">+ Novo Professor</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Professor</th>
+                        <th>Email</th>
+                        <th>Escola</th>
+                        <th>Turmas</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for professor in professores %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+                                    {{ professor.user.first_name|default:professor.user.username|make_list|first|upper }}
+                                </div>
+                                <strong>{{ professor.user.get_full_name|default:professor.user.username }}</strong>
+                            </div>
+                        </td>
+                        <td class="text-muted">{{ professor.user.email }}</td>
+                        <td>{{ professor.escola.nome }}</td>
+                        <td>{{ professor.turmas.count }}</td>
+                        <td>
+                            {% if professor.ativo %}
+                                <span class="badge badge-mint">Ativo</span>
+                            {% else %}
+                                <span class="badge badge-gray">Inativo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">👩‍🏫</div>
+                                <h3>Nenhum professor cadastrado</h3>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}Turmas — Gestão{% endblock %}
+{% block page_title %}👥 Turmas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Turmas</h1>
+    <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova Turma</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Turma</th>
+                        <th>Year</th>
+                        <th>Professor</th>
+                        <th>Alunos</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turma in turmas %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                                    {{ turma.year }}{{ turma.nome }}
+                                </div>
+                                <strong>Turma {{ turma.year }}{{ turma.nome }}</strong>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-purple">Year {{ turma.year }}</span></td>
+                        <td>
+                            {% if turma.professor %}
+                                {{ turma.professor.user.get_full_name }}
+                            {% else %}
+                                <span class="badge badge-mustard">Sem professor</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ turma.alunos.count }}</td>
+                        <td>
+                            <a href="{% url 'gestao:turma_edit' turma.pk %}" class="btn btn-sm btn-outline">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">👥</div>
+                                <h3>Nenhuma turma</h3>
+                                <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary mt-2">+ Nova Turma</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

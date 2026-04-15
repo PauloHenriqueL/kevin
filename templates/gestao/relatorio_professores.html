@@ -1,0 +1,67 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}Professores — Relatório{% endblock %}
+{% block page_title %}👩‍🏫 Relatório de Professores{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Desempenho dos Professores</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Professor</th>
+                        <th>Turmas</th>
+                        <th>Alunos</th>
+                        <th>Aulas Concluídas</th>
+                        <th>Progresso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in prof_data %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                                    {{ item.professor.user.first_name|make_list|first|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ item.professor.user.get_full_name }}</strong>
+                                    <div class="text-muted text-sm">{{ item.professor.user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ item.total_turmas }}</td>
+                        <td>{{ item.total_alunos }}</td>
+                        <td>{{ item.total_concluidas }}/{{ item.total_aulas }}</td>
+                        <td style="min-width: 160px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="progress-bar" style="flex: 1; height: 8px;">
+                                    <div class="progress-fill {% if item.pct >= 70 %}green{% elif item.pct >= 30 %}yellow{% else %}purple{% endif %}" style="width: {{ item.pct }}%;"></div>
+                                </div>
+                                <span style="font-weight: 700; font-size: 14px; color: {% if item.pct >= 70 %}var(--mint){% elif item.pct >= 30 %}var(--mustard-dark){% else %}var(--coral){% endif %}; min-width: 40px; text-align: right;">
+                                    {{ item.pct }}%
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">👩‍🏫</div>
+                                <h3>Nenhum professor</h3>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Escolas — Bebelingue{% endblock %}
+{% block page_title %}🏫 Escolas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Escolas</h1>
+    {% if user.role == 'admin' %}
+    <a href="#" class="btn btn-primary">+ Nova Escola</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Escola</th>
+                        <th>Plano</th>
+                        <th>Professores</th>
+                        <th>Turmas</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for escola in escolas %}
+                    <tr>
+                        <td>
+                            <strong>{{ escola.nome }}</strong>
+                            <div class="text-muted text-sm">{{ escola.slug }}</div>
+                        </td>
+                        <td><span class="badge badge-purple">{{ escola.plano.nome }}</span></td>
+                        <td>{{ escola.professores.count }}</td>
+                        <td>{{ escola.turmas.count }}</td>
+                        <td>
+                            {% if escola.ativa %}
+                                <span class="badge badge-mint">Ativa</span>
+                            {% else %}
+                                <span class="badge badge-gray">Inativa</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">🏫</div>
+                                <h3>Nenhuma escola cadastrada</h3>
+                                <p>Cadastre a primeira escola para começar.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Turma — Gestão{% endblock %}
+{% block page_title %}👥 {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Turma{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'gestao:turma_list' %}" class="text-muted text-sm">← Voltar às turmas</a>
+        <h1 class="mt-1">{% if form.instance.pk %}Editar Turma {{ form.instance }}{% else %}Nova Turma{% endif %}</h1>
+    </div>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="alert alert-error"><span>⚠️</span> Corrija os erros abaixo.</div>
+            {% endif %}
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="id_year">Year</label>
+                    {{ form.year }}
+                    {% if form.year.errors %}<small style="color: var(--coral);">{{ form.year.errors.0 }}</small>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_nome">Nome da Turma</label>
+                    {{ form.nome }}
+                    <small class="text-muted">Ex: A, B, C</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_professor">Professor Responsável</label>
+                {{ form.professor }}
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="btn btn-primary">
+                    {% if form.instance.pk %}Salvar{% else %}Criar Turma{% endif %}
+                </button>
+                <a href="{% url 'gestao:turma_list' %}" class="btn btn-outline">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

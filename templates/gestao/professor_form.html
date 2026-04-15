@@ -1,0 +1,77 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Professor — Gestão{% endblock %}
+{% block page_title %}👩‍🏫 {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Professor{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'gestao:professor_list' %}" class="text-muted text-sm">← Voltar aos professores</a>
+        <h1 class="mt-1">{% if form.instance.pk %}Editar {{ form.instance.user.get_full_name }}{% else %}Cadastrar Professor{% endif %}</h1>
+    </div>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="alert alert-error">
+                <span>⚠️</span> Corrija os erros abaixo.
+            </div>
+            {% endif %}
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="id_first_name">Nome</label>
+                    <input type="text" id="id_first_name" name="first_name" class="form-control"
+                           value="{{ form.first_name.value|default:'' }}" required>
+                    {% if form.first_name.errors %}<small style="color: var(--coral);">{{ form.first_name.errors.0 }}</small>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_last_name">Sobrenome</label>
+                    <input type="text" id="id_last_name" name="last_name" class="form-control"
+                           value="{{ form.last_name.value|default:'' }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" id="id_email" name="email" class="form-control"
+                       value="{{ form.email.value|default:'' }}" required>
+                {% if form.email.errors %}<small style="color: var(--coral);">{{ form.email.errors.0 }}</small>{% endif %}
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="id_username">Usuário</label>
+                    <input type="text" id="id_username" name="username" class="form-control"
+                           value="{{ form.username.value|default:'' }}"
+                           {% if form.instance.pk %}disabled{% endif %} required>
+                    {% if form.username.errors %}<small style="color: var(--coral);">{{ form.username.errors.0 }}</small>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_password">Senha {% if form.instance.pk %}(deixe vazio para manter){% endif %}</label>
+                    <input type="password" id="id_password" name="password" class="form-control"
+                           {% if not form.instance.pk %}required{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" name="ativo" {% if form.instance.pk and form.instance.ativo or not form.instance.pk %}checked{% endif %}>
+                    Professor ativo
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="btn btn-primary">
+                    {% if form.instance.pk %}Salvar Alterações{% else %}Cadastrar Professor{% endif %}
+                </button>
+                <a href="{% url 'gestao:professor_list' %}" class="btn btn-outline">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

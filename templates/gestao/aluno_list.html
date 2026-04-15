@@ -1,0 +1,50 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}Alunos — Gestão{% endblock %}
+{% block page_title %}👦 Alunos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Alunos</h1>
+    <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Novo Aluno</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Turma</th>
+                        <th>Year</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aluno in alunos %}
+                    <tr>
+                        <td><strong>{{ aluno.nome }}</strong></td>
+                        <td><span class="badge badge-purple">Turma {{ aluno.turma.year }}{{ aluno.turma.nome }}</span></td>
+                        <td>Year {{ aluno.turma.year }}</td>
+                        <td>
+                            <a href="{% url 'gestao:aluno_edit' aluno.pk %}" class="btn btn-sm btn-outline">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <div class="icon">👦</div>
+                                <h3>Nenhum aluno</h3>
+                                <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary mt-2">+ Novo Aluno</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

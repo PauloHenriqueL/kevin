@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Conteúdos — Bebelingue{% endblock %}
+{% block page_title %}🎨 Biblioteca de Conteúdos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Biblioteca de Conteúdos</h1>
+    <a href="#" class="btn btn-primary">+ Novo Conteúdo</a>
+</div>
+
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-icon purple">🎵</div>
+        <div class="stat-info">
+            <h3>{{ total_musicas }}</h3>
+            <p>Músicas</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon coral">🎬</div>
+        <div class="stat-info">
+            <h3>{{ total_videos }}</h3>
+            <p>Vídeos</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mint">📄</div>
+        <div class="stat-info">
+            <h3>{{ total_textos }}</h3>
+            <p>Textos</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mustard">🖼️</div>
+        <div class="stat-info">
+            <h3>{{ total_imagens }}</h3>
+            <p>Imagens</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Conteúdo</th>
+                        <th>Tipo</th>
+                        <th>Criado por</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conteudo in conteudos %}
+                    <tr>
+                        <td>
+                            <strong>{{ conteudo.titulo }}</strong>
+                            {% if conteudo.descricao %}
+                                <div class="text-muted text-sm">{{ conteudo.descricao|truncatewords:10 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if conteudo.tipo == 'musica' %}
+                                <span class="badge badge-purple">🎵 Música</span>
+                            {% elif conteudo.tipo == 'video' %}
+                                <span class="badge badge-coral">🎬 Vídeo</span>
+                            {% elif conteudo.tipo == 'texto' %}
+                                <span class="badge badge-mint">📄 Texto</span>
+                            {% elif conteudo.tipo == 'audio' %}
+                                <span class="badge badge-mustard">🔊 Áudio</span>
+                            {% elif conteudo.tipo == 'imagem' %}
+                                <span class="badge badge-gray">🖼️ Imagem</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ conteudo.criado_por.user.get_full_name|default:conteudo.criado_por.user.username }}</td>
+                        <td class="text-muted text-sm">{{ conteudo.created_at|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <div class="icon">🎨</div>
+                                <h3>Biblioteca vazia</h3>
+                                <p>Crie o primeiro conteúdo para a biblioteca comunitária.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

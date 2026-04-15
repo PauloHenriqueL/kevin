@@ -1,0 +1,68 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}Professores — Gestão{% endblock %}
+{% block page_title %}👩‍🏫 Professores{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Professores</h1>
+    <a href="{% url 'gestao:professor_create' %}" class="btn btn-primary">+ Novo Professor</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Professor</th>
+                        <th>Email</th>
+                        <th>Usuário</th>
+                        <th>Turmas</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prof in professores %}
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                                    {{ prof.user.first_name|make_list|first|upper }}
+                                </div>
+                                <strong>{{ prof.user.get_full_name }}</strong>
+                            </div>
+                        </td>
+                        <td class="text-muted">{{ prof.user.email }}</td>
+                        <td><code>{{ prof.user.username }}</code></td>
+                        <td>{{ prof.turmas.count }}</td>
+                        <td>
+                            {% if prof.ativo %}
+                                <span class="badge badge-mint">Ativo</span>
+                            {% else %}
+                                <span class="badge badge-gray">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'gestao:professor_edit' prof.pk %}" class="btn btn-sm btn-outline">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="icon">👩‍🏫</div>
+                                <h3>Nenhum professor</h3>
+                                <p>Cadastre o primeiro professor da escola.</p>
+                                <a href="{% url 'gestao:professor_create' %}" class="btn btn-primary">+ Novo Professor</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

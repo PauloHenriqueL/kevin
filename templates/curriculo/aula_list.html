@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Aulas — Bebelingue{% endblock %}
+{% block page_title %}📚 Aulas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Currículo de Aulas</h1>
+    {% if user.role == 'admin' %}
+    <a href="#" class="btn btn-primary">+ Nova Aula</a>
+    {% endif %}
+</div>
+
+{% if years %}
+    {% for year, aulas in years.items %}
+    <h2 class="section-title mt-3">🎓 Year {{ year }}</h2>
+    <div class="aulas-grid mb-3">
+        {% for aula in aulas %}
+        <div class="aula-card">
+            <div class="aula-number">{{ aula.ordem }}</div>
+            <h3>{{ aula.titulo }}</h3>
+            <div class="aula-meta">
+                <span>📎 {{ aula.aula_conteudos.count }} conteúdos</span>
+                <span>📝 {{ aula.homeworks.count }} homeworks</span>
+            </div>
+            <div class="mt-2">
+                <a href="{% url 'chat:chat_page' %}?aula={{ aula.id }}" class="btn btn-sm btn-outline">
+                    🤖 Perguntar ao Kevin
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="icon">📚</div>
+                <h3>Nenhuma aula cadastrada</h3>
+                <p>O currículo será adicionado pelo administrador.</p>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

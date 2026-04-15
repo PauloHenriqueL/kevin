@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Kevin — Bebelingue{% endblock %}
+{% block page_title %}🤖 Chat Kevin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-content { max-width: 100%; padding-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Lista de conversas -->
+    <div class="chat-sidebar">
+        <div class="chat-sidebar-header">
+            <button class="btn btn-primary btn-sm" style="width: 100%;" onclick="novaConversa()">
+                + Nova Conversa
+            </button>
+        </div>
+        <div class="chat-list" id="chatList">
+            {% for conversa in conversas %}
+            <div class="chat-item {% if conversa.id == conversa_ativa.id %}active{% endif %}"
+                 onclick="window.location.href='{% url 'chat:chat_page' %}?conversa={{ conversa.id }}'">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-info">
+                    <div class="chat-title">
+                        {% if conversa.aula %}
+                            {{ conversa.aula.titulo|truncatewords:4 }}
+                        {% else %}
+                            Conversa livre
+                        {% endif %}
+                    </div>
+                    <div class="chat-preview">{{ conversa.created_at|date:"d/m/Y H:i" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding: 30px;">
+                <div class="icon">💬</div>
+                <p class="text-sm text-muted">Nenhuma conversa ainda</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Área principal do chat -->
+    <div class="chat-main">
+        <div class="chat-header">
+            <div class="kevin-avatar">🐝</div>
+            <div>
+                <h3>Kevin</h3>
+                <div class="status">● Online</div>
+            </div>
+            {% if conversa_ativa and conversa_ativa.aula %}
+            <div style="margin-left: auto;">
+                <span class="badge badge-purple">📚 {{ conversa_ativa.aula.titulo }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            {% if conversa_ativa %}
+                {% for msg in mensagens %}
+                <div class="message {{ msg.role }}">
+                    <div class="msg-avatar">
+                        {% if msg.role == 'assistant' %}🐝{% else %}{{ user.first_name|default:user.username|make_list|first|upper }}{% endif %}
+                    </div>
+                    <div>
+                        <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
+                        <div class="msg-time">{{ msg.created_at|date:"H:i" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="margin: auto;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">🐝</div>
+                    <h3>Olá! Eu sou o Kevin!</h3>
+                    <p>Seu assistente de ensino de idiomas. Selecione uma conversa ou crie uma nova para começar.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if conversa_ativa %}
+        <div class="chat-input-area">
+            <textarea id="msgInput"
+                      placeholder="Digite sua mensagem para o Kevin..."
+                      rows="1"
+                      onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();enviarMensagem();}"></textarea>
+            <button class="chat-send-btn" onclick="enviarMensagem()" title="Enviar">
+                ➤
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function getCookie(name) {
+        let value = '; ' + document.cookie;
+        let parts = value.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function novaConversa() {
+        const aulaId = new URLSearchParams(window.location.search).get('aula');
+        fetch('/api/chat/conversas/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ aula: aulaId || null }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            window.location.href = '?conversa=' + data.id;
+        });
+    }
+
+    function enviarMensagem() {
+        const input = document.getElementById('msgInput');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        // Mostra mensagem do usuário imediatamente
+        const msgHtml = `
+            <div class="message user">
+                <div class="msg-avatar">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                <div>
+                    <div class="msg-bubble">${texto}</div>
+                    <div class="msg-time">agora</div>
+                </div>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+
+        // Mostra indicador de digitação
+        const typingHtml = `
+            <div class="message assistant" id="typing">
+                <div class="msg-avatar">🐝</div>
+                <div>
+                    <div class="msg-bubble" style="color: var(--text-muted);">Kevin está pensando...</div>
+                </div>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', typingHtml);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        input.value = '';
+
+        const conversaId = {{ conversa_ativa.id|default:"null" }};
+
+        fetch(`/api/chat/conversas/${conversaId}/mensagem/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ conteudo: texto, tipo: 'texto' }),
+        })
+        .then(r => r.json())
+        .then(() => {
+            // Poll para resposta da IA
+            pollResposta(conversaId);
+        });
+    }
+
+    function pollResposta(conversaId) {
+        let tentativas = 0;
+        const maxTentativas = 30;
+
+        const interval = setInterval(() => {
+            tentativas++;
+            fetch(`/api/chat/conversas/${conversaId}/`, {
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            })
+            .then(r => r.json())
+            .then(data => {
+                const msgs = data.mensagens;
+                if (msgs && msgs.length > 0) {
+                    const ultima = msgs[msgs.length - 1];
+                    if (ultima.role === 'assistant') {
+                        clearInterval(interval);
+                        const typing = document.getElementById('typing');
+                        if (typing) typing.remove();
+
+                        const respHtml = `
+                            <div class="message assistant">
+                                <div class="msg-avatar">🐝</div>
+                                <div>
+                                    <div class="msg-bubble">${ultima.conteudo}</div>
+                                    <div class="msg-time">agora</div>
+                                </div>
+                            </div>
+                        `;
+                        chatMessages.insertAdjacentHTML('beforeend', respHtml);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }
+            });
+
+            if (tentativas >= maxTentativas) {
+                clearInterval(interval);
+                const typing = document.getElementById('typing');
+                if (typing) {
+                    typing.querySelector('.msg-bubble').textContent = 'Desculpe, demorei demais. Tente novamente.';
+                }
+            }
+        }, 2000);
+    }
+</script>
+{% endblock %}

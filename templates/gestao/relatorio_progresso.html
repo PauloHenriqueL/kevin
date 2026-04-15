@@ -1,0 +1,89 @@
+{% extends "gestao/base_gestao.html" %}
+
+{% block title %}Progresso — Relatório{% endblock %}
+{% block page_title %}📈 Relatório de Progresso{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Progresso das Turmas</h1>
+</div>
+
+<!-- Resumo geral -->
+<div class="stats-grid mb-3">
+    <div class="stat-card">
+        <div class="stat-icon purple">📊</div>
+        <div class="stat-info">
+            <h3>{{ pct_geral }}%</h3>
+            <p>Progresso geral da escola</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mint">✅</div>
+        <div class="stat-info">
+            <h3>{{ total_concluidas }}</h3>
+            <p>Aulas concluídas (total)</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mustard">◐</div>
+        <div class="stat-info">
+            <h3>{{ total_parciais }}</h3>
+            <p>Aulas em andamento</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon coral">👥</div>
+        <div class="stat-info">
+            <h3>{{ total_turmas }}</h3>
+            <p>Turmas</p>
+        </div>
+    </div>
+</div>
+
+<!-- Progresso por turma -->
+{% for item in turmas_data %}
+<div class="card mb-2">
+    <div class="card-body" style="padding: 20px 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800;">
+                    {{ item.turma.year }}{{ item.turma.nome }}
+                </div>
+                <div>
+                    <strong>Turma {{ item.turma.year }}{{ item.turma.nome }}</strong>
+                    <div class="text-muted text-sm">
+                        {% if item.turma.professor %}
+                            Prof. {{ item.turma.professor.user.get_full_name }}
+                        {% else %}
+                            Sem professor
+                        {% endif %}
+                        &middot; {{ item.turma.alunos.count }} alunos
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 24px; font-weight: 800; color: {% if item.pct >= 70 %}var(--mint){% elif item.pct >= 30 %}var(--mustard-dark){% else %}var(--coral){% endif %};">{{ item.pct }}%</span>
+                <div class="text-muted text-sm">{{ item.concluidas }}/{{ item.total_aulas }}</div>
+            </div>
+        </div>
+        <div class="progress-bar" style="height: 10px;">
+            <div class="progress-fill {% if item.pct >= 70 %}green{% elif item.pct >= 30 %}yellow{% else %}purple{% endif %}" style="width: {{ item.pct }}%;"></div>
+        </div>
+        <div style="display: flex; gap: 16px; margin-top: 8px;">
+            <span class="text-sm"><span class="badge badge-mint" style="font-size: 11px;">✅ {{ item.concluidas }}</span> concluídas</span>
+            <span class="text-sm"><span class="badge badge-mustard" style="font-size: 11px;">◐ {{ item.parciais }}</span> em andamento</span>
+            <span class="text-sm"><span class="badge badge-gray" style="font-size: 11px;">○ {{ item.nao_iniciadas }}</span> não iniciadas</span>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <div class="icon">📈</div>
+            <h3>Nenhuma turma cadastrada</h3>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Meu Progresso — Bebelingue{% endblock %}
+{% block page_title %}Progresso das Turmas{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+    <h1 style="font-size: 1.6rem; font-weight: 900; color: var(--primary-dark);">Progresso das Minhas Turmas</h1>
+</div>
+
+{% for item in turmas_data %}
+<div class="card mb-3">
+    <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
+                {{ item.turma.year }}{{ item.turma.nome }}
+            </div>
+            <div>
+                <h2 style="font-size: 16px;">Turma {{ item.turma.year }}{{ item.turma.nome }}</h2>
+                <span class="text-muted text-sm">{{ item.turma.escola.nome }} &middot; {{ item.turma.alunos.count }} alunos</span>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--primary);">{{ item.pct }}%</div>
+            <span class="text-muted text-sm">concluído</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="progress-bar mb-2" style="height: 12px;">
+            <div class="progress-fill green" style="width: {{ item.pct }}%;"></div>
+        </div>
+        <div style="display: flex; gap: 24px;">
+            <div>
+                <span class="badge badge-mint">✅ {{ item.concluidas }}</span>
+                <span class="text-sm text-muted"> concluídas</span>
+            </div>
+            <div>
+                <span class="badge badge-mustard">◐ {{ item.parciais }}</span>
+                <span class="text-sm text-muted"> em andamento</span>
+            </div>
+            <div>
+                <span class="badge badge-gray">○ {{ item.nao_iniciadas }}</span>
+                <span class="text-sm text-muted"> não iniciadas</span>
+            </div>
+            <div style="margin-left: auto;">
+                <span class="text-sm text-muted">{{ item.concluidas }}/{{ item.total_aulas }} aulas</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <div class="icon">📈</div>
+            <h3>Nenhuma turma atribuída</h3>
+            <p>Você ainda não tem turmas para acompanhar o progresso.</p>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

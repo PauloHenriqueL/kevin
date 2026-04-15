@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block title %}{{ aula.titulo }} — Bebelingue{% endblock %}
+{% block page_title %}📖 {{ aula.titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-content {
+        max-width: 100%;
+        padding: 20px;
+        padding-top: calc(var(--navbar-height) + 20px);
+    }
+
+    .aula-layout {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 20px;
+        height: calc(100vh - var(--navbar-height) - 56px);
+    }
+
+    .aula-content {
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    .aula-hero {
+        background: linear-gradient(135deg, #2B7DE9 0%, #1A5FB4 100%);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        color: white;
+        margin-bottom: 24px;
+    }
+
+    .aula-hero .code {
+        font-size: 12px;
+        opacity: 0.7;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    .aula-hero h1 {
+        font-size: 1.6rem;
+        font-weight: 900;
+        margin: 8px 0 12px;
+    }
+
+    .aula-hero p {
+        font-size: 15px;
+        opacity: 0.9;
+        line-height: 1.6;
+    }
+
+    .conteudo-item {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 12px;
+        transition: all 0.2s;
+    }
+
+    .conteudo-item:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateX(4px);
+    }
+
+    .conteudo-numero {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-bg);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .conteudo-tipo-icon {
+        font-size: 20px;
+    }
+
+    /* Chat lateral */
+    .chat-panel {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-panel .chat-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    .chat-panel .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .chat-panel .chat-input-area {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        flex-shrink: 0;
+    }
+
+    .chat-panel .chat-input-area textarea {
+        flex: 1;
+        padding: 10px 12px;
+        border: 2px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-family: inherit;
+        font-size: 13px;
+        resize: none;
+        min-height: 40px;
+        max-height: 100px;
+        color: var(--text);
+    }
+
+    .chat-panel .chat-input-area textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .audio-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: var(--surface);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .audio-btn:hover {
+        border-color: var(--coral);
+        background: var(--coral-light);
+    }
+
+    .audio-btn.recording {
+        border-color: var(--coral);
+        background: var(--coral);
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4); }
+        50% { box-shadow: 0 0 0 12px rgba(255, 107, 107, 0); }
+    }
+
+    .message {
+        max-width: 85%;
+    }
+
+    .message .msg-bubble {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+
+    .msg-audio {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        font-size: 13px;
+    }
+
+    .msg-audio audio {
+        height: 32px;
+    }
+
+    @media (max-width: 1024px) {
+        .aula-layout {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+        .chat-panel {
+            height: 500px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 8px;">
+    <a href="{% url 'professor:turma_aulas' turma.id %}" class="text-muted text-sm">
+        ← Turma {{ turma.year }}{{ turma.nome }} — Aulas
+    </a>
+</div>
+
+<div class="aula-layout">
+    <!-- Conteúdo da Aula -->
+    <div class="aula-content">
+        <div class="aula-hero">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="code">{{ aula.codigo }} &middot; Year {{ aula.year }} &middot; Aula {{ aula.ordem }}</div>
+                    <h1>{{ aula.titulo }}</h1>
+                    <p>{{ aula.descricao }}</p>
+                </div>
+                <form method="post" action="{% url 'professor:atualizar_progresso' turma.id aula.codigo %}" style="flex-shrink: 0; margin-left: 16px;">
+                    {% csrf_token %}
+                    {% if progresso_status == 'concluida' %}
+                        <input type="hidden" name="status" value="parcial">
+                        <button type="submit" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.4);">
+                            ✅ Concluída — desfazer
+                        </button>
+                    {% else %}
+                        <input type="hidden" name="status" value="concluida">
+                        <button type="submit" class="btn" style="background: white; color: var(--primary); font-weight: 700;">
+                            Marcar como concluída ✓
+                        </button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <h2 class="section-title">📎 Conteúdos da Aula</h2>
+
+        {% for ac in conteudos %}
+        <div class="conteudo-item">
+            <div class="conteudo-numero">{{ ac.ordem }}</div>
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span class="conteudo-tipo-icon">
+                        {% if ac.conteudo.tipo == 'musica' %}🎵
+                        {% elif ac.conteudo.tipo == 'video' %}🎬
+                        {% elif ac.conteudo.tipo == 'texto' %}📄
+                        {% elif ac.conteudo.tipo == 'audio' %}🔊
+                        {% elif ac.conteudo.tipo == 'imagem' %}🖼️
+                        {% endif %}
+                    </span>
+                    <strong>{{ ac.conteudo.titulo }}</strong>
+                    <span class="badge badge-gray" style="font-size: 11px;">{{ ac.conteudo.get_tipo_display }}</span>
+                </div>
+                {% if ac.conteudo.descricao %}
+                <p class="text-muted text-sm">{{ ac.conteudo.descricao }}</p>
+                {% endif %}
+                {% if ac.conteudo.arquivo_url %}
+                <a href="{{ ac.conteudo.arquivo_url }}" target="_blank" class="btn btn-sm btn-outline mt-1">
+                    Abrir conteúdo ↗
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state" style="padding: 30px;">
+                    <div class="icon">📎</div>
+                    <h3>Nenhum conteúdo ainda</h3>
+                    <p>Esta aula ainda não tem conteúdos vinculados.</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if homeworks %}
+        <h2 class="section-title mt-3">📝 Homework</h2>
+        {% for hw in homeworks %}
+        <div class="card mb-2">
+            <div class="card-body">
+                <p><strong>Objetivo:</strong> {{ hw.objetivo }}</p>
+                {% if hw.vocabulario %}
+                <p class="mt-1"><strong>Vocabulário:</strong> {{ hw.vocabulario }}</p>
+                {% endif %}
+                {% if hw.gramatica %}
+                <p class="mt-1"><strong>Gramática:</strong> {{ hw.gramatica }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Chat Kevin -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--mustard), var(--coral)); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                🐝
+            </div>
+            <div>
+                <h3 style="font-size: 14px; font-weight: 600;">Kevin</h3>
+                <div style="font-size: 11px; color: var(--mint);">● Contexto: {{ aula.titulo }}</div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            {% if mensagens %}
+                {% for msg in mensagens %}
+                <div class="message {{ msg.role }}">
+                    <div class="msg-avatar" style="width: 28px; height: 28px; font-size: 12px;">
+                        {% if msg.role == 'assistant' %}🐝{% else %}{{ user.first_name|default:user.username|make_list|first|upper }}{% endif %}
+                    </div>
+                    <div>
+                        {% if msg.tipo == 'audio' %}
+                        <div class="msg-bubble msg-audio">
+                            🔊 <audio controls src="{{ msg.conteudo }}"></audio>
+                        </div>
+                        {% else %}
+                        <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
+                        {% endif %}
+                        <div class="msg-time">{{ msg.created_at|date:"H:i" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="margin: auto; padding: 20px;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🐝</div>
+                    <h3 style="font-size: 14px;">Kevin está pronto!</h3>
+                    <p style="font-size: 12px;">Já conheço o conteúdo desta aula. Pergunte qualquer coisa!</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="chat-input-area">
+            <textarea id="msgInput"
+                      placeholder="Pergunte ao Kevin sobre esta aula..."
+                      rows="1"
+                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagem();}"></textarea>
+            <button class="audio-btn" id="audioBtn" onclick="toggleGravacao()" title="Gravar áudio">
+                🎤
+            </button>
+            <button class="chat-send-btn" onclick="enviarMensagem()" title="Enviar" style="width: 40px; height: 40px; font-size: 16px;">
+                ➤
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const conversaId = {{ conversa.id }};
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // Scroll para o fim
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    function getCookie(name) {
+        let value = '; ' + document.cookie;
+        let parts = value.split('; ' + name + '=');
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // ── Enviar texto ──
+    function enviarMensagem() {
+        const input = document.getElementById('msgInput');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        adicionarMensagem('user', texto);
+        mostrarDigitando();
+        input.value = '';
+
+        fetch(`/api/chat/conversas/${conversaId}/mensagem/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ conteudo: texto, tipo: 'texto' }),
+        })
+        .then(r => r.json())
+        .then(() => pollResposta());
+    }
+
+    // ── Gravar áudio ──
+    function toggleGravacao() {
+        if (isRecording) {
+            pararGravacao();
+        } else {
+            iniciarGravacao();
+        }
+    }
+
+    function iniciarGravacao() {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                enviarAudio(blob);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            document.getElementById('audioBtn').classList.add('recording');
+            document.getElementById('audioBtn').innerHTML = '⏹';
+        })
+        .catch(() => alert('Permita o acesso ao microfone para gravar áudio.'));
+    }
+
+    function pararGravacao() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        isRecording = false;
+        document.getElementById('audioBtn').classList.remove('recording');
+        document.getElementById('audioBtn').innerHTML = '🎤';
+    }
+
+    function enviarAudio(blob) {
+        adicionarMensagem('user', '🎤 Áudio enviado...', true);
+        mostrarDigitando();
+
+        const formData = new FormData();
+        formData.append('audio', blob, 'audio.webm');
+        formData.append('conversa_id', conversaId);
+
+        fetch(`/api/chat/conversas/${conversaId}/audio/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(() => pollResposta());
+    }
+
+    // ── UI helpers ──
+    function adicionarMensagem(role, texto, isAudio = false) {
+        const avatar = role === 'assistant' ? '🐝' : '{{ user.first_name|default:user.username|make_list|first|upper }}';
+        const html = `
+            <div class="message ${role}">
+                <div class="msg-avatar" style="width:28px;height:28px;font-size:12px;">${avatar}</div>
+                <div>
+                    <div class="msg-bubble">${texto}</div>
+                    <div class="msg-time">agora</div>
+                </div>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', html);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function mostrarDigitando() {
+        const html = `
+            <div class="message assistant" id="typing">
+                <div class="msg-avatar" style="width:28px;height:28px;font-size:12px;">🐝</div>
+                <div>
+                    <div class="msg-bubble" style="color:var(--text-muted);">Kevin está pensando...</div>
+                </div>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', html);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function pollResposta() {
+        let tentativas = 0;
+        const interval = setInterval(() => {
+            tentativas++;
+            fetch(`/api/chat/conversas/${conversaId}/`, {
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            })
+            .then(r => r.json())
+            .then(data => {
+                const msgs = data.mensagens;
+                if (msgs && msgs.length > 0) {
+                    const ultima = msgs[msgs.length - 1];
+                    if (ultima.role === 'assistant') {
+                        clearInterval(interval);
+                        const typing = document.getElementById('typing');
+                        if (typing) typing.remove();
+                        adicionarMensagem('assistant', ultima.conteudo);
+                    }
+                }
+            });
+            if (tentativas >= 30) {
+                clearInterval(interval);
+                const typing = document.getElementById('typing');
+                if (typing) typing.querySelector('.msg-bubble').textContent = 'Kevin demorou demais. Tente novamente.';
+            }
+        }, 2000);
+    }
+</script>
+{% endblock %}

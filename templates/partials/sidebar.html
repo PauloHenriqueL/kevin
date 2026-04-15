@@ -1,0 +1,78 @@
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo">🐝</div>
+        <div>
+            <h1>Bebelingue</h1>
+            <span>Plataforma de Idiomas</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        {% if user.role == 'professor' %}
+        <!-- ── Menu do Professor ── -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Minhas Turmas</div>
+            <a href="{% url 'professor:years' %}" class="sidebar-link {% if request.resolver_match.url_name == 'years' or request.resolver_match.url_name == 'turmas_year' or request.resolver_match.url_name == 'turma_aulas' or request.resolver_match.url_name == 'aula_detail' %}active{% endif %}">
+                <span class="icon">👥</span> Years & Turmas
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Consulta</div>
+            <a href="{% url 'professor:todas_aulas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'todas_aulas' %}active{% endif %}">
+                <span class="icon">📚</span> Todas as Aulas
+            </a>
+            <a href="{% url 'professor:biblioteca' %}" class="sidebar-link {% if request.resolver_match.url_name == 'biblioteca' %}active{% endif %}">
+                <span class="icon">🎨</span> Biblioteca
+            </a>
+            <a href="{% url 'professor:meu_progresso' %}" class="sidebar-link {% if request.resolver_match.url_name == 'meu_progresso' %}active{% endif %}">
+                <span class="icon">📈</span> Progresso das Turmas
+            </a>
+        </div>
+        {% endif %}
+
+        {% if user.role == 'admin' or user.role == 'escola' %}
+        <!-- ── Menu de Gestão ── -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Gestão</div>
+            <a href="{% url 'escolas:escola_list' %}" class="sidebar-link {% if 'escola' in request.resolver_match.url_name %}active{% endif %}">
+                <span class="icon">🏫</span> Escolas
+            </a>
+            <a href="{% url 'escolas:professor_list' %}" class="sidebar-link {% if 'professor' in request.resolver_match.url_name %}active{% endif %}">
+                <span class="icon">👩‍🏫</span> Professores
+            </a>
+            <a href="{% url 'escolas:turma_list' %}" class="sidebar-link {% if 'turma' in request.resolver_match.url_name %}active{% endif %}">
+                <span class="icon">👥</span> Turmas
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Currículo</div>
+            <a href="{% url 'curriculo:aula_list' %}" class="sidebar-link {% if 'aula' in request.resolver_match.url_name %}active{% endif %}">
+                <span class="icon">📚</span> Aulas
+            </a>
+            <a href="{% url 'curriculo:conteudo_list' %}" class="sidebar-link {% if 'conteudo' in request.resolver_match.url_name %}active{% endif %}">
+                <span class="icon">🎨</span> Conteúdos
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="avatar">
+                {{ user.first_name|default:user.username|make_list|first|upper }}
+            </div>
+            <div class="info">
+                <div class="name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="role-badge">{{ user.get_role_display }}</div>
+            </div>
+        </div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="sidebar-link mt-1" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit;">
+                <span class="icon">🚪</span> Sair
+            </button>
+        </form>
+    </div>
+</aside>

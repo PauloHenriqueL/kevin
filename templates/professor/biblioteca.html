@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Biblioteca — Bebelingue{% endblock %}
+{% block page_title %}Biblioteca de Conteúdos{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+    <h1 style="font-size: 1.6rem; font-weight: 900; color: var(--primary-dark);">Biblioteca de Conteúdos</h1>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body" style="padding: 16px 24px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+                <label>Buscar</label>
+                <input type="text" name="q" class="form-control" placeholder="Nome do conteúdo..." value="{{ q }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; min-width: 160px;">
+                <label>Tipo</label>
+                <select name="tipo" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="musica" {% if tipo_filtro == 'musica' %}selected{% endif %}>🎵 Música</option>
+                    <option value="video" {% if tipo_filtro == 'video' %}selected{% endif %}>🎬 Vídeo</option>
+                    <option value="texto" {% if tipo_filtro == 'texto' %}selected{% endif %}>📄 Texto</option>
+                    <option value="audio" {% if tipo_filtro == 'audio' %}selected{% endif %}>🔊 Áudio</option>
+                    <option value="imagem" {% if tipo_filtro == 'imagem' %}selected{% endif %}>🖼️ Imagem</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+            {% if q or tipo_filtro %}
+            <a href="{% url 'professor:biblioteca' %}" class="btn btn-outline btn-sm">Limpar</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Conteúdo</th>
+                        <th>Tipo</th>
+                        <th>Criado por</th>
+                        <th>Data</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conteudo in conteudos %}
+                    <tr>
+                        <td>
+                            <strong>{{ conteudo.titulo }}</strong>
+                            {% if conteudo.descricao %}
+                                <div class="text-muted text-sm">{{ conteudo.descricao|truncatewords:12 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if conteudo.tipo == 'musica' %}
+                                <span class="badge badge-purple">🎵 Música</span>
+                            {% elif conteudo.tipo == 'video' %}
+                                <span class="badge badge-coral">🎬 Vídeo</span>
+                            {% elif conteudo.tipo == 'texto' %}
+                                <span class="badge badge-mint">📄 Texto</span>
+                            {% elif conteudo.tipo == 'audio' %}
+                                <span class="badge badge-mustard">🔊 Áudio</span>
+                            {% elif conteudo.tipo == 'imagem' %}
+                                <span class="badge badge-gray">🖼️ Imagem</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted text-sm">{{ conteudo.criado_por.user.get_full_name|default:conteudo.criado_por.user.username }}</td>
+                        <td class="text-muted text-sm">{{ conteudo.created_at|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if conteudo.arquivo_url %}
+                            <a href="{{ conteudo.arquivo_url }}" target="_blank" class="btn btn-sm btn-outline">Abrir ↗</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="icon">🎨</div>
+                                <h3>Nenhum conteúdo encontrado</h3>
+                                {% if q or tipo_filtro %}
+                                <p>Tente ajustar os filtros.</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

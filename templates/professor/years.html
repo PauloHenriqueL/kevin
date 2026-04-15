@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Escolher Year — Bebelingue{% endblock %}
+{% block page_title %}Escolher Year{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 10px;" class="fade-in">
+    <div style="font-size: 60px; margin-bottom: 10px;">🐝</div>
+    <h1 style="font-size: 1.8rem; font-weight: 900; color: var(--primary-dark);">
+        Olá, {{ user.first_name|default:user.username }}!
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 1.05rem;">Qual year vai trabalhar hoje?</p>
+</div>
+
+<div class="stats-grid fade-in">
+    {% for year_info in years %}
+    <a href="{% url 'professor:turmas_year' year_info.year %}" style="text-decoration: none;">
+        <div class="year-card-big">
+            <div class="year-card-icon {{ year_info.color }}">
+                {{ year_info.emoji }}
+            </div>
+            <h3>Year {{ year_info.year }}</h3>
+            <p>{{ year_info.total_aulas }} aulas &middot; {{ year_info.total_turmas }} turma{{ year_info.total_turmas|pluralize:"s" }}</p>
+        </div>
+    </a>
+    {% empty %}
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="icon">📚</div>
+                <h3>Nenhum year disponível</h3>
+                <p>O currículo ainda não foi cadastrado pelo administrador.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

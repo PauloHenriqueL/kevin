@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestão — Bebelingue{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+    <style>
+        .sidebar {
+            background: linear-gradient(180deg, #1E293B 0%, #0F172A 50%, #020617 100%);
+        }
+        .sidebar-link.active {
+            box-shadow: inset 3px 0 0 var(--mustard);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo">🏫</div>
+                <div>
+                    <h1>Gestão</h1>
+                    <span>{{ request.escola.nome }}</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Painel</div>
+                    <a href="{% url 'gestao:dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <span class="icon">📊</span> Dashboard
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Cadastros</div>
+                    <a href="{% url 'gestao:professor_list' %}" class="sidebar-link {% if 'professor_list' == request.resolver_match.url_name or 'professor_create' == request.resolver_match.url_name or 'professor_edit' == request.resolver_match.url_name %}active{% endif %}">
+                        <span class="icon">👩‍🏫</span> Professores
+                    </a>
+                    <a href="{% url 'gestao:turma_list' %}" class="sidebar-link {% if 'turma_list' == request.resolver_match.url_name or 'turma_create' == request.resolver_match.url_name or 'turma_edit' == request.resolver_match.url_name %}active{% endif %}">
+                        <span class="icon">👥</span> Turmas
+                    </a>
+                    <a href="{% url 'gestao:aluno_list' %}" class="sidebar-link {% if 'aluno_list' == request.resolver_match.url_name or 'aluno_create' == request.resolver_match.url_name or 'aluno_edit' == request.resolver_match.url_name %}active{% endif %}">
+                        <span class="icon">👦</span> Alunos
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Relatórios</div>
+                    <a href="{% url 'gestao:relatorio_progresso' %}" class="sidebar-link {% if 'relatorio_progresso' == request.resolver_match.url_name %}active{% endif %}">
+                        <span class="icon">📈</span> Progresso
+                    </a>
+                    <a href="{% url 'gestao:relatorio_professores' %}" class="sidebar-link {% if 'relatorio_professores' == request.resolver_match.url_name %}active{% endif %}">
+                        <span class="icon">👩‍🏫</span> Professores
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="avatar" style="background: var(--coral);">
+                        {{ user.first_name|default:user.username|make_list|first|upper }}
+                    </div>
+                    <div class="info">
+                        <div class="name">{{ user.get_full_name|default:user.username }}</div>
+                        <div class="role-badge">Diretor(a)</div>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="sidebar-link mt-1" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit;">
+                        <span class="icon">🚪</span> Sair
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="navbar">
+            <h2 class="navbar-title">{% block page_title %}Gestão{% endblock %}</h2>
+            <div class="navbar-actions">
+                {% block navbar_actions %}{% endblock %}
+            </div>
+        </div>
+
+        <main class="main-content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

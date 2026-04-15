@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Bebelingue{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Olá, {{ user.first_name|default:user.username }}! 👋</h1>
+</div>
+
+<div class="stats-grid">
+    {% if user.role == 'admin' %}
+    <div class="stat-card">
+        <div class="stat-icon purple">🏫</div>
+        <div class="stat-info">
+            <h3>{{ total_escolas }}</h3>
+            <p>Escolas ativas</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon coral">👩‍🏫</div>
+        <div class="stat-info">
+            <h3>{{ total_professores }}</h3>
+            <p>Professores</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="stat-card">
+        <div class="stat-icon mint">👥</div>
+        <div class="stat-info">
+            <h3>{{ total_turmas }}</h3>
+            <p>Turmas</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mustard">👦</div>
+        <div class="stat-info">
+            <h3>{{ total_alunos }}</h3>
+            <p>Alunos</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">📚</div>
+        <div class="stat-info">
+            <h3>{{ total_aulas }}</h3>
+            <p>Aulas no currículo</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon coral">🎨</div>
+        <div class="stat-info">
+            <h3>{{ total_conteudos }}</h3>
+            <p>Conteúdos na biblioteca</p>
+        </div>
+    </div>
+</div>
+
+{% if user.role == 'professor' and turmas %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h2>📋 Minhas Turmas</h2>
+        <a href="{% url 'escolas:turma_list' %}" class="btn btn-sm btn-outline">Ver todas</a>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Turma</th>
+                        <th>Year</th>
+                        <th>Alunos</th>
+                        <th>Progresso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turma in turmas %}
+                    <tr>
+                        <td><strong>Turma {{ turma.year }}{{ turma.nome }}</strong></td>
+                        <td><span class="badge badge-purple">Year {{ turma.year }}</span></td>
+                        <td>{{ turma.alunos.count }} alunos</td>
+                        <td>
+                            <div class="progress-bar" style="width: 120px;">
+                                <div class="progress-fill green" style="width: {{ turma.progresso_pct|default:0 }}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h2>🤖 Chat Kevin</h2>
+        </div>
+        <div class="card-body text-center" style="padding: 40px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🐝</div>
+            <h3 style="margin-bottom: 8px;">Fale com o Kevin!</h3>
+            <p class="text-muted text-sm" style="margin-bottom: 20px;">
+                Seu assistente de IA para preparar aulas, tirar dúvidas e criar conteúdos.
+            </p>
+            <a href="{% url 'chat:chat_page' %}" class="btn btn-primary">
+                Iniciar conversa
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>📚 Próximas Aulas</h2>
+        </div>
+        <div class="card-body">
+            {% if proximas_aulas %}
+                {% for aula in proximas_aulas %}
+                <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--border);{% endif %}">
+                    <div class="aula-number" style="width: 36px; height: 36px; font-size: 14px;">{{ aula.ordem }}</div>
+                    <div>
+                        <strong style="font-size: 14px;">{{ aula.titulo }}</strong>
+                        <div class="text-muted text-sm">Year {{ aula.year }} — Aula {{ aula.ordem }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="padding: 30px;">
+                    <p class="text-muted">Nenhuma aula pendente</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
