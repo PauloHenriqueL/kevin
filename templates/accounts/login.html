@@ -1,63 +1,54 @@
-{% load static %}
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Bebelingue</title>
+    <title>Login — Kevin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📘%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=10">
 </head>
 <body>
-    <div class="login-page">
-        <div class="login-left">
-            <div class="login-mascot">🐝</div>
-            <h1>Bebelingue</h1>
-            <p>Plataforma de ensino de idiomas para crianças. Aprender brincando com o Kevin!</p>
-        </div>
+    {% include "partials/splash.html" %}
 
-        <div class="login-right">
-            <div class="login-card">
-                <h2>Bem-vindo de volta!</h2>
-                <p class="subtitle">Entre com suas credenciais para acessar a plataforma.</p>
+    <div class="login-page">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+            <div class="login-hero">
+                <img src="{% static 'img/kevin_tela_login.png' %}" alt="Kevin">
+            </div>
+            <div class="login-container">
+                <h1 class="login-title">Kevin</h1>
+                <p class="login-subtitle">Plataforma BeBilingue — entre para começar sua aula.</p>
 
                 {% if form.errors %}
-                    <div class="alert alert-error">
-                        <span>⚠️</span>
+                    <div class="toast error" style="position:static; margin-bottom:16px;">
                         Usuário ou senha incorretos. Tente novamente.
                     </div>
                 {% endif %}
 
-                <form method="post">
+                <form method="post" id="login-form">
                     {% csrf_token %}
-
                     <div class="form-group">
                         <label for="id_username">Usuário</label>
-                        <input type="text"
-                               id="id_username"
-                               name="username"
-                               class="form-control"
-                               placeholder="Seu nome de usuário"
-                               autofocus
-                               required>
+                        <input type="text" id="id_username" name="username" placeholder="seu usuário" autofocus required>
                     </div>
-
                     <div class="form-group">
                         <label for="id_password">Senha</label>
-                        <input type="password"
-                               id="id_password"
-                               name="password"
-                               class="form-control"
-                               placeholder="Sua senha"
-                               required>
+                        <input type="password" id="id_password" name="password" placeholder="••••••••" required>
                     </div>
-
-                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;">
-                        Entrar na plataforma
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-full">Entrar</button>
                 </form>
+
+                <details style="margin-top: 24px; font-size: 0.85rem; color: var(--texto-sec);">
+                    <summary style="cursor: pointer; font-weight: 700;">Credenciais de teste</summary>
+                    <div style="padding: 12px; background: var(--azul-claro); border-radius: 10px; margin-top: 8px; line-height: 1.8;">
+                        <div><strong>admin</strong> / admin123 — superusuário</div>
+                        <div><strong>carlos</strong> / dir123 — diretor</div>
+                        <div><strong>maria</strong> / prof123 — professora</div>
+                    </div>
+                </details>
             </div>
         </div>
     </div>

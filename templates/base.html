@@ -1,45 +1,68 @@
-{% load static %}
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Bebelingue{% endblock %}</title>
+    <title>{% block title %}Kevin — Bebelingue{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📘%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=10">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="app-layout">
-        {% include "partials/sidebar.html" %}
+    {% include "partials/splash.html" %}
 
-        <div class="navbar">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 20px;">🐝</span>
-                <h2 class="navbar-title">{% block page_title %}Dashboard{% endblock %}</h2>
+    {% if user.is_authenticated and show_topbar|default_if_none:True %}
+    <header class="topbar">
+        <div class="topbar-brand" onclick="window.location='{% url 'dashboard' %}'">
+            <div class="topbar-brand-avatar">
+                <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
             </div>
-            <div class="navbar-actions">
-                <div style="text-align: right;">
-                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--text);">{{ user.get_full_name|default:user.username }}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: capitalize;">{{ user.get_role_display }}</div>
-                </div>
-            </div>
+            <h1>Kevin</h1>
         </div>
 
-        <main class="main-content">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+        <nav class="topbar-nav">
+            {% block topbar_nav %}
+                {% if user.role == 'professor' %}
+                    <a class="nav-link {% if active_nav == 'years' %}active{% endif %}" href="{% url 'professor:years' %}">Aulas</a>
+                    <a class="nav-link {% if active_nav == 'biblioteca' %}active{% endif %}" href="{% url 'professor:biblioteca' %}">Biblioteca</a>
+                    <a class="nav-link {% if active_nav == 'meu_progresso' %}active{% endif %}" href="{% url 'professor:meu_progresso' %}">Meu progresso</a>
+                {% elif user.role == 'escola' %}
+                    <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="{% url 'gestao:dashboard' %}">Dashboard</a>
+                    <a class="nav-link {% if active_nav == 'professores' %}active{% endif %}" href="{% url 'gestao:professor_list' %}">Professores</a>
+                    <a class="nav-link {% if active_nav == 'turmas' %}active{% endif %}" href="{% url 'gestao:turma_list' %}">Turmas</a>
+                    <a class="nav-link {% if active_nav == 'alunos' %}active{% endif %}" href="{% url 'gestao:aluno_list' %}">Alunos</a>
+                    <a class="nav-link {% if active_nav == 'relatorios' %}active{% endif %}" href="{% url 'gestao:relatorio_progresso' %}">Relatórios</a>
+                {% endif %}
+            {% endblock %}
+        </nav>
 
-            {% block content %}{% endblock %}
-        </main>
+        <div class="topbar-user">
+            <div class="topbar-user-info">
+                <div class="topbar-user-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="topbar-user-role">{{ user.get_role_display }}</div>
+            </div>
+            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                {% csrf_token %}
+                <button class="btn-logout" type="submit">Sair</button>
+            </form>
+        </div>
+    </header>
+    {% endif %}
+
+    {% if messages %}
+    <div class="toast-stack" style="position:fixed; top:80px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:9999;">
+        {% for message in messages %}
+            <div class="toast {% if message.tags == 'error' %}error{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
     </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
 
     {% block extra_js %}{% endblock %}
 </body>

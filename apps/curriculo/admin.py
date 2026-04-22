@@ -15,9 +15,22 @@ class HomeworkInline(admin.StackedInline):
 
 @admin.register(Aula)
 class AulaAdmin(admin.ModelAdmin):
-    list_display = ('titulo', 'year', 'ordem')
-    list_filter = ('year',)
+    list_display = ('codigo', 'titulo', 'year', 'unit', 'week', 'class_num')
+    list_filter = ('year', 'unit', 'week')
+    search_fields = ('codigo', 'titulo')
     inlines = [AulaConteudoInline, HomeworkInline]
+    fieldsets = (
+        (None, {
+            'fields': ('codigo', 'year', 'unit', 'week', 'class_num', 'titulo', 'descricao'),
+            'description': 'O código é gerado automaticamente no formato Y{year}U{unit}W{week}C{class}.',
+        }),
+        ('Roteiro pedagógico (enviado à IA)', {
+            'fields': ('warm_up', 'development', 'closure'),
+            'description': 'Estes três campos compõem o contexto pedagógico que '
+                           'o Kevin recebe. A "descrição" acima NÃO é enviada à IA.',
+        }),
+    )
+    readonly_fields = ('codigo',)
 
 
 @admin.register(Conteudo)

@@ -10,6 +10,24 @@ from apps.curriculo.models import Aula, AulaConteudo, Conteudo, ProgressoTurma
 from .models import Turma
 
 
+def _criar_mensagem_boas_vindas(conversa, aula):
+    return Mensagem.objects.create(
+        conversa=conversa,
+        role='assistant',
+        tipo='texto',
+        conteudo=(
+            f'Olá! Sou o Kevin 🐝\n\n'
+            f'Já estou por dentro do conteúdo da aula **{aula.titulo}**.\n\n'
+            f'Posso te ajudar com:\n'
+            f'- Dicas de como apresentar os conteúdos\n'
+            f'- Sugestões de atividades\n'
+            f'- Tradução e pronúncia\n'
+            f'- Ideias para o homework\n\n'
+            f'É só perguntar!'
+        ),
+    )
+
+
 class YearsView(ProfessorRequiredMixin, TemplateView):
     """Professor escolhe o Year."""
     template_name = 'professor/years.html'
@@ -127,16 +145,8 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
             aula=aula,
         )
 
-        # Se a conversa acabou de ser criada, envia o contexto da aula
-        # como primeira mensagem do sistema
         if created:
-            contexto = aula.get_contexto_completo()
-            Mensagem.objects.create(
-                conversa=conversa,
-                role='assistant',
-                tipo='texto',
-                conteudo=f'Olá! Sou o Kevin 🐝\n\nJá estou por dentro do conteúdo da aula **{aula.titulo}**.\n\nPosso te ajudar com:\n- Dicas de como apresentar os conteúdos\n- Sugestões de atividades\n- Tradução e pronúncia\n- Ideias para o homework\n\nÉ só perguntar!',
-            )
+            _criar_mensagem_boas_vindas(conversa, aula)
 
         mensagens = Mensagem.objects.filter(conversa=conversa).order_by('created_at')
 
@@ -235,6 +245,29 @@ class AtualizarProgressoView(ProfessorRequiredMixin, View):
         if progresso.status != novo_status:
             progresso.status = novo_status
             progresso.save()
+
+        return redirect('professor:aula_detail', turma_id=turma.id, aula_codigo=aula.codigo)
+
+
+class ResetAulaView(ProfessorRequiredMixin, View):
+    """
+    POST: reseta a aula para aquela turma do zero.
+    - Apaga o ProgressoTurma (na próxima abertura volta a 'parcial').
+    - Limpa o histórico de chat com o Kevin para essa aula e recria
+      a mensagem inicial de boas-vindas.
+    """
+
+    def post(self, request, turma_id, aula_codigo):
+        professor = request.user.professor
+        turma = get_object_or_404(Turma, id=turma_id, professor=professor)
+        aula = get_object_or_404(Aula, codigo=aula_codigo)
+
+        ProgressoTurma.objects.filter(turma=turma, aula=aula).delete()
+
+        conversa = Conversa.objects.filter(professor=professor, aula=aula).first()
+        if conversa:
+            Mensagem.objects.filter(conversa=conversa).delete()
+            _criar_mensagem_boas_vindas(conversa, aula)
 
         return redirect('professor:aula_detail', turma_id=turma.id, aula_codigo=aula.codigo)
 

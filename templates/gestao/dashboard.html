@@ -1,87 +1,72 @@
 {% extends "gestao/base_gestao.html" %}
-
 {% block title %}Dashboard — {{ request.escola.nome }}{% endblock %}
-{% block page_title %}📊 Dashboard{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1>{{ request.escola.nome }}</h1>
-</div>
+{% block gestao_heading %}Dashboard 📊{% endblock %}
+{% block gestao_subheading %}<p>{{ request.escola.nome }}</p>{% endblock %}
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon coral">👩‍🏫</div>
-        <div class="stat-info">
-            <h3>{{ total_professores }}</h3>
-            <p>Professores ativos</p>
-        </div>
+{% block gestao_body %}
+<div class="home-cards" style="margin-bottom: 24px;">
+    <div class="home-card card-lessons">
+        <div class="home-card-icon">👩‍🏫</div>
+        <h3>{{ total_professores }}</h3>
+        <p>Professor{{ total_professores|pluralize:"es" }} ativo{{ total_professores|pluralize:"s" }}</p>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon purple">👥</div>
-        <div class="stat-info">
-            <h3>{{ total_turmas }}</h3>
-            <p>Turmas</p>
-        </div>
+    <div class="home-card card-admin-add">
+        <div class="home-card-icon">👥</div>
+        <h3>{{ total_turmas }}</h3>
+        <p>Turma{{ total_turmas|pluralize:"s" }}</p>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon mint">👦</div>
-        <div class="stat-info">
-            <h3>{{ total_alunos }}</h3>
-            <p>Alunos</p>
-        </div>
+    <div class="home-card card-help">
+        <div class="home-card-icon">👦</div>
+        <h3>{{ total_alunos }}</h3>
+        <p>Aluno{{ total_alunos|pluralize:"s" }} matriculado{{ total_alunos|pluralize:"s" }}</p>
     </div>
 </div>
 
-<div class="grid-2">
-    <div class="card">
-        <div class="card-header">
-            <h2>👩‍🏫 Professores</h2>
-            <a href="{% url 'gestao:professor_create' %}" class="btn btn-sm btn-primary">+ Novo</a>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+    <div class="help-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">👩‍🏫 Professores</h3>
+            <a href="{% url 'gestao:professor_create' %}" class="btn btn-primary" style="padding: 8px 14px; font-size: 0.85rem;">+ Novo</a>
         </div>
-        <div class="card-body">
-            {% for prof in professores %}
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--border);{% endif %}">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
-                        {{ prof.user.first_name|make_list|first|upper }}
+        {% for prof in professores %}
+            <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--cinza-borda);{% endif %}">
+                <div style="display:flex; align-items:center; gap: 10px;">
+                    <div class="msg-avatar user-avatar" style="width:36px; height:36px; font-size:0.85rem;">
+                        {{ prof.user.first_name|make_list|first|default:prof.user.username|make_list|first|upper }}
                     </div>
                     <div>
-                        <strong style="font-size: 14px;">{{ prof.user.get_full_name }}</strong>
-                        <div class="text-muted text-sm">{{ prof.user.email }}</div>
+                        <strong style="font-size: 0.9rem;">{{ prof.user.get_full_name|default:prof.user.username }}</strong>
+                        <div style="color: var(--texto-sec); font-size: 0.8rem;">{{ prof.user.email|default:"—" }}</div>
                     </div>
                 </div>
-                {% if prof.ativo %}
-                    <span class="badge badge-mint">Ativo</span>
-                {% else %}
-                    <span class="badge badge-gray">Inativo</span>
-                {% endif %}
+                <span class="year-badge" style="background: {% if prof.ativo %}#DCFCE7; color: var(--verde){% else %}#F1F5F9; color: #64748B{% endif %};">
+                    {% if prof.ativo %}ATIVO{% else %}INATIVO{% endif %}
+                </span>
             </div>
-            {% empty %}
-            <p class="text-muted text-center">Nenhum professor cadastrado</p>
-            {% endfor %}
-        </div>
+        {% empty %}
+            <p style="color: var(--texto-sec); text-align:center;">Nenhum professor cadastrado</p>
+        {% endfor %}
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h2>👥 Turmas</h2>
-            <a href="{% url 'gestao:turma_create' %}" class="btn btn-sm btn-primary">+ Nova</a>
+    <div class="help-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">👥 Turmas</h3>
+            <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary" style="padding: 8px 14px; font-size: 0.85rem;">+ Nova</a>
         </div>
-        <div class="card-body">
-            {% for turma in turmas %}
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--border);{% endif %}">
+        {% for turma in turmas %}
+            <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--cinza-borda);{% endif %}">
                 <div>
-                    <strong style="font-size: 14px;">Turma {{ turma.year }}{{ turma.nome }}</strong>
-                    <div class="text-muted text-sm">
-                        {% if turma.professor %}{{ turma.professor.user.get_full_name }}{% else %}Sem professor{% endif %}
+                    <strong style="font-size: 0.9rem;">Turma {{ turma.year }}{{ turma.nome }}</strong>
+                    <div style="color: var(--texto-sec); font-size: 0.8rem;">
+                        {% if turma.professor %}{{ turma.professor.user.get_full_name|default:turma.professor.user.username }}{% else %}Sem professor{% endif %}
                     </div>
                 </div>
-                <span class="badge badge-purple">{{ turma.alunos.count }} alunos</span>
+                <span class="year-badge" style="background: var(--azul-claro); color: var(--azul);">{{ turma.alunos.count }} ALUNOS</span>
             </div>
-            {% empty %}
-            <p class="text-muted text-center">Nenhuma turma cadastrada</p>
-            {% endfor %}
-        </div>
+        {% empty %}
+            <p style="color: var(--texto-sec); text-align:center;">Nenhuma turma cadastrada</p>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

@@ -62,49 +62,52 @@ def _montar_historico(conversa):
     ]
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=10)
-def processar_mensagem_ia(self, conversa_id, mensagem_usuario):
+def responder_ia_sync(conversa_id):
     """
-    Task: recebe texto do professor → chama IA → salva resposta.
+    Chama a IA com o contexto atual da conversa e salva a resposta.
+    Retorna o objeto Mensagem criado (role=assistant).
+
+    Pensado para ser chamado tanto da task Celery quanto de uma view
+    síncrona (modo conversação por áudio, hands-free).
     """
     from apps.chat.models import Conversa, Mensagem
     from apps.chat.providers import get_ia_provider
 
+    conversa = Conversa.objects.select_related(
+        'professor__escola__plano',
+        'aula',
+    ).get(id=conversa_id)
+
+    plano = conversa.professor.escola.plano
+    system_prompt = _montar_contexto(conversa)
+    historico = _montar_historico(conversa)
+
+    provider = get_ia_provider(
+        provider_name=plano.ia_provider,
+        api_key=plano.ia_api_key,
+        modelo=plano.ia_modelo,
+    )
+
+    resposta = provider.chat(
+        system_prompt=system_prompt,
+        mensagens=historico,
+    )
+
+    return Mensagem.objects.create(
+        conversa=conversa,
+        role='assistant',
+        tipo='texto',
+        conteudo=resposta,
+    )
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+def processar_mensagem_ia(self, conversa_id, mensagem_usuario):
+    """Task: recebe texto do professor → chama IA → salva resposta."""
     try:
-        conversa = Conversa.objects.select_related(
-            'professor__escola__plano',
-            'aula',
-        ).get(id=conversa_id)
-
-        plano = conversa.professor.escola.plano
-        system_prompt = _montar_contexto(conversa)
-        historico = _montar_historico(conversa)
-
-        provider = get_ia_provider(
-            provider_name=plano.ia_provider,
-            api_key=plano.ia_api_key,
-            modelo=plano.ia_modelo,
-        )
-
-        resposta = provider.chat(
-            system_prompt=system_prompt,
-            mensagens=historico,
-        )
-
-        Mensagem.objects.create(
-            conversa=conversa,
-            role='assistant',
-            tipo='texto',
-            conteudo=resposta,
-        )
-
-        logger.info(
-            'Mensagem texto processada: conversa=%s provider=%s',
-            conversa_id, plano.ia_provider,
-        )
-
+        responder_ia_sync(conversa_id)
+        logger.info('Mensagem texto processada: conversa=%s', conversa_id)
         return {'conversa_id': conversa_id, 'status': 'respondido'}
-
     except Exception as exc:
         logger.error('Erro ao processar mensagem: %s', exc)
         raise self.retry(exc=exc)

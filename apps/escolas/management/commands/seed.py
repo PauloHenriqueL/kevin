@@ -21,6 +21,8 @@ class Command(BaseCommand):
                 'ia_api_key': 'sk-test-key',
                 'tts_provider': 'elevenlabs',
                 'tts_api_key': 'tts-test-key',
+                'tts_voice_id': '21m00Tcm4TlvDq8ikWAM',
+                'tts_modelo': 'eleven_multilingual_v2',
                 'stt_provider': 'openai_whisper',
                 'stt_api_key': 'stt-test-key',
             },
@@ -34,6 +36,8 @@ class Command(BaseCommand):
                 'ia_api_key': 'sk-test-key',
                 'tts_provider': 'openai_tts',
                 'tts_api_key': 'tts-test-key',
+                'tts_voice_id': '',
+                'tts_modelo': 'alloy',
                 'stt_provider': 'openai_whisper',
                 'stt_api_key': 'stt-test-key',
             },
@@ -169,14 +173,29 @@ class Command(BaseCommand):
             ('Classroom Objects', 'Objetos da sala de aula. Book, Pencil, Eraser, Ruler, Scissors, Glue, Notebook, Backpack, Desk, Chair. "Can I have a...?", "Where is the...?".'),
         ]
 
+        # Para demo: U1W1C{class_num} — mesma unit/week, classes 1..N
         for year, aulas_data in [(1, aulas_y1), (2, aulas_y2)]:
-            for ordem, (titulo, descricao) in enumerate(aulas_data, 1):
+            for class_num, (titulo, descricao) in enumerate(aulas_data, 1):
                 Aula.objects.get_or_create(
                     year=year,
-                    ordem=ordem,
+                    unit=1,
+                    week=1,
+                    class_num=class_num,
                     defaults={
                         'titulo': titulo,
                         'descricao': descricao,
+                        'warm_up': (
+                            f'Cumprimente a turma de forma animada em inglês. '
+                            f'Introduza o tema "{titulo}" com uma pergunta curta '
+                            f'ou uma música de abertura. Ative o conhecimento prévio '
+                            f'dos alunos sobre o assunto.'
+                        ),
+                        'development': descricao,
+                        'closure': (
+                            f'Revise rapidamente o vocabulário principal de "{titulo}". '
+                            f'Peça para 2-3 alunos usarem uma frase em inglês com o que '
+                            f'aprenderam. Conduza a música de despedida.'
+                        ),
                     },
                 )
         self.stdout.write(f'  Aulas: {len(aulas_y1)} (Year 1) + {len(aulas_y2)} (Year 2)')

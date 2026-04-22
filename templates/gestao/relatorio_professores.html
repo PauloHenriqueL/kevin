@@ -1,67 +1,67 @@
 {% extends "gestao/base_gestao.html" %}
-
 {% block title %}Professores — Relatório{% endblock %}
-{% block page_title %}👩‍🏫 Relatório de Professores{% endblock %}
+{% block gestao_heading %}Desempenho dos professores 👩‍🏫{% endblock %}
+{% block gestao_subheading %}<p>Total de turmas, alunos e aulas concluídas por professor.</p>{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1>Desempenho dos Professores</h1>
-</div>
+{% block extra_css %}
+<style>
+    .mini-progress { flex:1; height: 8px; background: var(--azul-claro); border-radius: 999px; overflow: hidden; }
+    .mini-progress > div { height: 100%; border-radius: 999px; }
+    .fill-g { background: linear-gradient(90deg, var(--verde), #22c55e); }
+    .fill-y { background: linear-gradient(90deg, var(--amarelo), #f59e0b); }
+    .fill-r { background: linear-gradient(90deg, var(--vermelho), #ef4444); }
+</style>
+{% endblock %}
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Professor</th>
-                        <th>Turmas</th>
-                        <th>Alunos</th>
-                        <th>Aulas Concluídas</th>
-                        <th>Progresso</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in prof_data %}
-                    <tr>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">
-                                    {{ item.professor.user.first_name|make_list|first|upper }}
-                                </div>
-                                <div>
-                                    <strong>{{ item.professor.user.get_full_name }}</strong>
-                                    <div class="text-muted text-sm">{{ item.professor.user.email }}</div>
-                                </div>
+{% block gestao_body %}
+<div class="help-card" style="padding: 0; overflow: hidden;">
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="padding-left: 24px;">Professor</th>
+                <th>Turmas</th>
+                <th>Alunos</th>
+                <th>Aulas concluídas</th>
+                <th style="padding-right: 24px;">Progresso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in prof_data %}
+                <tr>
+                    <td style="padding-left: 24px;">
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <div class="msg-avatar user-avatar" style="width:36px; height:36px; font-size: 0.85rem;">
+                                {{ item.professor.user.first_name|make_list|first|default:item.professor.user.username|make_list|first|upper }}
                             </div>
-                        </td>
-                        <td>{{ item.total_turmas }}</td>
-                        <td>{{ item.total_alunos }}</td>
-                        <td>{{ item.total_concluidas }}/{{ item.total_aulas }}</td>
-                        <td style="min-width: 160px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div class="progress-bar" style="flex: 1; height: 8px;">
-                                    <div class="progress-fill {% if item.pct >= 70 %}green{% elif item.pct >= 30 %}yellow{% else %}purple{% endif %}" style="width: {{ item.pct }}%;"></div>
-                                </div>
-                                <span style="font-weight: 700; font-size: 14px; color: {% if item.pct >= 70 %}var(--mint){% elif item.pct >= 30 %}var(--mustard-dark){% else %}var(--coral){% endif %}; min-width: 40px; text-align: right;">
-                                    {{ item.pct }}%
-                                </span>
+                            <div>
+                                <strong>{{ item.professor.user.get_full_name|default:item.professor.user.username }}</strong>
+                                <div style="color: var(--texto-sec); font-size: 0.8rem;">{{ item.professor.user.email|default:"—" }}</div>
                             </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5">
-                            <div class="empty-state">
-                                <div class="icon">👩‍🏫</div>
-                                <h3>Nenhum professor</h3>
+                        </div>
+                    </td>
+                    <td>{{ item.total_turmas }}</td>
+                    <td>{{ item.total_alunos }}</td>
+                    <td>{{ item.total_concluidas }}/{{ item.total_aulas }}</td>
+                    <td style="min-width: 200px; padding-right: 24px;">
+                        <div style="display:flex; align-items:center; gap: 8px;">
+                            <div class="mini-progress">
+                                <div class="{% if item.pct >= 70 %}fill-g{% elif item.pct >= 30 %}fill-y{% else %}fill-r{% endif %}" style="width: {{ item.pct }}%;"></div>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+                            <span style="font-weight: 800; font-size: 0.9rem; color: {% if item.pct >= 70 %}var(--verde){% elif item.pct >= 30 %}var(--amarelo){% else %}var(--vermelho){% endif %}; min-width: 44px; text-align: right;">
+                                {{ item.pct }}%
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 3rem;">👩‍🏫</div>
+                        <h3>Nenhum professor cadastrado</h3>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

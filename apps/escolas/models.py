@@ -47,6 +47,18 @@ class Plano(models.Model):
         default='',
         help_text='API key do provedor de TTS',
     )
+    tts_voice_id = models.CharField(
+        max_length=100,
+        default='',
+        blank=True,
+        help_text='ElevenLabs voice_id. Ex: 21m00Tcm4TlvDq8ikWAM',
+    )
+    tts_modelo = models.CharField(
+        max_length=100,
+        default='eleven_multilingual_v2',
+        blank=True,
+        help_text='ElevenLabs model_id (ex: eleven_multilingual_v2) ou voz do OpenAI TTS (ex: alloy, nova).',
+    )
 
     # STT (Áudio → Texto)
     stt_provider = models.CharField(

@@ -19,7 +19,7 @@ class EscolaRequiredMixin(RoleRequiredMixin):
 
 
 class ProfessorRequiredMixin(RoleRequiredMixin):
-    allowed_roles = ['admin', 'escola', 'professor']
+    allowed_roles = ['professor']
 
 
 class EscolaFilterMixin:

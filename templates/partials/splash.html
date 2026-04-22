@@ -1,0 +1,29 @@
+{% load static %}
+{# Splash de carregamento — aparece 1x por sessão #}
+<script>
+  (function () {
+    if (sessionStorage.getItem('kv-splash-shown')) {
+      document.documentElement.dataset.splashSkip = '1';
+    }
+  })();
+</script>
+<div id="kv-splash" class="splash-screen" data-splash-root>
+  <img src="{% static 'img/kevin_tela_chat.png' %}" alt="Kevin">
+  <div class="splash-bar"><span></span></div>
+  <div class="splash-label">Carregando</div>
+</div>
+<script>
+  (function () {
+    const el = document.getElementById('kv-splash');
+    if (!el) return;
+    if (document.documentElement.dataset.splashSkip === '1') {
+      el.classList.add('is-hidden');
+      return;
+    }
+    // Após a animação, marca a sessão e remove do DOM
+    setTimeout(() => {
+      sessionStorage.setItem('kv-splash-shown', '1');
+      el.classList.add('is-hidden');
+    }, 1100);
+  })();
+</script>

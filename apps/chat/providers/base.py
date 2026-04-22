@@ -21,8 +21,10 @@ class BaseIAProvider(ABC):
 
 
 class BaseTTSProvider(ABC):
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, voice_id: str = '', modelo: str = ''):
         self.api_key = api_key
+        self.voice_id = voice_id
+        self.modelo = modelo
 
     @abstractmethod
     def sintetizar(self, texto: str) -> bytes:

@@ -26,3 +26,9 @@ media/
 
 place.txt
 CLAUDE.md
+
+# Claude Code / ferramentas locais
+.claude/
+
+# Áudios de teste locais (não fazem parte do app)
+audios/

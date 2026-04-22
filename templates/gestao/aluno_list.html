@@ -1,50 +1,34 @@
 {% extends "gestao/base_gestao.html" %}
-
 {% block title %}Alunos — Gestão{% endblock %}
-{% block page_title %}👦 Alunos{% endblock %}
+{% block gestao_heading %}Alunos 👦{% endblock %}
+{% block gestao_subheading %}<p>{{ alunos|length }} matriculado{{ alunos|length|pluralize:"s" }} em {{ request.escola.nome }}</p>{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1>Alunos</h1>
-    <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Novo Aluno</a>
-</div>
+{% block gestao_actions %}
+<a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Novo aluno</a>
+{% endblock %}
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Aluno</th>
-                        <th>Turma</th>
-                        <th>Year</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for aluno in alunos %}
-                    <tr>
-                        <td><strong>{{ aluno.nome }}</strong></td>
-                        <td><span class="badge badge-purple">Turma {{ aluno.turma.year }}{{ aluno.turma.nome }}</span></td>
-                        <td>Year {{ aluno.turma.year }}</td>
-                        <td>
-                            <a href="{% url 'gestao:aluno_edit' aluno.pk %}" class="btn btn-sm btn-outline">Editar</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4">
-                            <div class="empty-state">
-                                <div class="icon">👦</div>
-                                <h3>Nenhum aluno</h3>
-                                <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary mt-2">+ Novo Aluno</a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block gestao_body %}
+<div class="help-card">
+    {% for aluno in alunos %}
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 0; {% if not forloop.last %}border-bottom:1px solid var(--cinza-borda);{% endif %}">
+            <div class="msg-avatar user-avatar" style="width:40px; height:40px; background: var(--amarelo); color: #7C2D12;">
+                {{ aluno.nome|make_list|first|upper }}
+            </div>
+            <div style="flex: 1;">
+                <strong>{{ aluno.nome }}</strong>
+            </div>
+            <span class="year-badge" style="background: var(--azul-claro); color: var(--azul);">
+                TURMA {{ aluno.turma.year }}{{ aluno.turma.nome }}
+            </span>
+            <a href="{% url 'gestao:aluno_edit' aluno.pk %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Editar</a>
         </div>
-    </div>
+    {% empty %}
+        <div style="text-align:center; padding: 40px 20px;">
+            <div style="font-size: 3rem;">👦</div>
+            <h3>Nenhum aluno cadastrado</h3>
+            <p style="color: var(--texto-sec); margin-bottom: 16px;">Adicione o primeiro aluno da escola.</p>
+            <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Cadastrar aluno</a>
+        </div>
+    {% endfor %}
 </div>
 {% endblock %}

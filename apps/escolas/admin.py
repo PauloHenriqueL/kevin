@@ -9,7 +9,7 @@ class PlanoAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('nome', 'valor_mensal')}),
         ('IA (Chat Kevin)', {'fields': ('ia_provider', 'ia_modelo', 'ia_api_key')}),
-        ('TTS (Texto → Áudio)', {'fields': ('tts_provider', 'tts_api_key')}),
+        ('TTS (Texto → Áudio)', {'fields': ('tts_provider', 'tts_api_key', 'tts_voice_id', 'tts_modelo')}),
         ('STT (Áudio → Texto)', {'fields': ('stt_provider', 'stt_api_key')}),
     )
 

@@ -1,45 +1,27 @@
 {% extends "base.html" %}
-
 {% block title %}Year {{ year }} — Turmas{% endblock %}
-{% block page_title %}Year {{ year }} — Turmas{% endblock %}
 
 {% block content %}
-<div class="page-header fade-in">
-    <div>
-        <a href="{% url 'professor:years' %}" class="btn-back">← Voltar aos Years</a>
-        <h1 style="font-size: 1.6rem; font-weight: 900; color: var(--primary-dark);">Year {{ year }} — Escolha a turma</h1>
+<main class="page-content fade-in">
+    <a href="{% url 'professor:years' %}" class="btn-back">← Voltar aos years</a>
+    <div class="page-header">
+        <h2>Year {{ year }} — escolha a turma</h2>
+        <p>{{ turmas|length }} turma{{ turmas|length|pluralize:"s" }} atribuída{{ turmas|length|pluralize:"s" }} a você neste year.</p>
     </div>
-</div>
 
-<div class="stats-grid fade-in">
-    {% for turma in turmas %}
-    <a href="{% url 'professor:turma_aulas' turma.id %}" style="text-decoration: none;">
-        <div class="year-card-big" style="text-align: left;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                <div style="width: 52px; height: 52px; border-radius: var(--radius); background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
-                    {{ turma.year }}{{ turma.nome }}
-                </div>
-                <div>
-                    <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--text); margin: 0;">Turma {{ turma.year }}{{ turma.nome }}</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">{{ turma.escola.nome }}</p>
-                </div>
-            </div>
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <span class="badge badge-mint">👦 {{ turma.alunos.count }} alunos</span>
-                <span class="badge badge-purple">📚 {{ total_aulas }} aulas</span>
-            </div>
-        </div>
-    </a>
-    {% empty %}
-    <div class="card" style="grid-column: 1 / -1;">
-        <div class="card-body">
-            <div class="empty-state">
-                <div class="icon">👥</div>
+    <div class="home-cards">
+        {% for turma in turmas %}
+            <a href="{% url 'professor:turma_aulas' turma.id %}" class="home-card card-lessons" style="text-decoration:none; color:inherit;">
+                <div class="home-card-icon">👦</div>
+                <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
+                <p>{{ turma.escola.nome }}<br>{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }} · {{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</p>
+            </a>
+        {% empty %}
+            <div class="help-card" style="grid-column: 1 / -1;">
                 <h3>Nenhuma turma no Year {{ year }}</h3>
-                <p>Você não tem turmas atribuídas para este year.</p>
+                <p style="color: var(--texto-sec);">Você não tem turmas atribuídas para este year.</p>
             </div>
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
+</main>
 {% endblock %}

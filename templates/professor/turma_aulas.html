@@ -1,55 +1,48 @@
 {% extends "base.html" %}
-
 {% block title %}Turma {{ turma.year }}{{ turma.nome }} — Aulas{% endblock %}
-{% block page_title %}Turma {{ turma.year }}{{ turma.nome }} — Aulas{% endblock %}
 
 {% block content %}
-<div class="page-header fade-in">
-    <div>
-        <a href="{% url 'professor:turmas_year' turma.year %}" class="btn-back">← Voltar às turmas do Year {{ turma.year }}</a>
-        <h1 style="font-size: 1.6rem; font-weight: 900; color: var(--primary-dark);">Aulas — Turma {{ turma.year }}{{ turma.nome }}</h1>
-        <p style="color: var(--text-secondary);">{{ turma.escola.nome }} &middot; {{ turma.alunos.count }} alunos</p>
+<main class="page-content fade-in">
+    <a href="{% url 'professor:turmas_year' turma.year %}" class="btn-back">← Voltar às turmas do Year {{ turma.year }}</a>
+    <div class="page-header">
+        <h2>Aulas — Turma {{ turma.year }}{{ turma.nome }}</h2>
+        <p>{{ turma.escola.nome }} · {{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</p>
     </div>
-</div>
 
-<div class="aulas-grid fade-in">
     {% for aula in aulas %}
-    <a href="{% url 'professor:aula_detail' turma.id aula.codigo %}" style="text-decoration: none; color: inherit;">
-        <div class="aula-card">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div class="aula-number">{{ aula.ordem }}</div>
-                <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">{{ aula.codigo }}</span>
+        <div class="lesson-list-item {% if forloop.counter0 == 0 %}open{% endif %}">
+            <div class="lesson-list-header" onclick="this.parentElement.classList.toggle('open')">
+                <div>
+                    <h4>{{ aula.codigo }} — {{ aula.titulo }}</h4>
+                    <div style="font-size: 0.8rem; color: var(--texto-sec); margin-top: 4px;">
+                        Year {{ aula.year }} · Unit {{ aula.unit }} · Week {{ aula.week }} · Class {{ aula.class_num }} ·
+                        {% if aula.progresso_status == 'concluida' %}
+                            <span style="color: var(--verde); font-weight: 700;">✓ Concluída</span>
+                        {% elif aula.progresso_status == 'parcial' %}
+                            <span style="color: var(--amarelo); font-weight: 700;">◐ Em andamento</span>
+                        {% else %}
+                            <span style="color: var(--texto-sec);">○ Não iniciada</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="toggle-icon">▼</span>
             </div>
-            <h3 style="font-weight: 800; color: var(--text);">{{ aula.titulo }}</h3>
-            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                {{ aula.descricao|truncatewords:20 }}
-            </p>
-            <div class="aula-meta mt-2">
-                <span>📎 {{ aula.aula_conteudos.count }} conteúdos</span>
-                <span>📝 {{ aula.homeworks.count }} homeworks</span>
-            </div>
-            {% if aula.progresso_status %}
-            <div class="mt-2">
-                {% if aula.progresso_status == 'concluida' %}
-                    <span class="badge badge-mint">✓ Concluída</span>
-                {% elif aula.progresso_status == 'parcial' %}
-                    <span class="badge badge-mustard">◐ Em andamento</span>
-                {% else %}
-                    <span class="badge badge-gray">○ Não iniciada</span>
+            <div class="lesson-list-body">
+                {% if aula.descricao %}
+                    <div class="lesson-detail-label">Descrição</div>
+                    <div class="lesson-detail-value">{{ aula.descricao|truncatewords:40 }}</div>
                 {% endif %}
+                <div class="lesson-detail-label">Conteúdos</div>
+                <div class="lesson-detail-value">{{ aula.aula_conteudos.count }} item{{ aula.aula_conteudos.count|pluralize:"s" }} · {{ aula.homeworks.count }} homework{{ aula.homeworks.count|pluralize:"s" }}</div>
+                <div style="margin-top: 16px;">
+                    <a class="btn btn-primary" href="{% url 'professor:aula_detail' turma.id aula.codigo %}">Abrir aula com o Kevin →</a>
+                </div>
             </div>
-            {% endif %}
         </div>
-    </a>
     {% empty %}
-    <div class="card" style="grid-column: 1 / -1;">
-        <div class="card-body">
-            <div class="empty-state">
-                <div class="icon">📚</div>
-                <h3>Nenhuma aula para o Year {{ turma.year }}</h3>
-            </div>
+        <div class="help-card">
+            <h3>Nenhuma aula cadastrada para o Year {{ turma.year }}</h3>
         </div>
-    </div>
     {% endfor %}
-</div>
+</main>
 {% endblock %}

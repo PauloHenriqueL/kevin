@@ -1,65 +1,40 @@
 {% extends "gestao/base_gestao.html" %}
-
 {% block title %}Turmas — Gestão{% endblock %}
-{% block page_title %}👥 Turmas{% endblock %}
+{% block gestao_heading %}Turmas 👥{% endblock %}
+{% block gestao_subheading %}<p>{{ turmas|length }} turma{{ turmas|length|pluralize:"s" }} em {{ request.escola.nome }}</p>{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1>Turmas</h1>
-    <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova Turma</a>
-</div>
+{% block gestao_actions %}
+<a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova turma</a>
+{% endblock %}
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Turma</th>
-                        <th>Year</th>
-                        <th>Professor</th>
-                        <th>Alunos</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for turma in turmas %}
-                    <tr>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">
-                                    {{ turma.year }}{{ turma.nome }}
-                                </div>
-                                <strong>Turma {{ turma.year }}{{ turma.nome }}</strong>
-                            </div>
-                        </td>
-                        <td><span class="badge badge-purple">Year {{ turma.year }}</span></td>
-                        <td>
-                            {% if turma.professor %}
-                                {{ turma.professor.user.get_full_name }}
-                            {% else %}
-                                <span class="badge badge-mustard">Sem professor</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ turma.alunos.count }}</td>
-                        <td>
-                            <a href="{% url 'gestao:turma_edit' turma.pk %}" class="btn btn-sm btn-outline">Editar</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5">
-                            <div class="empty-state">
-                                <div class="icon">👥</div>
-                                <h3>Nenhuma turma</h3>
-                                <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary mt-2">+ Nova Turma</a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block gestao_body %}
+<div class="home-cards">
+    {% for turma in turmas %}
+        <div class="home-card card-admin-add" style="cursor: default;">
+            <div class="home-card-icon" style="background: var(--azul-claro); width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; color: var(--azul); font-weight: 900; font-size: 1.3rem;">
+                {{ turma.year }}{{ turma.nome }}
+            </div>
+            <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
+            <p>
+                {% if turma.professor %}
+                    {{ turma.professor.user.get_full_name|default:turma.professor.user.username }}
+                {% else %}
+                    <em style="color: var(--vermelho);">Sem professor</em>
+                {% endif %}
+                <br>
+                <span style="color: var(--texto-sec);">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</span>
+            </p>
+            <div style="margin-top: 12px;">
+                <a href="{% url 'gestao:turma_edit' turma.pk %}" class="btn btn-secondary" style="padding:6px 14px; font-size: 0.85rem;">Editar</a>
+            </div>
         </div>
-    </div>
+    {% empty %}
+        <div class="help-card" style="grid-column: 1 / -1; text-align: center;">
+            <div style="font-size: 3rem;">👥</div>
+            <h3>Nenhuma turma cadastrada</h3>
+            <p style="color: var(--texto-sec); margin-bottom: 16px;">Crie a primeira turma da escola.</p>
+            <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova turma</a>
+        </div>
+    {% endfor %}
 </div>
 {% endblock %}

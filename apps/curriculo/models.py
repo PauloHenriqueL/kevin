@@ -1,47 +1,87 @@
-import string
-import random
 from django.db import models
 
 
+def montar_codigo_aula(year, unit, week, class_num):
+    """Gera o código estruturado Y{year}U{unit}W{week}C{class_num}."""
+    return f'Y{year}U{unit}W{week}C{class_num}'
+
+
 def gerar_codigo_aula():
-    """Gera código único tipo UIS13DS (7 caracteres alfanuméricos maiúsculos)."""
-    chars = string.ascii_uppercase + string.digits
-    return ''.join(random.choices(chars, k=7))
+    """Shim: referenciado por migração antiga (0002). Não é mais usado em runtime —
+    o `codigo` é agora recomputado em Aula.save() a partir de year/unit/week/class_num.
+    """
+    return ''
 
 
 class Aula(models.Model):
     codigo = models.CharField(
-        max_length=10,
+        max_length=20,
         unique=True,
-        default=gerar_codigo_aula,
-        help_text='Código único da aula (ex: UIS13DS)',
+        editable=False,
+        help_text='Gerado automaticamente no formato Y1U1W1C1.',
     )
-    year = models.IntegerField(help_text='Ano do currículo')
-    ordem = models.IntegerField(help_text='Sequência dentro do ano')
+    year = models.IntegerField(help_text='Year (1, 2, 3, …)')
+    unit = models.IntegerField(default=1, help_text='Unit dentro do Year')
+    week = models.IntegerField(default=1, help_text='Week dentro da Unit')
+    class_num = models.IntegerField(default=1, help_text='Class dentro da Week')
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(
         default='',
-        help_text='Descrição detalhada do que será discutido na aula',
+        blank=True,
+        help_text='Descrição para exibição no app. NÃO é enviada à IA.',
+    )
+    warm_up = models.TextField(
+        default='',
+        blank=True,
+        help_text='Roteiro do WARM UP (10-15 min) — enviado à IA como contexto.',
+    )
+    development = models.TextField(
+        default='',
+        blank=True,
+        help_text='Roteiro do DEVELOPMENT (30-40 min) — enviado à IA como contexto.',
+    )
+    closure = models.TextField(
+        default='',
+        blank=True,
+        help_text='Roteiro do CLOSURE (5-10 min) — enviado à IA como contexto.',
     )
 
     class Meta:
         verbose_name = 'Aula'
         verbose_name_plural = 'Aulas'
-        unique_together = [('year', 'ordem')]
-        ordering = ['year', 'ordem']
+        unique_together = [('year', 'unit', 'week', 'class_num')]
+        ordering = ['year', 'unit', 'week', 'class_num']
 
     def __str__(self):
-        return f'[{self.codigo}] Year {self.year} — Aula {self.ordem}: {self.titulo}'
+        return f'[{self.codigo}] {self.titulo}'
+
+    def save(self, *args, **kwargs):
+        self.codigo = montar_codigo_aula(self.year, self.unit, self.week, self.class_num)
+        super().save(*args, **kwargs)
 
     def get_contexto_completo(self):
-        """Retorna todo o contexto da aula para enviar à IA."""
+        """Retorna todo o contexto da aula para enviar à IA.
+
+        A descrição (campo `descricao`) é apenas para exibição e NÃO vai pra IA.
+        Os roteiros das três fases (warm_up, development, closure) são o contexto
+        pedagógico efetivo.
+        """
         conteudos = self.aula_conteudos.select_related('conteudo').order_by('ordem')
         homeworks = self.homeworks.all()
 
         contexto = f'AULA: {self.titulo}\n'
         contexto += f'Código: {self.codigo}\n'
-        contexto += f'Year: {self.year} | Aula {self.ordem}\n'
-        contexto += f'Descrição: {self.descricao}\n\n'
+        contexto += (
+            f'Year: {self.year} | Unit: {self.unit} | '
+            f'Week: {self.week} | Class: {self.class_num}\n\n'
+        )
+
+        if self.warm_up.strip():
+            contexto += f'WARM UP:\n{self.warm_up.strip()}\n\n'
+        if self.development.strip():
+            contexto += f'DEVELOPMENT:\n{self.development.strip()}\n\n'
+        if self.closure.strip():
+            contexto += f'CLOSURE:\n{self.closure.strip()}\n\n'
 
         if conteudos:
             contexto += 'CONTEÚDOS DA AULA:\n'
