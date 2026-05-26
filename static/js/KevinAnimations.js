@@ -1,129 +1,101 @@
 /**
- * KevinAnimations — Animações e efeitos do Kevin reutilizáveis
- * Usa KevinRig para controlar o SVG
+ * KevinAnimations — Animações compostas (estilo realista)
+ *
+ *   talk(ms)   → boca + sway + braços gesticulando + cauda balançando
+ *   listen(ms) → cabeça inclinada, olhos focam no usuário
+ *   thinking() → cabeça pro outro lado + olhos pra cima + piscadas
+ *   greet()    → acenar com a mão + piscar + nod + fala curta
  */
 class KevinAnimations {
   constructor(rig) {
     this.rig = rig;
   }
 
-  /**
-   * Faz Kevin "falar" — anima boca enquanto responde
-   * @param {number} durationMs - Duração da fala em ms
-   */
+  /** Kevin fala: boca + sway + braços + cauda + olhos vivos */
   talk(durationMs = 3000) {
+    if (!this.rig.canAnimate) return;
     this.rig.animateTalkingSequence(durationMs);
+    this.rig.startSway(durationMs, 14);
+    this.rig.startArmGestures(durationMs);
+    this.rig.startTailWag(durationMs);
+    // Pisca uma vez no meio
+    setTimeout(() => this.rig.blink(), durationMs / 2);
   }
 
-  /**
-   * Pisca os olhos com intervalo
-   * @param {number} count - Quantas vezes piscar
-   * @param {number} intervalMs - Intervalo entre piscadas
-   */
-  async blinkMultiple(count = 2, intervalMs = 300) {
+  /** Kevin escuta: cabeça inclinada, olhos focam no chat (lado direito) */
+  listen(durationMs = 3000) {
+    if (!this.rig.canAnimate) return;
+    this.nodHead(7, 500);
+    // Olhos olham levemente pra direita (em direção ao chat)
+    this.rig.eyeMovementActive = false; // pausa movimento idle
+    this.rig.movePupils(4, 1);
+    setTimeout(() => {
+      this.nodHead(0, 400);
+      this.rig.eyeMovementActive = true; // retoma
+      this.rig.startIdleEyeMovement();
+    }, durationMs);
+  }
+
+  /** Kevin pensa: cabeça pro outro lado + olhos pra cima + piscadas */
+  thinking(durationMs = 1500) {
+    if (!this.rig.canAnimate) return;
+    this.nodHead(-8, 400);
+    this.rig.eyeMovementActive = false;
+    this.rig.movePupils(-3, -3); // olhos pra cima e esquerda (pensativo)
+    this.blinkMultiple(2, 300);
+    setTimeout(() => {
+      this.nodHead(0, 400);
+      this.rig.startIdleEyeMovement();
+    }, durationMs);
+  }
+
+  /** Movimento suave da cabeça com easing */
+  nodHead(targetDegrees = 10, durationMs = 500) {
+    if (!this.rig.canAnimate) return;
+    const startTime = performance.now();
+    const headTransform = this.rig.elements.head?.getAttribute('transform') || '';
+    const match = headTransform.match(/rotate\(([-\d.]+)/);
+    const startDegrees = match ? parseFloat(match[1]) : 0;
+
+    const animate = (time) => {
+      const elapsed = time - startTime;
+      const p = Math.min(elapsed / durationMs, 1);
+      const eased = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+      const current = startDegrees + (targetDegrees - startDegrees) * eased;
+      this.rig.rotateHead(current);
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }
+
+  async blinkMultiple(count = 2, intervalMs = 250) {
     for (let i = 0; i < count; i++) {
       this.rig.blink();
       await this.sleep(intervalMs);
     }
   }
 
-  /**
-   * Movimento da cabeça (balançar/inclinar)
-   * @param {number} degrees - Ângulo de rotação (-35 a 35)
-   * @param {number} durationMs - Duração do movimento
-   */
-  nodHead(degrees = 15, durationMs = 600) {
-    const startTime = performance.now();
-    const startDegrees = 0;
-
-    const animate = (time) => {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / durationMs, 1);
-
-      // Easing ease-in-out
-      const easeProgress =
-        progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-
-      const currentDegrees = startDegrees + (degrees - startDegrees) * easeProgress;
-      this.rig.rotateHead(currentDegrees);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        this.rig.rotateHead(0); // Volta ao estado neutro
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }
-
-  /**
-   * Kevin escuta o usuário (cabeça inclinada, pisca ocasionalmente)
-   * @param {number} durationMs - Quanto tempo Kevin escuta
-   */
-  listen(durationMs = 3000) {
-    this.nodHead(10, 800);
-
-    const startTime = performance.now();
-    const blink = () => {
-      const elapsed = performance.now() - startTime;
-      if (elapsed < durationMs) {
-        if (Math.random() > 0.7) {
-          this.rig.blink();
-        }
-        setTimeout(blink, Math.random() * 1000 + 500);
-      }
-    };
-
-    blink();
-  }
-
-  /**
-   * Kevin saúda (piscadas rápidas + balanço de cabeça + fala)
-   */
-  async greet(greeting = 'Oi! Como posso ajudar?') {
-    // Piscadas de saudação
+  /** Saudação completa: acena + pisca + nod + fala */
+  async greet(text = 'Olá!') {
+    if (!this.rig.canAnimate) return;
+    // Acena com a mão direita
+    this.rig.waveHand();
     await this.blinkMultiple(2, 200);
-
-    // Balanço de cabeça amigável
-    this.nodHead(10, 500);
-
-    // Fala
-    const durationMs = Math.max(greeting.length * 50, 2000);
-    this.talk(durationMs);
+    this.nodHead(5, 400);
+    const duration = Math.max(text.length * 60, 1500);
+    this.talk(duration);
+    setTimeout(() => this.nodHead(0, 300), duration + 100);
   }
 
-  /**
-   * Kevin mostra confusão (piscadas, cabeça de lado)
-   */
-  confused() {
-    this.nodHead(20, 400);
-    this.rig.blink();
-  }
-
-  /**
-   * Kevin mostra entusiasmo (piscadas rápidas + fala animada)
-   * @param {number} durationMs - Duração do entusiasmo
-   */
-  excited(durationMs = 2000) {
-    this.talk(durationMs);
-    // Pisca com mais frequência
-    for (let i = 0; i < 3; i++) {
-      setTimeout(() => this.rig.blink(), i * 300);
-    }
-  }
-
-  /**
-   * Utilitário: dormir (promise)
-   */
-  sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Reset — volta ao estado neutro
-   */
   reset() {
     this.rig.reset();
   }
+
+  sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.KevinAnimations = KevinAnimations;
 }

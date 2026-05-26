@@ -52,25 +52,25 @@
   let kevinChat = null;
 
   async function initializeKevin() {
+    if (!window.KevinChatIntegration || !window.KEVIN_RIG_CONFIG) {
+      console.warn('[Chat] Kevin não inicializado (config ou integração ausente)');
+      return;
+    }
     try {
-      if (window.KevinChatIntegration && window.KEVIN_RIG_CONFIG) {
-        kevinChat = new KevinChatIntegration(
-          window.KEVIN_RIG_CONFIG.rigMountSelector,
-          window.KEVIN_RIG_CONFIG.svgUrl
-        );
-        await kevinChat.init();
-        console.log('[Chat] Kevin animado carregado com sucesso! ✓');
-      }
+      kevinChat = new KevinChatIntegration(
+        window.KEVIN_RIG_CONFIG.rigMountSelector,
+        window.KEVIN_RIG_CONFIG.svgUrl
+      );
+      await kevinChat.init();
     } catch (error) {
-      console.warn('[Chat] Kevin animado não disponível (opcional):', error);
+      console.error('[Chat] Erro ao inicializar Kevin:', error);
     }
   }
 
-  // Inicializa Kevin assim que possível (após a página carregar)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeKevin);
   } else {
-    setTimeout(initializeKevin, 100);
+    initializeKevin();
   }
 
   // ───────────── CSRF ─────────────
@@ -133,6 +133,9 @@
     t.innerHTML = `${kevinAvatarHTML()}<div class="typing-dots"><span></span><span></span><span></span></div>`;
     chatBody.appendChild(t);
     chatBody.scrollTop = chatBody.scrollHeight;
+
+    // Kevin pensando enquanto IA processa
+    if (kevinChat) kevinChat.onAssistantThinking();
   }
 
   function hideTyping() {
@@ -140,7 +143,27 @@
     if (t) t.remove();
   }
 
-  // ───────────── Envio de texto (async via Celery) ─────────────
+  // ───────────── Modo Demo (sem IA) ─────────────
+  const DEMO_REPLIES = [
+    'Que pergunta interessante! Deixa eu te ajudar com isso.',
+    'Sim, claro! Posso te dar várias dicas sobre essa aula.',
+    'Boa! Esse é um tema muito importante para os alunos pequenos.',
+    'Olha só, eu sugiro começar com uma música para engajar a turma.',
+    'Pode contar comigo! Vamos pensar juntos como fazer essa atividade.',
+    'Excelente ideia! As crianças vão adorar isso.',
+    'Para essa idade, o ideal é usar muitas imagens e gestos.',
+    'Dica: repetir o vocabulário várias vezes em contextos diferentes ajuda na memorização.',
+  ];
+
+  function demoReply(userText) {
+    const t = userText.toLowerCase();
+    if (t.match(/\b(oi|olá|hello|hi)\b/)) return 'Oi! Tudo bem? Em que posso ajudar com a aula de hoje?';
+    if (t.includes('?')) return DEMO_REPLIES[Math.floor(Math.random() * 4)];
+    if (t.includes('obrigad')) return 'Por nada! Estou aqui sempre que precisar.';
+    return DEMO_REPLIES[Math.floor(Math.random() * DEMO_REPLIES.length)];
+  }
+
+  // ───────────── Envio de texto ─────────────
   function enviarMensagem() {
     const texto = input.value.trim();
     if (!texto || state.isSending) return;
@@ -148,20 +171,35 @@
     input.value = '';
     input.style.height = 'auto';
 
-    // Kevin escuta enquanto processa
-    if (kevinChat) {
-      kevinChat.onUserMessage(texto);
-    }
+    if (kevinChat) kevinChat.onUserMessage(texto);
 
     showTyping();
 
+    // Modo demo: resposta local com animação
+    if (window.KEVIN_DEMO_MODE) {
+      setTimeout(() => {
+        hideTyping();
+        const resposta = demoReply(texto);
+        appendMessage('assistant', resposta);
+        if (kevinChat) kevinChat.onAssistantMessage(resposta);
+      }, 1500 + Math.random() * 1000);
+      return;
+    }
+
+    // Modo normal: chama backend
     fetch(cfg.urls.mensagem, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
       body: JSON.stringify({ conteudo: texto, tipo: 'texto' }),
     })
       .then((r) => r.json())
-      .then(() => pollResposta());
+      .then(() => pollResposta())
+      .catch((err) => {
+        console.error('[Chat] Erro no envio:', err);
+        hideTyping();
+        appendMessage('assistant', 'Ops, tive um problema. Tente de novo!');
+        if (kevinChat) kevinChat.onError();
+      });
   }
 
   // ───────────── Envio síncrono (live mode) ─────────────

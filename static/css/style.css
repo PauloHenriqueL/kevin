@@ -1393,15 +1393,84 @@ table.data tr:hover td { background: #F8FAFC; }
 /* Toast não se sobrepõe ao topbar */
 .toast-stack { top: 80px !important; }
 
-/* ─── Aula-detail: chat dominante + conteúdos colapsáveis ─── */
+/* ─── Aula-detail: Kevin em destaque + chat ─── */
 .aula-chat-page {
-  max-width: 960px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   height: calc(100vh - 64px);
+}
+
+/* Main content area: Kevin (left) + Chat (right) */
+.aula-main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Kevin Stage: Large centered character */
+.kevin-stage {
+  background: linear-gradient(135deg, rgba(43,125,233,0.05) 0%, rgba(255,184,48,0.05) 100%);
+  border-radius: var(--radius);
+  border: 2px solid var(--cinza-borda);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 40px 20px 20px;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 500px;
+}
+
+.kevin-stage-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.kevin-rig-stage {
+  width: 320px;
+  height: 320px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: kevin-stage-entrance 0.6s ease-out;
+}
+
+.kevin-rig-stage svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(43, 125, 233, 0.15));
+}
+
+@keyframes kevin-stage-entrance {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.kevin-stage-subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--azul-escuro);
+  text-align: center;
+  margin-top: auto;
 }
 
 .aula-chat-page .aula-materials {
@@ -1453,7 +1522,6 @@ table.data tr:hover td { background: #F8FAFC; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  flex: 1;
   min-height: 0;
 }
 
@@ -1513,9 +1581,38 @@ table.data tr:hover td { background: #F8FAFC; }
 }
 .aula-chat-page .aula-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+@media (max-width: 1024px) {
+  .aula-main-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .kevin-stage {
+    min-height: 280px;
+  }
+
+  .kevin-rig-stage {
+    width: 280px;
+    height: 280px;
+  }
+}
+
 @media (max-width: 640px) {
   .aula-chat-page { padding: 12px; height: calc(100vh - 64px); }
   .aula-chat-page .aula-header { flex-direction: column; align-items: flex-start; }
+
+  .aula-main-content {
+    grid-template-columns: 1fr;
+  }
+
+  .kevin-stage {
+    min-height: 240px;
+  }
+
+  .kevin-rig-stage {
+    width: 240px;
+    height: 240px;
+  }
 }
 
 /* ============================================================

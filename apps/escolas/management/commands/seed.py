@@ -231,7 +231,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  Conteúdos: {len(conteudos)} criados')
 
         # ── Vincular conteúdos às aulas ──
-        aulas = list(Aula.objects.filter(year=1).order_by('ordem'))
+        aulas = list(Aula.objects.filter(year=1).order_by('unit', 'week'))
         vinculos = [
             (aulas[0], [conteudos[0], conteudos[1]]),         # Hello Song
             (aulas[1], [conteudos[2], conteudos[3]]),         # Colors

@@ -1,14 +1,10 @@
 /**
- * KevinChatIntegration — Integra KevinRig com o sistema de chat
+ * KevinChatIntegration — Conecta animações do Kevin aos eventos do chat
  *
- * Uso:
- *   const kevinChat = new KevinChatIntegration(
- *     '#kevin-rig-mount',
- *     '/static/css/animations/kevin-rigged.svg'
- *   );
- *   await kevinChat.init();
- *   kevinChat.onUserMessage('Oi Kevin!');
- *   kevinChat.onAssistantMessage('Oi! Como posso ajudar?', 3000);
+ * Ciclo realista:
+ *   onUserMessage()       → Kevin escuta (cabeça inclinada)
+ *   onAssistantThinking() → Kevin pensa (piscadas)
+ *   onAssistantMessage()  → Kevin fala (boca + sway)
  */
 class KevinChatIntegration {
   constructor(rigMountSelector, svgUrl) {
@@ -19,91 +15,59 @@ class KevinChatIntegration {
     this.isInitialized = false;
   }
 
-  /**
-   * Inicializa Kevin — carrega SVG e prepara animações
-   */
   async init() {
     if (this.isInitialized) return;
-
     try {
       this.rig = new KevinRig(this.rigMountSelector, this.svgUrl);
       await this.rig.load();
       this.animations = new KevinAnimations(this.rig);
       this.isInitialized = true;
-
-      console.log('[KevinChatIntegration] Kevin carregado e pronto! ✓');
-    } catch (error) {
-      console.error('[KevinChatIntegration] Erro ao inicializar Kevin:', error);
+      console.log('[KevinChat] ✓ pronto');
+    } catch (err) {
+      console.error('[KevinChat] erro ao inicializar:', err);
     }
   }
 
-  /**
-   * Usuário enviou mensagem — Kevin escuta
-   */
-  onUserMessage(messageText) {
+  /** Usuário enviou mensagem → Kevin escuta */
+  onUserMessage(text) {
     if (!this.isInitialized) return;
-
-    // Simples: Kevin inclina a cabeça enquanto escuta
-    const estimatedDuration = Math.max(messageText.length * 50, 1500);
-    this.animations.listen(estimatedDuration);
+    const duration = Math.max(text.length * 50, 1500);
+    this.animations.listen(duration);
   }
 
-  /**
-   * Kevin vai responder — anima a resposta
-   * @param {string} responseText - Texto da resposta
-   * @param {number} durationMs - Duração em ms (ou auto-calculado)
-   */
-  onAssistantMessage(responseText, durationMs = null) {
+  /** Kevin pensando enquanto IA gera resposta */
+  onAssistantThinking() {
     if (!this.isInitialized) return;
-
-    // Calcula duração automaticamente baseado no comprimento do texto
-    if (!durationMs) {
-      // ~50ms por caractere (ajuste conforme necessário)
-      durationMs = Math.max(responseText.length * 50, 2000);
-    }
-
-    // Kevin fala enquanto responde
-    this.animations.talk(durationMs);
+    this.animations.thinking(1500);
   }
 
-  /**
-   * Kevin recebe uma pergunta — mostra entusiasmo/confusão
-   * @param {string} messageText - Texto da pergunta
-   */
-  onQuestion(messageText) {
+  /** Kevin recebeu resposta → fala */
+  onAssistantMessage(text, durationMs = null) {
     if (!this.isInitialized) return;
-
-    if (messageText.includes('?')) {
-      // Pergunta normal — saudação neutra
-      this.animations.nodHead(5, 400);
-    } else {
-      // Comando/afirmação — mostra mais interesse
-      this.animations.excited(1500);
-    }
+    // ~60ms por caractere (ritmo de fala natural em pt-BR)
+    const duration = durationMs || Math.max(text.length * 60, 2000);
+    this.animations.talk(duration);
   }
 
-  /**
-   * Erro ou confusão — Kevin mostra que não entendeu
-   */
+  /** Erro/timeout → Kevin reseta */
   onError() {
     if (!this.isInitialized) return;
-    this.animations.confused();
+    this.animations.reset();
   }
 
-  /**
-   * Kevin saúda no início da conversa
-   * @param {string} greeting - Mensagem de saudação
-   */
-  async greet(greeting = 'Oi! Eu sou o Kevin. Como posso ajudar?') {
+  /** Saudação inicial */
+  async greet(text = 'Oi! Como posso ajudar?') {
     if (!this.isInitialized) return;
-    await this.animations.greet(greeting);
+    await this.animations.greet(text);
   }
 
-  /**
-   * Reset — volta ao estado neutro
-   */
   reset() {
     if (!this.isInitialized) return;
     this.animations.reset();
   }
+}
+
+// Disponibilizar globalmente
+if (typeof window !== 'undefined') {
+  window.KevinChatIntegration = KevinChatIntegration;
 }
