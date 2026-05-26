@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kevin Rig Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&amp;family=Bungee&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <div class="bg-grid"></div>
+
+    <main class="app-shell">
+      <header class="title-wrap">
+        <p class="kicker">Rig Playground</p>
+        <h1>Kevin Animated Scene</h1>
+      </header>
+
+      <section class="stage-wrap">
+        <div class="speech" id="speechBubble">Oi! Eu sou o Kevin.</div>
+        <div class="stage">
+          <div id="puppetMount" class="puppet-mount" aria-label="Kevin rigged animation"></div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <button id="toggleAnim" class="btn">Pausar</button>
+        <button id="talkBtn" class="btn btn-alt">Falar</button>
+        <button id="poseBtn" class="btn btn-ghost">Trocar pose</button>
+        <button id="skeletonBtn" class="btn btn-ghost">Ocultar esqueleto</button>
+      </section>
+
+      <section class="controls">
+        <label for="headRotate" class="kicker">Inclinacao da cabeca: <span id="headAngleValue">0°</span></label>
+        <input id="headRotate" type="range" min="-35" max="35" step="1" value="0" />
+      </section>
+
+      <section class="controls">
+        <label for="headPoseRotate" class="kicker">Giro da cabeca: <span id="headPoseValue">Frontal</span></label>
+        <input id="headPoseRotate" type="range" min="-2" max="2" step="1" value="0" />
+      </section>
+
+      <details class="preset-panel">
+        <summary class="preset-summary">Preset por membro</summary>
+        <section class="controls preset-controls">
+          <button id="animBodyBtn" class="btn btn-ghost">Quadril: OFF</button>
+          <button id="animTailBtn" class="btn btn-ghost">Cauda: OFF</button>
+          <button id="animLeftArmBtn" class="btn btn-ghost">Braco Esq: OFF</button>
+          <button id="animRightArmBtn" class="btn btn-ghost">Braco Dir: OFF</button>
+          <button id="animLeftLegBtn" class="btn btn-ghost">Perna Esq: OFF</button>
+          <button id="animRightLegBtn" class="btn btn-ghost">Perna Dir: OFF</button>
+        </section>
+      </details>
+
+      <section class="controls">
+        <p class="kicker">Controle Manual - Braco Esquerdo</p>
+        <button id="leftArmManualBtn" class="btn btn-ghost">Modo manual braco esq: OFF</button>
+      </section>
+
+      <section class="controls">
+        <label for="leftArmShoulder" class="kicker">Ombro Esq: <span id="leftArmShoulderValue">0°</span></label>
+        <input id="leftArmShoulder" type="range" min="-55" max="55" step="1" value="0" />
+      </section>
+
+      <section class="controls">
+        <label for="leftArmElbow" class="kicker">Cotovelo Esq: <span id="leftArmElbowValue">0°</span></label>
+        <input id="leftArmElbow" type="range" min="0" max="180" step="1" value="0" />
+      </section>
+    </main>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

@@ -48,6 +48,31 @@
   const btnMicLive = $('#btn-mic-live');
   const headerKevin = $('#chat-header-kevin');
 
+  // ───────────── Kevin Animado ─────────────
+  let kevinChat = null;
+
+  async function initializeKevin() {
+    try {
+      if (window.KevinChatIntegration && window.KEVIN_RIG_CONFIG) {
+        kevinChat = new KevinChatIntegration(
+          window.KEVIN_RIG_CONFIG.rigMountSelector,
+          window.KEVIN_RIG_CONFIG.svgUrl
+        );
+        await kevinChat.init();
+        console.log('[Chat] Kevin animado carregado com sucesso! ✓');
+      }
+    } catch (error) {
+      console.warn('[Chat] Kevin animado não disponível (opcional):', error);
+    }
+  }
+
+  // Inicializa Kevin assim que possível (após a página carregar)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeKevin);
+  } else {
+    setTimeout(initializeKevin, 100);
+  }
+
   // ───────────── CSRF ─────────────
   function getCookie(name) {
     const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -122,6 +147,12 @@
     appendMessage('user', texto);
     input.value = '';
     input.style.height = 'auto';
+
+    // Kevin escuta enquanto processa
+    if (kevinChat) {
+      kevinChat.onUserMessage(texto);
+    }
+
     showTyping();
 
     fetch(cfg.urls.mensagem, {
@@ -155,13 +186,22 @@
           if (msgs.length && msgs[msgs.length - 1].role === 'assistant') {
             clearInterval(id);
             hideTyping();
-            appendMessage('assistant', msgs[msgs.length - 1].conteudo);
+            const resposta = msgs[msgs.length - 1].conteudo;
+            appendMessage('assistant', resposta);
+
+            // Kevin fala enquanto responde
+            if (kevinChat) {
+              kevinChat.onAssistantMessage(resposta);
+            }
           }
         });
       if (tentativas >= 30) {
         clearInterval(id);
         hideTyping();
         appendMessage('assistant', 'Kevin demorou demais. Tente novamente.');
+        if (kevinChat) {
+          kevinChat.onError();
+        }
       }
     }, 2000);
   }

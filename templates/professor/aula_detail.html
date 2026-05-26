@@ -86,9 +86,8 @@
     <aside class="chat-panel">
         <div class="chat-header-bar">
             <div class="chat-header-left">
-                <div class="chat-header-kevin" id="chat-header-kevin" style="width:48px; height:48px;">
-                    <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
-                </div>
+                <!-- Kevin animado será montado aqui -->
+                <div id="kevin-rig-mount" class="kevin-rig-chat"></div>
                 <div class="chat-header-info">
                     <h3>Kevin</h3>
                     <p>{{ aula.titulo }}</p>
@@ -152,6 +151,15 @@ window.KEVIN_CHAT_CONFIG = {
         tts:          "/api/chat/tts/",
     }
 };
+window.KEVIN_RIG_CONFIG = {
+    svgUrl: "{% static 'css/animations/kevin-rigged.svg' %}",
+    rigMountSelector: "#kevin-rig-mount",
+};
 </script>
-<script src="{% static 'js/kevin_chat.js' %}?v=5" defer></script>
+<!-- Módulos de animação do Kevin -->
+<script src="{% static 'js/KevinRig.js' %}" defer></script>
+<script src="{% static 'js/KevinAnimations.js' %}" defer></script>
+<script src="{% static 'js/KevinChatIntegration.js' %}" defer></script>
+<!-- Chat com integração de animações -->
+<script src="{% static 'js/kevin_chat.js' %}?v=6" defer></script>
 {% endblock %}
