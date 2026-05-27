@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Kevin — Bebelingue{% endblock %}</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📘%3C/text%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%232B7DE9'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Nunito,sans-serif' font-weight='900'%3EK%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=10">
-    <link rel="stylesheet" href="{% static 'css/kevin-chat-animation.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20">
+    <link rel="stylesheet" href="{% static 'css/kevin-chat-animation.css' %}?v=2">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -17,44 +17,74 @@
 
     {% if user.is_authenticated and show_topbar|default_if_none:True %}
     <header class="topbar">
-        <div class="topbar-brand" onclick="window.location='{% url 'dashboard' %}'">
+        <a class="topbar-brand" href="{% url 'dashboard' %}" aria-label="Kevin — voltar ao início">
             <div class="topbar-brand-avatar">
-                <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
+                <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin" style="width:100%;height:100%;object-fit:contain;">
             </div>
-            <h1>Kevin</h1>
-        </div>
+            <h1>Kevin<small>Bebelingue</small></h1>
+        </a>
 
-        <nav class="topbar-nav">
+        <nav class="topbar-nav" aria-label="Navegação principal">
             {% block topbar_nav %}
                 {% if user.role == 'professor' %}
-                    <a class="nav-link {% if active_nav == 'years' %}active{% endif %}" href="{% url 'professor:years' %}">Aulas</a>
-                    <a class="nav-link {% if active_nav == 'biblioteca' %}active{% endif %}" href="{% url 'professor:biblioteca' %}">Biblioteca</a>
-                    <a class="nav-link {% if active_nav == 'meu_progresso' %}active{% endif %}" href="{% url 'professor:meu_progresso' %}">Meu progresso</a>
+                    <a class="nav-link {% if active_nav == 'years' %}active{% endif %}" href="{% url 'professor:years' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        Aulas
+                    </a>
+                    <a class="nav-link {% if active_nav == 'biblioteca' %}active{% endif %}" href="{% url 'professor:biblioteca' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg>
+                        Biblioteca
+                    </a>
+                    <a class="nav-link {% if active_nav == 'meu_progresso' %}active{% endif %}" href="{% url 'professor:meu_progresso' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        Meu progresso
+                    </a>
                 {% elif user.role == 'escola' %}
-                    <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="{% url 'gestao:dashboard' %}">Dashboard</a>
-                    <a class="nav-link {% if active_nav == 'professores' %}active{% endif %}" href="{% url 'gestao:professor_list' %}">Professores</a>
-                    <a class="nav-link {% if active_nav == 'turmas' %}active{% endif %}" href="{% url 'gestao:turma_list' %}">Turmas</a>
-                    <a class="nav-link {% if active_nav == 'alunos' %}active{% endif %}" href="{% url 'gestao:aluno_list' %}">Alunos</a>
-                    <a class="nav-link {% if active_nav == 'relatorios' %}active{% endif %}" href="{% url 'gestao:relatorio_progresso' %}">Relatórios</a>
+                    <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="{% url 'gestao:dashboard' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                        Dashboard
+                    </a>
+                    <a class="nav-link {% if active_nav == 'professores' %}active{% endif %}" href="{% url 'gestao:professor_list' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Professores
+                    </a>
+                    <a class="nav-link {% if active_nav == 'turmas' %}active{% endif %}" href="{% url 'gestao:turma_list' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Turmas
+                    </a>
+                    <a class="nav-link {% if active_nav == 'alunos' %}active{% endif %}" href="{% url 'gestao:aluno_list' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Alunos
+                    </a>
+                    <a class="nav-link {% if active_nav == 'relatorios' %}active{% endif %}" href="{% url 'gestao:relatorio_progresso' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Relatórios
+                    </a>
                 {% endif %}
             {% endblock %}
         </nav>
 
         <div class="topbar-user">
-            <div class="topbar-user-info">
-                <div class="topbar-user-name">{{ user.get_full_name|default:user.username }}</div>
-                <div class="topbar-user-role">{{ user.get_role_display }}</div>
+            <div class="topbar-user-chip">
+                <div class="topbar-user-avatar">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                <div class="topbar-user-info">
+                    <div class="topbar-user-name">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="topbar-user-role">{{ user.get_role_display }}</div>
+                </div>
             </div>
             <form method="post" action="{% url 'logout' %}" style="margin:0;">
                 {% csrf_token %}
-                <button class="btn-logout" type="submit">Sair</button>
+                <button class="btn-logout" type="submit" aria-label="Sair">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Sair
+                </button>
             </form>
         </div>
     </header>
     {% endif %}
 
     {% if messages %}
-    <div class="toast-stack" style="position:fixed; top:80px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:9999;">
+    <div class="toast-stack" style="position:fixed; top:84px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:9999;">
         {% for message in messages %}
             <div class="toast {% if message.tags == 'error' %}error{% endif %}">
                 {{ message }}

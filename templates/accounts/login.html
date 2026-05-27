@@ -3,53 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Kevin</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📘%3C/text%3E%3C/svg%3E">
+    <title>Entrar — Kevin Bebelingue</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%232B7DE9'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Nunito,sans-serif' font-weight='900'%3EK%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20">
 </head>
 <body>
     {% include "partials/splash.html" %}
 
     <div class="login-page">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
-            <div class="login-hero">
-                <img src="{% static 'img/kevin_tela_login.png' %}" alt="Kevin">
-            </div>
-            <div class="login-container">
-                <h1 class="login-title">Kevin</h1>
-                <p class="login-subtitle">Plataforma BeBilingue — entre para começar sua aula.</p>
+        <div class="login-shell">
+
+            <aside class="login-side" aria-hidden="true">
+                <span class="badge">PLATAFORMA BEBELINGUE</span>
+                <div>
+                    <h2>Ensine inglês para crianças com a ajuda do&nbsp;Kevin.</h2>
+                    <p class="login-side-sub">Aulas guiadas, biblioteca de conteúdo e um assistente de IA pronto pra te ajudar a qualquer momento.</p>
+                </div>
+                <div class="login-side-image">
+                    <img src="{% static 'img/kevin_tela_login.png' %}" alt="">
+                </div>
+                <div class="login-side-perks">
+                    <div class="login-side-perk">
+                        <span class="login-side-perk-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                        Currículo passo a passo
+                    </div>
+                    <div class="login-side-perk">
+                        <span class="login-side-perk-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                        Chat com Kevin por texto e voz
+                    </div>
+                    <div class="login-side-perk">
+                        <span class="login-side-perk-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                        Biblioteca compartilhada
+                    </div>
+                </div>
+            </aside>
+
+            <main class="login-container">
+                <div class="login-mark">K</div>
+                <h1 class="login-title">Boas-vindas de volta</h1>
+                <p class="login-subtitle">Entre com seu usuário pra começar a aula.</p>
 
                 {% if form.errors %}
-                    <div class="toast error" style="position:static; margin-bottom:16px;">
+                    <div class="toast error" style="position:static; box-shadow:none; margin-bottom:16px;">
                         Usuário ou senha incorretos. Tente novamente.
                     </div>
                 {% endif %}
 
-                <form method="post" id="login-form">
+                <form method="post" id="login-form" class="login-form">
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="id_username">Usuário</label>
-                        <input type="text" id="id_username" name="username" placeholder="seu usuário" autofocus required>
+                        <input type="text" id="id_username" name="username" placeholder="seu.usuario" autocomplete="username" autofocus required>
                     </div>
                     <div class="form-group">
                         <label for="id_password">Senha</label>
-                        <input type="password" id="id_password" name="password" placeholder="••••••••" required>
+                        <input type="password" id="id_password" name="password" placeholder="••••••••" autocomplete="current-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+                    <button type="submit" class="btn btn-primary btn-full btn-lg">
+                        Entrar
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
                 </form>
 
-                <details style="margin-top: 24px; font-size: 0.85rem; color: var(--texto-sec);">
-                    <summary style="cursor: pointer; font-weight: 700;">Credenciais de teste</summary>
-                    <div style="padding: 12px; background: var(--azul-claro); border-radius: 10px; margin-top: 8px; line-height: 1.8;">
-                        <div><strong>admin</strong> / admin123 — superusuário</div>
-                        <div><strong>carlos</strong> / dir123 — diretor</div>
-                        <div><strong>maria</strong> / prof123 — professora</div>
+                <details class="login-helper">
+                    <summary>Credenciais de teste</summary>
+                    <div class="login-helper-body">
+                        <div class="login-helper-row"><strong>admin</strong><code>admin123</code><span>Superusuário</span></div>
+                        <div class="login-helper-row"><strong>carlos</strong><code>dir123</code><span>Diretor</span></div>
+                        <div class="login-helper-row"><strong>maria</strong><code>prof123</code><span>Professora</span></div>
                     </div>
                 </details>
-            </div>
+            </main>
+
         </div>
     </div>
 </body>

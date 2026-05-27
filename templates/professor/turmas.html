@@ -3,23 +3,43 @@
 
 {% block content %}
 <main class="page-content fade-in">
-    <a href="{% url 'professor:years' %}" class="btn-back">← Voltar aos years</a>
+    <a href="{% url 'professor:years' %}" class="breadcrumb-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Voltar aos Years
+    </a>
+
     <div class="page-header">
-        <h2>Year {{ year }} — escolha a turma</h2>
-        <p>{{ turmas|length }} turma{{ turmas|length|pluralize:"s" }} atribuída{{ turmas|length|pluralize:"s" }} a você neste year.</p>
+        <div>
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Year {{ year }} — escolha a turma
+            </h2>
+            <p>{{ turmas|length }} turma{{ turmas|length|pluralize:"s" }} atribuída{{ turmas|length|pluralize:"s" }} a você neste Year.</p>
+        </div>
     </div>
 
     <div class="home-cards">
         {% for turma in turmas %}
-            <a href="{% url 'professor:turma_aulas' turma.id %}" class="home-card card-lessons" style="text-decoration:none; color:inherit;">
-                <div class="home-card-icon">👦</div>
+            <a href="{% url 'professor:turma_aulas' turma.id %}" class="home-card card-lessons">
+                <div class="home-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
                 <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
-                <p>{{ turma.escola.nome }}<br>{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }} · {{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</p>
+                <p>
+                    {{ turma.escola.nome }}<br>
+                    <span class="badge badge-blue" style="margin-top:8px;">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</span>
+                    <span class="badge badge-amber" style="margin-top:8px;">{{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</span>
+                </p>
             </a>
         {% empty %}
             <div class="help-card" style="grid-column: 1 / -1;">
-                <h3>Nenhuma turma no Year {{ year }}</h3>
-                <p style="color: var(--texto-sec);">Você não tem turmas atribuídas para este year.</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    </div>
+                    <h3>Nenhuma turma no Year {{ year }}</h3>
+                    <p>Você não tem turmas atribuídas para este Year.</p>
+                </div>
             </div>
         {% endfor %}
     </div>

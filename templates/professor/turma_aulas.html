@@ -3,25 +3,40 @@
 
 {% block content %}
 <main class="page-content fade-in">
-    <a href="{% url 'professor:turmas_year' turma.year %}" class="btn-back">← Voltar às turmas do Year {{ turma.year }}</a>
+    <a href="{% url 'professor:turmas_year' turma.year %}" class="breadcrumb-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Voltar às turmas do Year {{ turma.year }}
+    </a>
+
     <div class="page-header">
-        <h2>Aulas — Turma {{ turma.year }}{{ turma.nome }}</h2>
-        <p>{{ turma.escola.nome }} · {{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</p>
+        <div>
+            <h2>Aulas — Turma {{ turma.year }}{{ turma.nome }}</h2>
+            <p>{{ turma.escola.nome }} · {{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</p>
+        </div>
     </div>
 
     {% for aula in aulas %}
         <div class="lesson-list-item {% if forloop.counter0 == 0 %}open{% endif %}">
             <div class="lesson-list-header" onclick="this.parentElement.classList.toggle('open')">
-                <div>
+                <div style="min-width: 0; flex: 1;">
                     <h4>{{ aula.codigo }} — {{ aula.titulo }}</h4>
-                    <div style="font-size: 0.8rem; color: var(--texto-sec); margin-top: 4px;">
-                        Year {{ aula.year }} · Unit {{ aula.unit }} · Week {{ aula.week }} · Class {{ aula.class_num }} ·
+                    <div style="display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; font-size: 0.8rem; color: var(--texto-sec); margin-top: 6px; font-weight: 700;">
+                        <span>Year {{ aula.year }} · Unit {{ aula.unit }} · Week {{ aula.week }} · Class {{ aula.class_num }}</span>
                         {% if aula.progresso_status == 'concluida' %}
-                            <span style="color: var(--verde); font-weight: 700;">✓ Concluída</span>
+                            <span class="status-chip done">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                                Concluída
+                            </span>
                         {% elif aula.progresso_status == 'parcial' %}
-                            <span style="color: var(--amarelo); font-weight: 700;">◐ Em andamento</span>
+                            <span class="status-chip partial">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
+                                Em andamento
+                            </span>
                         {% else %}
-                            <span style="color: var(--texto-sec);">○ Não iniciada</span>
+                            <span class="status-chip todo">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+                                Não iniciada
+                            </span>
                         {% endif %}
                     </div>
                 </div>
@@ -33,15 +48,26 @@
                     <div class="lesson-detail-value">{{ aula.descricao|truncatewords:40 }}</div>
                 {% endif %}
                 <div class="lesson-detail-label">Conteúdos</div>
-                <div class="lesson-detail-value">{{ aula.aula_conteudos.count }} item{{ aula.aula_conteudos.count|pluralize:"s" }} · {{ aula.homeworks.count }} homework{{ aula.homeworks.count|pluralize:"s" }}</div>
-                <div style="margin-top: 16px;">
-                    <a class="btn btn-primary" href="{% url 'professor:aula_detail' turma.id aula.codigo %}">Abrir aula com o Kevin →</a>
+                <div class="lesson-detail-value">
+                    {{ aula.aula_conteudos.count }} item{{ aula.aula_conteudos.count|pluralize:"s" }} ·
+                    {{ aula.homeworks.count }} homework{{ aula.homeworks.count|pluralize:"s" }}
+                </div>
+                <div style="margin-top: 18px;">
+                    <a class="btn btn-primary" href="{% url 'professor:aula_detail' turma.id aula.codigo %}">
+                        Abrir aula com o Kevin
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </a>
                 </div>
             </div>
         </div>
     {% empty %}
         <div class="help-card">
-            <h3>Nenhuma aula cadastrada para o Year {{ turma.year }}</h3>
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                </div>
+                <h3>Nenhuma aula cadastrada para o Year {{ turma.year }}</h3>
+            </div>
         </div>
     {% endfor %}
 </main>

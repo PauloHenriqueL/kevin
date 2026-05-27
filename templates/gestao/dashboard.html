@@ -1,72 +1,108 @@
 {% extends "gestao/base_gestao.html" %}
 {% block title %}Dashboard — {{ request.escola.nome }}{% endblock %}
 
-{% block gestao_heading %}Dashboard 📊{% endblock %}
+{% block gestao_heading %}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+Dashboard
+{% endblock %}
 {% block gestao_subheading %}<p>{{ request.escola.nome }}</p>{% endblock %}
 
 {% block gestao_body %}
-<div class="home-cards" style="margin-bottom: 24px;">
-    <div class="home-card card-lessons">
-        <div class="home-card-icon">👩‍🏫</div>
-        <h3>{{ total_professores }}</h3>
-        <p>Professor{{ total_professores|pluralize:"es" }} ativo{{ total_professores|pluralize:"s" }}</p>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_professores }}</h3>
+            <p>Professor{{ total_professores|pluralize:"es" }} ativo{{ total_professores|pluralize:"s" }}</p>
+        </div>
     </div>
-    <div class="home-card card-admin-add">
-        <div class="home-card-icon">👥</div>
-        <h3>{{ total_turmas }}</h3>
-        <p>Turma{{ total_turmas|pluralize:"s" }}</p>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_turmas }}</h3>
+            <p>Turma{{ total_turmas|pluralize:"s" }}</p>
+        </div>
     </div>
-    <div class="home-card card-help">
-        <div class="home-card-icon">👦</div>
-        <h3>{{ total_alunos }}</h3>
-        <p>Aluno{{ total_alunos|pluralize:"s" }} matriculado{{ total_alunos|pluralize:"s" }}</p>
+    <div class="stat-card">
+        <div class="stat-icon mustard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_alunos }}</h3>
+            <p>Aluno{{ total_alunos|pluralize:"s" }} matriculado{{ total_alunos|pluralize:"s" }}</p>
+        </div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-    <div class="help-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0;">👩‍🏫 Professores</h3>
-            <a href="{% url 'gestao:professor_create' %}" class="btn btn-primary" style="padding: 8px 14px; font-size: 0.85rem;">+ Novo</a>
+<div class="grid-2">
+
+    <div class="section-card">
+        <div class="section-card-header">
+            <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Professores
+            </h3>
+            <a href="{% url 'gestao:professor_create' %}" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo
+            </a>
         </div>
-        {% for prof in professores %}
-            <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--cinza-borda);{% endif %}">
-                <div style="display:flex; align-items:center; gap: 10px;">
-                    <div class="msg-avatar user-avatar" style="width:36px; height:36px; font-size:0.85rem;">
-                        {{ prof.user.first_name|make_list|first|default:prof.user.username|make_list|first|upper }}
+        <div class="section-card-body">
+            {% for prof in professores %}
+                <div class="list-row">
+                    <div class="list-row-avatar">{{ prof.user.first_name|make_list|first|default:prof.user.username|make_list|first|upper }}</div>
+                    <div class="list-row-main">
+                        <span class="list-row-title">{{ prof.user.get_full_name|default:prof.user.username }}</span>
+                        <span class="list-row-sub">{{ prof.user.email|default:"—" }}</span>
                     </div>
-                    <div>
-                        <strong style="font-size: 0.9rem;">{{ prof.user.get_full_name|default:prof.user.username }}</strong>
-                        <div style="color: var(--texto-sec); font-size: 0.8rem;">{{ prof.user.email|default:"—" }}</div>
-                    </div>
+                    <span class="badge {% if prof.ativo %}badge-green{% else %}badge-muted{% endif %}">
+                        {% if prof.ativo %}ATIVO{% else %}INATIVO{% endif %}
+                    </span>
                 </div>
-                <span class="year-badge" style="background: {% if prof.ativo %}#DCFCE7; color: var(--verde){% else %}#F1F5F9; color: #64748B{% endif %};">
-                    {% if prof.ativo %}ATIVO{% else %}INATIVO{% endif %}
-                </span>
-            </div>
-        {% empty %}
-            <p style="color: var(--texto-sec); text-align:center;">Nenhum professor cadastrado</p>
-        {% endfor %}
+            {% empty %}
+                <div class="empty-state" style="padding: 36px 20px;">
+                    <p>Nenhum professor cadastrado</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="help-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0;">👥 Turmas</h3>
-            <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary" style="padding: 8px 14px; font-size: 0.85rem;">+ Nova</a>
+    <div class="section-card">
+        <div class="section-card-header">
+            <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                Turmas
+            </h3>
+            <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova
+            </a>
         </div>
-        {% for turma in turmas %}
-            <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--cinza-borda);{% endif %}">
-                <div>
-                    <strong style="font-size: 0.9rem;">Turma {{ turma.year }}{{ turma.nome }}</strong>
-                    <div style="color: var(--texto-sec); font-size: 0.8rem;">
-                        {% if turma.professor %}{{ turma.professor.user.get_full_name|default:turma.professor.user.username }}{% else %}Sem professor{% endif %}
+        <div class="section-card-body">
+            {% for turma in turmas %}
+                <div class="list-row">
+                    <div class="list-row-avatar avatar-purple">{{ turma.year }}{{ turma.nome }}</div>
+                    <div class="list-row-main">
+                        <span class="list-row-title">Turma {{ turma.year }}{{ turma.nome }}</span>
+                        <span class="list-row-sub">
+                            {% if turma.professor %}{{ turma.professor.user.get_full_name|default:turma.professor.user.username }}{% else %}Sem professor{% endif %}
+                        </span>
                     </div>
+                    <span class="badge badge-blue">{{ turma.alunos.count }} alunos</span>
                 </div>
-                <span class="year-badge" style="background: var(--azul-claro); color: var(--azul);">{{ turma.alunos.count }} ALUNOS</span>
-            </div>
-        {% empty %}
-            <p style="color: var(--texto-sec); text-align:center;">Nenhuma turma cadastrada</p>
-        {% endfor %}
+            {% empty %}
+                <div class="empty-state" style="padding: 36px 20px;">
+                    <p>Nenhuma turma cadastrada</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
+
 </div>
+
 {% endblock %}

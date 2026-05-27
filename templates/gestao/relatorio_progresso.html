@@ -1,75 +1,97 @@
 {% extends "gestao/base_gestao.html" %}
 {% block title %}Progresso — Relatório{% endblock %}
-{% block gestao_heading %}Relatório de progresso 📈{% endblock %}
+
+{% block gestao_heading %}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+Relatório de progresso
+{% endblock %}
 {% block gestao_subheading %}<p>Acompanhe quantas aulas foram concluídas em cada turma.</p>{% endblock %}
 
-{% block extra_css %}
-<style>
-    .progress-track { height: 12px; background: var(--azul-claro); border-radius: 999px; overflow: hidden; }
-    .progress-fill { height: 100%; border-radius: 999px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
-    .fill-g { background: linear-gradient(90deg, var(--verde), #22c55e); }
-    .fill-y { background: linear-gradient(90deg, var(--amarelo), #f59e0b); }
-    .fill-r { background: linear-gradient(90deg, var(--vermelho), #ef4444); }
-</style>
-{% endblock %}
-
 {% block gestao_body %}
-<div class="home-cards" style="margin-bottom: 24px;">
-    <div class="home-card card-admin-add">
-        <div class="home-card-icon">📊</div>
-        <h3>{{ pct_geral }}%</h3>
-        <p>Progresso geral da escola</p>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3 class="big-pct">{{ pct_geral }}%</h3>
+            <p>Progresso geral</p>
+        </div>
     </div>
-    <div class="home-card card-help">
-        <div class="home-card-icon">✅</div>
-        <h3>{{ total_concluidas }}</h3>
-        <p>Aulas concluídas (total)</p>
+    <div class="stat-card">
+        <div class="stat-icon mint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_concluidas }}</h3>
+            <p>Aulas concluídas (total)</p>
+        </div>
     </div>
-    <div class="home-card card-questions">
-        <div class="home-card-icon">◐</div>
-        <h3>{{ total_parciais }}</h3>
-        <p>Aulas em andamento</p>
+    <div class="stat-card">
+        <div class="stat-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_parciais }}</h3>
+            <p>Aulas em andamento</p>
+        </div>
     </div>
-    <div class="home-card card-admin-list">
-        <div class="home-card-icon">👥</div>
-        <h3>{{ total_turmas }}</h3>
-        <p>Turma{{ total_turmas|pluralize:"s" }}</p>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_turmas }}</h3>
+            <p>Turma{{ total_turmas|pluralize:"s" }}</p>
+        </div>
     </div>
 </div>
 
 {% for item in turmas_data %}
-    <div class="help-card" style="margin-bottom: 12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="msg-avatar user-avatar" style="width:44px; height:44px; border-radius:12px; background: var(--azul-claro); color: var(--azul); font-weight: 900;">
+    <div class="help-card is-compact" style="margin-bottom: 12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px; margin-bottom:14px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+                <div class="list-row-avatar avatar-purple" style="width: 48px; height: 48px; font-size: 1rem;">
                     {{ item.turma.year }}{{ item.turma.nome }}
                 </div>
-                <div>
-                    <strong>Turma {{ item.turma.year }}{{ item.turma.nome }}</strong>
-                    <div style="color: var(--texto-sec); font-size: 0.85rem;">
+                <div style="min-width:0;">
+                    <strong style="font-size: 1rem;">Turma {{ item.turma.year }}{{ item.turma.nome }}</strong>
+                    <div style="color: var(--texto-sec); font-size: 0.82rem; font-weight: 600;">
                         {% if item.turma.professor %}Prof. {{ item.turma.professor.user.get_full_name|default:item.turma.professor.user.username }}{% else %}<em>Sem professor</em>{% endif %}
                         · {{ item.turma.alunos.count }} aluno{{ item.turma.alunos.count|pluralize:"s" }}
                     </div>
                 </div>
             </div>
             <div style="text-align:right;">
-                <span style="font-size: 1.5rem; font-weight: 900; color: {% if item.pct >= 70 %}var(--verde){% elif item.pct >= 30 %}var(--amarelo){% else %}var(--vermelho){% endif %};">{{ item.pct }}%</span>
-                <div style="color: var(--texto-sec); font-size: 0.85rem;">{{ item.concluidas }}/{{ item.total_aulas }}</div>
+                <div class="big-pct {% if item.pct >= 70 %}is-green{% elif item.pct >= 30 %}is-amber{% else %}is-red{% endif %}" style="font-size: 1.7rem;">{{ item.pct }}%</div>
+                <div style="color: var(--texto-sec); font-size: 0.75rem; font-weight: 700;">{{ item.concluidas }}/{{ item.total_aulas }}</div>
             </div>
         </div>
         <div class="progress-track">
-            <div class="progress-fill {% if item.pct >= 70 %}fill-g{% elif item.pct >= 30 %}fill-y{% else %}fill-r{% endif %}" style="width: {{ item.pct }}%;"></div>
+            <div class="progress-fill {% if item.pct >= 70 %}green{% elif item.pct >= 30 %}amber{% else %}red{% endif %}" style="width: {{ item.pct }}%;"></div>
         </div>
-        <div style="display:flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-            <span class="year-badge" style="background:#DCFCE7; color: var(--verde);">✓ {{ item.concluidas }} CONCLUÍDAS</span>
-            <span class="year-badge" style="background:#FEF3C7; color: #B45309;">◐ {{ item.parciais }} ANDAMENTO</span>
-            <span class="year-badge" style="background:#F1F5F9; color: #64748B;">○ {{ item.nao_iniciadas }} NÃO INICIADAS</span>
+        <div style="display:flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+            <span class="badge badge-green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                {{ item.concluidas }} concluídas
+            </span>
+            <span class="badge badge-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
+                {{ item.parciais }} em andamento
+            </span>
+            <span class="badge badge-muted">{{ item.nao_iniciadas }} não iniciadas</span>
         </div>
     </div>
 {% empty %}
-    <div class="help-card" style="text-align:center; padding: 40px 20px;">
-        <div style="font-size: 3rem;">📈</div>
-        <h3>Nenhuma turma cadastrada</h3>
+    <div class="help-card">
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <h3>Nenhuma turma cadastrada</h3>
+        </div>
     </div>
 {% endfor %}
+
 {% endblock %}

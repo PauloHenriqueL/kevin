@@ -1,34 +1,46 @@
 {% extends "gestao/base_gestao.html" %}
 {% block title %}Alunos — Gestão{% endblock %}
-{% block gestao_heading %}Alunos 👦{% endblock %}
+
+{% block gestao_heading %}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+Alunos
+{% endblock %}
 {% block gestao_subheading %}<p>{{ alunos|length }} matriculado{{ alunos|length|pluralize:"s" }} em {{ request.escola.nome }}</p>{% endblock %}
 
 {% block gestao_actions %}
-<a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Novo aluno</a>
+<a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Novo aluno
+</a>
 {% endblock %}
 
 {% block gestao_body %}
-<div class="help-card">
-    {% for aluno in alunos %}
-        <div style="display:flex; align-items:center; gap:16px; padding:12px 0; {% if not forloop.last %}border-bottom:1px solid var(--cinza-borda);{% endif %}">
-            <div class="msg-avatar user-avatar" style="width:40px; height:40px; background: var(--amarelo); color: #7C2D12;">
-                {{ aluno.nome|make_list|first|upper }}
+<div class="section-card">
+    <div class="section-card-body">
+        {% for aluno in alunos %}
+            <div class="list-row">
+                <div class="list-row-avatar avatar-amber">{{ aluno.nome|make_list|first|upper }}</div>
+                <div class="list-row-main">
+                    <span class="list-row-title">{{ aluno.nome }}</span>
+                </div>
+                <div class="list-row-meta">
+                    <span class="badge badge-blue">Turma {{ aluno.turma.year }}{{ aluno.turma.nome }}</span>
+                    <a href="{% url 'gestao:aluno_edit' aluno.pk %}" class="btn btn-secondary btn-sm">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Editar
+                    </a>
+                </div>
             </div>
-            <div style="flex: 1;">
-                <strong>{{ aluno.nome }}</strong>
+        {% empty %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <h3>Nenhum aluno cadastrado</h3>
+                <p>Adicione o primeiro aluno da escola.</p>
+                <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">Cadastrar aluno</a>
             </div>
-            <span class="year-badge" style="background: var(--azul-claro); color: var(--azul);">
-                TURMA {{ aluno.turma.year }}{{ aluno.turma.nome }}
-            </span>
-            <a href="{% url 'gestao:aluno_edit' aluno.pk %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Editar</a>
-        </div>
-    {% empty %}
-        <div style="text-align:center; padding: 40px 20px;">
-            <div style="font-size: 3rem;">👦</div>
-            <h3>Nenhum aluno cadastrado</h3>
-            <p style="color: var(--texto-sec); margin-bottom: 16px;">Adicione o primeiro aluno da escola.</p>
-            <a href="{% url 'gestao:aluno_create' %}" class="btn btn-primary">+ Cadastrar aluno</a>
-        </div>
-    {% endfor %}
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

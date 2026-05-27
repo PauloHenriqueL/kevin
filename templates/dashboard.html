@@ -1,136 +1,138 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Dashboard — Bebelingue{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Dashboard — Kevin Bebelingue{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Olá, {{ user.first_name|default:user.username }}! 👋</h1>
-</div>
+<main class="page-content fade-in">
 
-<div class="stats-grid">
-    {% if user.role == 'admin' %}
-    <div class="stat-card">
-        <div class="stat-icon purple">🏫</div>
-        <div class="stat-info">
-            <h3>{{ total_escolas }}</h3>
-            <p>Escolas ativas</p>
+    <section class="hero-section">
+        <div class="hero-content">
+            <span class="hero-eyebrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                BEM-VINDO DE VOLTA
+            </span>
+            <h1>Olá, {{ user.first_name|default:user.username }}!</h1>
+            <p>Aqui está um resumo da sua plataforma. Tudo prontinho pra você começar.</p>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon coral">👩‍🏫</div>
-        <div class="stat-info">
-            <h3>{{ total_professores }}</h3>
-            <p>Professores</p>
+        <div class="hero-illustration">
+            <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="">
         </div>
-    </div>
-    {% endif %}
+    </section>
 
-    <div class="stat-card">
-        <div class="stat-icon mint">👥</div>
-        <div class="stat-info">
-            <h3>{{ total_turmas }}</h3>
-            <p>Turmas</p>
+    <div class="stats-grid">
+        {% if user.role == 'admin' %}
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_escolas }}</h3>
+                <p>Escolas ativas</p>
+            </div>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon mustard">👦</div>
-        <div class="stat-info">
-            <h3>{{ total_alunos }}</h3>
-            <p>Alunos</p>
+        <div class="stat-card">
+            <div class="stat-icon coral">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_professores }}</h3>
+                <p>Professores</p>
+            </div>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon purple">📚</div>
-        <div class="stat-info">
-            <h3>{{ total_aulas }}</h3>
-            <p>Aulas no currículo</p>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon coral">🎨</div>
-        <div class="stat-info">
-            <h3>{{ total_conteudos }}</h3>
-            <p>Conteúdos na biblioteca</p>
-        </div>
-    </div>
-</div>
+        {% endif %}
 
-{% if user.role == 'professor' and turmas %}
-<div class="card mb-3">
-    <div class="card-header">
-        <h2>📋 Minhas Turmas</h2>
-        <a href="{% url 'escolas:turma_list' %}" class="btn btn-sm btn-outline">Ver todas</a>
-    </div>
-    <div class="card-body">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Turma</th>
-                        <th>Year</th>
-                        <th>Alunos</th>
-                        <th>Progresso</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for turma in turmas %}
-                    <tr>
-                        <td><strong>Turma {{ turma.year }}{{ turma.nome }}</strong></td>
-                        <td><span class="badge badge-purple">Year {{ turma.year }}</span></td>
-                        <td>{{ turma.alunos.count }} alunos</td>
-                        <td>
-                            <div class="progress-bar" style="width: 120px;">
-                                <div class="progress-fill green" style="width: {{ turma.progresso_pct|default:0 }}%;"></div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="stat-card">
+            <div class="stat-icon mint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_turmas }}</h3>
+                <p>Turmas</p>
+            </div>
         </div>
-    </div>
-</div>
-{% endif %}
-
-<div class="grid-2">
-    <div class="card">
-        <div class="card-header">
-            <h2>🤖 Chat Kevin</h2>
+        <div class="stat-card">
+            <div class="stat-icon mustard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_alunos }}</h3>
+                <p>Alunos</p>
+            </div>
         </div>
-        <div class="card-body text-center" style="padding: 40px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">🐝</div>
-            <h3 style="margin-bottom: 8px;">Fale com o Kevin!</h3>
-            <p class="text-muted text-sm" style="margin-bottom: 20px;">
-                Seu assistente de IA para preparar aulas, tirar dúvidas e criar conteúdos.
-            </p>
-            <a href="{% url 'chat:chat_page' %}" class="btn btn-primary">
-                Iniciar conversa
-            </a>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_aulas }}</h3>
+                <p>Aulas no currículo</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon coral">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3>{{ total_conteudos }}</h3>
+                <p>Conteúdos na biblioteca</p>
+            </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h2>📚 Próximas Aulas</h2>
+    <div class="grid-2">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Chat com o Kevin
+                </h3>
+            </div>
+            <div class="section-card-body is-padded" style="text-align: center; padding: 36px 24px;">
+                <div class="empty-state-icon" style="margin-bottom: 16px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <h3 style="margin-bottom: 6px; color: var(--azul-escuro);">Fale com o Kevin!</h3>
+                <p style="color: var(--texto-sec); font-weight: 600; max-width: 36ch; margin: 0 auto 18px;">
+                    Seu assistente para preparar aulas, tirar dúvidas e criar conteúdo.
+                </p>
+                <a href="{% url 'chat:chat_page' %}" class="btn btn-primary">
+                    Iniciar conversa
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-            {% if proximas_aulas %}
-                {% for aula in proximas_aulas %}
-                <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; {% if not forloop.last %}border-bottom: 1px solid var(--border);{% endif %}">
-                    <div class="aula-number" style="width: 36px; height: 36px; font-size: 14px;">{{ aula.ordem }}</div>
-                    <div>
-                        <strong style="font-size: 14px;">{{ aula.titulo }}</strong>
-                        <div class="text-muted text-sm">Year {{ aula.year }} — Aula {{ aula.ordem }}</div>
+
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Próximas aulas
+                </h3>
+            </div>
+            <div class="section-card-body">
+                {% if proximas_aulas %}
+                    {% for aula in proximas_aulas %}
+                    <div class="list-row">
+                        <div class="list-row-avatar avatar-amber">{{ aula.ordem }}</div>
+                        <div class="list-row-main">
+                            <span class="list-row-title">{{ aula.titulo }}</span>
+                            <span class="list-row-sub">Year {{ aula.year }} · Aula {{ aula.ordem }}</span>
+                        </div>
                     </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state" style="padding: 30px;">
-                    <p class="text-muted">Nenhuma aula pendente</p>
-                </div>
-            {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        </div>
+                        <h3>Nenhuma aula pendente</h3>
+                        <p>Você está em dia com o currículo.</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
+
+</main>
 {% endblock %}

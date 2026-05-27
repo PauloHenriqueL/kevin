@@ -1,59 +1,61 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Chat Kevin — Bebelingue{% endblock %}
-{% block page_title %}🤖 Chat Kevin{% endblock %}
-
-{% block extra_css %}
-<style>
-    .main-content { max-width: 100%; padding-bottom: 0; }
-</style>
-{% endblock %}
+{% block title %}Chat com o Kevin — Bebelingue{% endblock %}
 
 {% block content %}
 <div class="chat-container">
+
     <!-- Lista de conversas -->
-    <div class="chat-sidebar">
+    <aside class="chat-sidebar" aria-label="Suas conversas">
         <div class="chat-sidebar-header">
-            <button class="btn btn-primary btn-sm" style="width: 100%;" onclick="novaConversa()">
-                + Nova Conversa
+            <button class="btn btn-primary btn-full" type="button" onclick="novaConversa()" aria-label="Iniciar nova conversa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova conversa
             </button>
         </div>
         <div class="chat-list" id="chatList">
             {% for conversa in conversas %}
             <div class="chat-item {% if conversa.id == conversa_ativa.id %}active{% endif %}"
+                 role="button" tabindex="0"
                  onclick="window.location.href='{% url 'chat:chat_page' %}?conversa={{ conversa.id }}'">
-                <div class="chat-avatar">🤖</div>
+                <div class="chat-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
                 <div class="chat-info">
                     <div class="chat-title">
-                        {% if conversa.aula %}
-                            {{ conversa.aula.titulo|truncatewords:4 }}
-                        {% else %}
-                            Conversa livre
-                        {% endif %}
+                        {% if conversa.aula %}{{ conversa.aula.titulo|truncatewords:4 }}{% else %}Conversa livre{% endif %}
                     </div>
                     <div class="chat-preview">{{ conversa.created_at|date:"d/m/Y H:i" }}</div>
                 </div>
             </div>
             {% empty %}
-            <div class="empty-state" style="padding: 30px;">
-                <div class="icon">💬</div>
-                <p class="text-sm text-muted">Nenhuma conversa ainda</p>
+            <div class="empty-state" style="padding: 30px 16px;">
+                <div class="empty-state-icon" style="width:52px; height:52px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:22px; height:22px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <p style="font-size: 0.88rem;">Nenhuma conversa ainda</p>
             </div>
             {% endfor %}
         </div>
-    </div>
+    </aside>
 
     <!-- Área principal do chat -->
-    <div class="chat-main">
+    <section class="chat-main" aria-label="Chat com o Kevin">
         <div class="chat-header">
-            <div class="kevin-avatar">🐝</div>
+            <div class="kevin-avatar" aria-hidden="true">
+                <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="" style="width:100%; height:100%; object-fit:contain; padding:4px;">
+            </div>
             <div>
                 <h3>Kevin</h3>
-                <div class="status">● Online</div>
+                <div class="status">Online</div>
             </div>
             {% if conversa_ativa and conversa_ativa.aula %}
             <div style="margin-left: auto;">
-                <span class="badge badge-purple">📚 {{ conversa_ativa.aula.titulo }}</span>
+                <span class="badge badge-purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/></svg>
+                    {{ conversa_ativa.aula.titulo }}
+                </span>
             </div>
             {% endif %}
         </div>
@@ -62,8 +64,12 @@
             {% if conversa_ativa %}
                 {% for msg in mensagens %}
                 <div class="message {{ msg.role }}">
-                    <div class="msg-avatar">
-                        {% if msg.role == 'assistant' %}🐝{% else %}{{ user.first_name|default:user.username|make_list|first|upper }}{% endif %}
+                    <div class="msg-avatar" aria-hidden="true">
+                        {% if msg.role == 'assistant' %}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7a8 8 0 0 1 10 0"/></svg>
+                        {% else %}
+                            {{ user.first_name|default:user.username|make_list|first|upper }}
+                        {% endif %}
                     </div>
                     <div>
                         <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
@@ -72,10 +78,16 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="empty-state" style="margin: auto;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">🐝</div>
-                    <h3>Olá! Eu sou o Kevin!</h3>
-                    <p>Seu assistente de ensino de idiomas. Selecione uma conversa ou crie uma nova para começar.</p>
+                <div class="empty-state" style="margin: auto; max-width: 380px;">
+                    <div class="empty-state-icon" style="width: 84px; height: 84px;">
+                        <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="" style="width: 60px; height: 60px; object-fit: contain;">
+                    </div>
+                    <h3>Olá! Eu sou o Kevin</h3>
+                    <p>Seu assistente para ensino de inglês. Crie uma conversa nova ou selecione uma do histórico ao lado.</p>
+                    <button class="btn btn-primary" type="button" onclick="novaConversa()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Começar conversa
+                    </button>
                 </div>
             {% endif %}
         </div>
@@ -83,15 +95,16 @@
         {% if conversa_ativa %}
         <div class="chat-input-area">
             <textarea id="msgInput"
-                      placeholder="Digite sua mensagem para o Kevin..."
+                      placeholder="Digite sua mensagem para o Kevin…"
                       rows="1"
+                      aria-label="Mensagem para o Kevin"
                       onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();enviarMensagem();}"></textarea>
-            <button class="chat-send-btn" onclick="enviarMensagem()" title="Enviar">
-                ➤
+            <button class="chat-send-btn" type="button" onclick="enviarMensagem()" aria-label="Enviar mensagem">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
             </button>
         </div>
         {% endif %}
-    </div>
+    </section>
 </div>
 {% endblock %}
 
@@ -129,27 +142,26 @@
         const texto = input.value.trim();
         if (!texto) return;
 
-        // Mostra mensagem do usuário imediatamente
+        const userInitial = "{{ user.first_name|default:user.username|make_list|first|upper }}";
         const msgHtml = `
             <div class="message user">
-                <div class="msg-avatar">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                <div class="msg-avatar" aria-hidden="true">${userInitial}</div>
                 <div>
-                    <div class="msg-bubble">${texto}</div>
+                    <div class="msg-bubble">${escapeHtml(texto)}</div>
                     <div class="msg-time">agora</div>
                 </div>
-            </div>
-        `;
+            </div>`;
         chatMessages.insertAdjacentHTML('beforeend', msgHtml);
 
-        // Mostra indicador de digitação
         const typingHtml = `
             <div class="message assistant" id="typing">
-                <div class="msg-avatar">🐝</div>
-                <div>
-                    <div class="msg-bubble" style="color: var(--text-muted);">Kevin está pensando...</div>
+                <div class="msg-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7a8 8 0 0 1 10 0"/></svg>
                 </div>
-            </div>
-        `;
+                <div>
+                    <div class="msg-bubble" style="color: var(--texto-sec);">Kevin está pensando…</div>
+                </div>
+            </div>`;
         chatMessages.insertAdjacentHTML('beforeend', typingHtml);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -166,52 +178,46 @@
             body: JSON.stringify({ conteudo: texto, tipo: 'texto' }),
         })
         .then(r => r.json())
-        .then(() => {
-            // Poll para resposta da IA
-            pollResposta(conversaId);
-        });
+        .then(() => pollResposta(conversaId));
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     function pollResposta(conversaId) {
         let tentativas = 0;
-        const maxTentativas = 30;
-
         const interval = setInterval(() => {
             tentativas++;
-            fetch(`/api/chat/conversas/${conversaId}/`, {
-                headers: { 'X-CSRFToken': getCookie('csrftoken') },
-            })
-            .then(r => r.json())
-            .then(data => {
-                const msgs = data.mensagens;
-                if (msgs && msgs.length > 0) {
-                    const ultima = msgs[msgs.length - 1];
-                    if (ultima.role === 'assistant') {
-                        clearInterval(interval);
-                        const typing = document.getElementById('typing');
-                        if (typing) typing.remove();
-
-                        const respHtml = `
-                            <div class="message assistant">
-                                <div class="msg-avatar">🐝</div>
-                                <div>
-                                    <div class="msg-bubble">${ultima.conteudo}</div>
-                                    <div class="msg-time">agora</div>
-                                </div>
-                            </div>
-                        `;
-                        chatMessages.insertAdjacentHTML('beforeend', respHtml);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+            fetch(`/api/chat/conversas/${conversaId}/`, { headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+                .then(r => r.json())
+                .then(data => {
+                    const msgs = data.mensagens;
+                    if (msgs && msgs.length > 0) {
+                        const ultima = msgs[msgs.length - 1];
+                        if (ultima.role === 'assistant') {
+                            clearInterval(interval);
+                            const typing = document.getElementById('typing');
+                            if (typing) typing.remove();
+                            const respHtml = `
+                                <div class="message assistant">
+                                    <div class="msg-avatar" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.7a8 8 0 0 1 10 0"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="msg-bubble">${escapeHtml(ultima.conteudo)}</div>
+                                        <div class="msg-time">agora</div>
+                                    </div>
+                                </div>`;
+                            chatMessages.insertAdjacentHTML('beforeend', respHtml);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
                     }
-                }
-            });
-
-            if (tentativas >= maxTentativas) {
+                });
+            if (tentativas >= 30) {
                 clearInterval(interval);
                 const typing = document.getElementById('typing');
-                if (typing) {
-                    typing.querySelector('.msg-bubble').textContent = 'Desculpe, demorei demais. Tente novamente.';
-                }
+                if (typing) typing.querySelector('.msg-bubble').textContent = 'Desculpe, demorei demais. Tente novamente.';
             }
         }, 2000);
     }

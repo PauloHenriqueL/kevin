@@ -100,15 +100,23 @@
   }
 
   function appendMessage(role, content) {
+    // Primeira mensagem: remove o empty state, se existir
+    const empty = document.getElementById('chat-empty-state');
+    if (empty) empty.remove();
+
     const avatar = role === 'assistant' ? kevinAvatarHTML() : userAvatarHTML();
     const bubble = `<div class="msg-bubble">${escapeHTML(content)}</div>`;
     const listen = role === 'assistant'
-      ? `<button class="btn-listen" type="button" title="Ouvir" data-text="${escapeAttr(content)}">🔊 Ouvir</button>`
+      ? `<button class="btn-listen" type="button" aria-label="Ouvir resposta do Kevin" data-text="${escapeAttr(content)}">
+           <svg class="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 22V2l18 10z"/></svg>
+           <svg class="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+           <span class="btn-listen-label">Ouvir</span>
+         </button>`
       : '';
     const msg = document.createElement('div');
     msg.className = 'message ' + role;
     msg.innerHTML = role === 'assistant'
-      ? `${avatar}<div>${bubble}${listen}</div>`
+      ? `${avatar}<div class="msg-content">${bubble}${listen}</div>`
       : `${avatar}${bubble}`;
     chatBody.appendChild(msg);
     chatBody.scrollTop = chatBody.scrollHeight;
@@ -259,6 +267,7 @@
       state.mediaRecorder._hasSpeech = false;
       state.isRecording = true;
       setMicBtnState('recording');
+      if (kevinChat) kevinChat.setStatus('listening', 'Te gravando…');
 
       ensureAudioContext();
       const src = state.audioContext.createMediaStreamSource(stream);
@@ -463,8 +472,21 @@
   btnMic.addEventListener('click', toggleRecording);
   btnMicLive.addEventListener('click', toggleLiveMode);
 
-  // Botão "🔊 Ouvir" delegado em todas as mensagens do assistant
+  // Botão "Ouvir" delegado em todas as mensagens do assistant.
+  // Preserva ícones SVG; só troca o label de texto (Ouvir → Tocando…).
   chatBody.addEventListener('click', async (e) => {
+    // Suggestion chip (empty state) → injeta texto e envia
+    const chip = e.target.closest('.suggestion-chip');
+    if (chip) {
+      const sugg = chip.dataset.suggestion || chip.textContent.trim();
+      if (sugg) {
+        input.value = sugg;
+        input.focus();
+        enviarMensagem();
+      }
+      return;
+    }
+
     const btn = e.target.closest('.btn-listen');
     if (!btn) return;
     if (btn.disabled) return;
@@ -473,14 +495,15 @@
     stopAllAudio();
     btn.disabled = true;
     btn.classList.add('playing');
-    const original = btn.innerHTML;
-    btn.innerHTML = '▶ Tocando…';
+    const label = btn.querySelector('.btn-listen-label');
+    const originalLabel = label ? label.textContent : null;
+    if (label) label.textContent = 'Tocando…';
     try {
       await playTTS(texto);
     } finally {
       btn.disabled = false;
       btn.classList.remove('playing');
-      btn.innerHTML = original;
+      if (label && originalLabel !== null) label.textContent = originalLabel;
     }
   });
   input.addEventListener('keydown', (e) => {

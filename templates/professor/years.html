@@ -4,12 +4,29 @@
 
 {% block content %}
 <main class="page-content fade-in">
-    <div class="welcome-hero">
-        <div class="page-header">
-            <h2>Olá, {{ user.first_name|default:user.username }}! 👋</h2>
-            <p>Qual year você vai trabalhar hoje?</p>
+
+    <section class="hero-section">
+        <div class="hero-content">
+            <span class="hero-eyebrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                ÁREA DO PROFESSOR
+            </span>
+            <h1>Olá, {{ user.first_name|default:user.username }}!</h1>
+            <p>Qual <strong>Year</strong> você vai trabalhar hoje? Escolha abaixo pra ver suas turmas.</p>
         </div>
-        <img src="{% static 'img/kevin_tela_professor.png' %}" alt="Kevin professor">
+        <div class="hero-illustration">
+            <img src="{% static 'img/kevin_tela_professor.png' %}" alt="">
+        </div>
+    </section>
+
+    <div class="page-header">
+        <div>
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Escolha um Year
+            </h2>
+            <p>Cada Year agrupa suas turmas pelo nível de ensino.</p>
+        </div>
     </div>
 
     <div class="years-grid">
@@ -21,10 +38,16 @@
             </a>
         {% empty %}
             <div class="help-card" style="grid-column: 1 / -1;">
-                <h3>Nenhum year disponível</h3>
-                <p style="color: var(--texto-sec);">O currículo ainda não foi cadastrado pelo administrador.</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </div>
+                    <h3>Nenhum Year disponível</h3>
+                    <p>O currículo ainda não foi cadastrado pelo administrador.</p>
+                </div>
             </div>
         {% endfor %}
     </div>
+
 </main>
 {% endblock %}

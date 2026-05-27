@@ -1,39 +1,52 @@
 {% extends "gestao/base_gestao.html" %}
 {% block title %}Turmas — Gestão{% endblock %}
-{% block gestao_heading %}Turmas 👥{% endblock %}
+
+{% block gestao_heading %}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+Turmas
+{% endblock %}
 {% block gestao_subheading %}<p>{{ turmas|length }} turma{{ turmas|length|pluralize:"s" }} em {{ request.escola.nome }}</p>{% endblock %}
 
 {% block gestao_actions %}
-<a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova turma</a>
+<a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nova turma
+</a>
 {% endblock %}
 
 {% block gestao_body %}
 <div class="home-cards">
     {% for turma in turmas %}
         <div class="home-card card-admin-add" style="cursor: default;">
-            <div class="home-card-icon" style="background: var(--azul-claro); width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; color: var(--azul); font-weight: 900; font-size: 1.3rem;">
+            <div class="home-card-icon" style="font-weight: 900; font-size: 1.4rem;">
                 {{ turma.year }}{{ turma.nome }}
             </div>
             <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
             <p>
                 {% if turma.professor %}
-                    {{ turma.professor.user.get_full_name|default:turma.professor.user.username }}
+                    Prof. {{ turma.professor.user.get_full_name|default:turma.professor.user.username }}
                 {% else %}
-                    <em style="color: var(--vermelho);">Sem professor</em>
+                    <em style="color: var(--vermelho); font-weight: 700;">Sem professor</em>
                 {% endif %}
-                <br>
-                <span style="color: var(--texto-sec);">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</span>
             </p>
-            <div style="margin-top: 12px;">
-                <a href="{% url 'gestao:turma_edit' turma.pk %}" class="btn btn-secondary" style="padding:6px 14px; font-size: 0.85rem;">Editar</a>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top: auto; padding-top: 14px;">
+                <span class="badge badge-blue">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</span>
+                <a href="{% url 'gestao:turma_edit' turma.pk %}" class="btn btn-secondary btn-sm">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Editar
+                </a>
             </div>
         </div>
     {% empty %}
-        <div class="help-card" style="grid-column: 1 / -1; text-align: center;">
-            <div style="font-size: 3rem;">👥</div>
-            <h3>Nenhuma turma cadastrada</h3>
-            <p style="color: var(--texto-sec); margin-bottom: 16px;">Crie a primeira turma da escola.</p>
-            <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">+ Nova turma</a>
+        <div class="help-card" style="grid-column: 1 / -1;">
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+                <h3>Nenhuma turma cadastrada</h3>
+                <p>Crie a primeira turma da escola.</p>
+                <a href="{% url 'gestao:turma_create' %}" class="btn btn-primary">Nova turma</a>
+            </div>
         </div>
     {% endfor %}
 </div>
