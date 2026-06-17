@@ -1,45 +1,11 @@
 /**
  * Kevin Chat Animation Styles
- * Estilos para o Kevin animado (chat header e stage)
+ *
+ * Apenas micro-interações do chat (mensagens, dots de typing, mic pulse).
+ * As regras antigas do rig (.kevin-rig-stage / .kevin-rig-chat / .kevin-mascot
+ * animação) foram removidas — o motor kevin-puppet agora cuida da animação
+ * do personagem no palco.
  */
-
-/* ──────────────────────────────────────────────────────────
-   Container do Kevin no Chat (pequeno)
-──────────────────────────────────────────────────────────── */
-.kevin-rig-chat {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kevin-rig-chat svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* ──────────────────────────────────────────────────────────
-   Container do Kevin no Stage (grande, central)
-──────────────────────────────────────────────────────────── */
-.kevin-rig-stage {
-  width: 320px;
-  height: 320px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kevin-rig-stage svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  /* Sombra drop para profundidade */
-  filter: drop-shadow(0 8px 24px rgba(43, 125, 233, 0.15));
-}
 
 /* ──────────────────────────────────────────────────────────
    Animações de Chat do Kevin
@@ -125,14 +91,4 @@
 
 #btn-mic.recording {
   animation: micPulse 1.5s infinite;
-}
-
-/* ──────────────────────────────────────────────────────────
-   Responsividade
-──────────────────────────────────────────────────────────── */
-@media (max-width: 720px) {
-  .kevin-rig-chat {
-    width: 40px;
-    height: 40px;
-  }
 }

@@ -33,11 +33,15 @@
     micStream: null,
     audioContext: null,
     analyser: null,
-    currentAudioSource: null,
     stopMonitor: null,
     isRecording: false,
     isSending: false,
     liveMode: false,
+    // TTS playback control:
+    ttsSeq: 0,                  // incrementado a cada playTTS — invalida anteriores
+    ttsAbortController: null,   // aborta o fetch do TTS atual
+    currentTtsBlobUrl: null,    // URL.revokeObjectURL pra liberar memória
+    kevinReady: false,          // true quando kevinChat.init() resolve
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -46,24 +50,44 @@
   const btnSend = $('#btn-send');
   const btnMic = $('#btn-mic');
   const btnMicLive = $('#btn-mic-live');
-  const headerKevin = $('#chat-header-kevin');
 
-  // ───────────── Kevin Animado ─────────────
+  // ───────────── Kevin Animado (motor kevin-puppet) ─────────────
   let kevinChat = null;
+
+  function setInteractionDisabled(disabled) {
+    // Desabilita botões de interação enquanto Kevin não carrega.
+    // O input de texto continua editável — só o envio fica gated.
+    if (btnSend) btnSend.disabled = disabled;
+    if (btnMic) btnMic.disabled = disabled;
+    if (btnMicLive) btnMicLive.disabled = disabled;
+    document.querySelectorAll('.suggestion-chip').forEach((chip) => {
+      chip.disabled = disabled;
+      chip.style.opacity = disabled ? '0.55' : '';
+      chip.style.cursor = disabled ? 'wait' : '';
+    });
+  }
 
   async function initializeKevin() {
     if (!window.KevinChatIntegration || !window.KEVIN_RIG_CONFIG) {
+      // O motor não carregou (módulo 404 / parse error / extensão bloqueando).
+      // Habilita a UI mesmo assim — chat de texto continua funcional sem o puppet.
       console.warn('[Chat] Kevin não inicializado (config ou integração ausente)');
+      setInteractionDisabled(false);
       return;
     }
+    setInteractionDisabled(true);
     try {
       kevinChat = new KevinChatIntegration(
         window.KEVIN_RIG_CONFIG.rigMountSelector,
-        window.KEVIN_RIG_CONFIG.svgUrl
+        window.KEVIN_RIG_CONFIG.svgUrl,
+        { backgroundUrl: window.KEVIN_RIG_CONFIG.backgroundUrl }
       );
       await kevinChat.init();
+      state.kevinReady = !!(kevinChat.isReady && kevinChat.isReady());
     } catch (error) {
       console.error('[Chat] Erro ao inicializar Kevin:', error);
+    } finally {
+      setInteractionDisabled(false);
     }
   }
 
@@ -175,6 +199,13 @@
   function enviarMensagem() {
     const texto = input.value.trim();
     if (!texto || state.isSending) return;
+
+    // Aproveita esse user gesture pra destravar o AudioContext do TTS.
+    // Sem isso, o primeiro play() pode rodar com ctx suspended (Safari/iOS).
+    if (kevinChat && kevinChat.unlockAudio) {
+      kevinChat.unlockAudio().catch(() => {/* já logado pelo adapter */});
+    }
+
     appendMessage('user', texto);
     input.value = '';
     input.style.height = 'auto';
@@ -255,6 +286,13 @@
   // ───────────── Gravação com VAD ─────────────
   async function startRecording() {
     if (state.isRecording || state.isSending) return;
+    // Destrava o AudioContext do TTS enquanto ainda há user gesture do clique
+    // do mic (será usado pra falar a resposta depois). Só faz sentido na
+    // PRIMEIRA chamada do gesture; chamadas em loop do live mode já não
+    // têm gesture mas o ctx já fica destravado.
+    if (kevinChat && kevinChat.unlockAudio) {
+      kevinChat.unlockAudio().catch(() => {/* já logado */});
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       state.micStream = stream;
@@ -369,7 +407,9 @@
       if (!texto) {
         hideTyping();
         setMicBtnState(state.liveMode ? 'live' : 'idle');
-        if (state.liveMode) setTimeout(() => startRecording(), 400);
+        // Re-checa liveMode DENTRO do callback: usuário pode ter desligado
+        // live mode no meio do flow (privacy: senão o mic abre de novo sem permissão).
+        setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 400);
         return;
       }
 
@@ -386,7 +426,8 @@
         await playTTS(resp);
       }
       setMicBtnState(state.liveMode ? 'live' : 'idle');
-      if (state.liveMode && !state.isRecording) setTimeout(() => startRecording(), 400);
+      // Re-checa liveMode DENTRO do callback (privacy: ver acima).
+      setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 400);
     } catch (err) {
       console.error('Audio flow error:', err);
       hideTyping();
@@ -412,47 +453,139 @@
     } else {
       state.liveMode = true;
       ensureAudioContext();
+      // Destrava o AudioContext do TTS AGORA — depois do loop de gravação
+      // não tem user gesture pra fazer isso. Sem unlock, o primeiro speaking
+      // depois da resposta da IA falha silenciosamente.
+      if (kevinChat && kevinChat.unlockAudio) {
+        kevinChat.unlockAudio().catch(() => {/* já logado */});
+      }
       setMicBtnState('live');
       startRecording();
     }
   }
 
+  /**
+   * Para QUALQUER reprodução de TTS em andamento e invalida invocações pendentes
+   * de playTTS (qualquer await que retomar depois deste call vai abortar pelo
+   * mismatch de token). Limpa o blob URL e devolve o puppet pra standby.
+   */
   function stopAllAudio() {
-    if (state.currentAudioSource) {
-      try { state.currentAudioSource.stop(); } catch (e) {}
-      state.currentAudioSource = null;
+    // Invalida invocações pendentes — qualquer playTTS que tiver capturado
+    // um seq mais antigo vai sair na próxima checagem.
+    state.ttsSeq++;
+    // Aborta o fetch do TTS em andamento, se houver.
+    if (state.ttsAbortController) {
+      try { state.ttsAbortController.abort(); } catch (e) {}
+      state.ttsAbortController = null;
     }
+    // Para o áudio em reprodução.
+    const audioEl = kevinChat && kevinChat.getAudioElement && kevinChat.getAudioElement();
+    if (audioEl && !audioEl.paused) {
+      try { audioEl.pause(); audioEl.currentTime = 0; } catch (e) {}
+    }
+    // Libera o blob URL.
+    if (state.currentTtsBlobUrl) {
+      try { URL.revokeObjectURL(state.currentTtsBlobUrl); } catch (e) {}
+      state.currentTtsBlobUrl = null;
+    }
+    // Tira o puppet do speaking.
+    if (kevinChat && kevinChat.stopSpeaking) kevinChat.stopSpeaking();
   }
 
+  /**
+   * Toca o TTS no <audio> compartilhado do adapter e ativa o lipsync.
+   * Serializa invocações concorrentes via state.ttsSeq (token); só a última
+   * efetivamente toca — as anteriores são abortadas em qualquer await.
+   */
   async function playTTS(texto) {
+    if (!kevinChat || !kevinChat.getAudioElement) {
+      console.warn('[Chat] playTTS: adapter ainda não inicializado.');
+      return;
+    }
+    const audioEl = kevinChat.getAudioElement();
+    // Cancela qualquer playback/fetch anterior ANTES de capturar o token.
+    stopAllAudio();
+    const mySeq = ++state.ttsSeq;
+    const isStale = () => state.ttsSeq !== mySeq;
+
+    const abortController = new AbortController();
+    state.ttsAbortController = abortController;
+
+    let url = null;
     try {
       const res = await fetch(cfg.urls.tts, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ text: texto }),
+        signal: abortController.signal,
       });
+      if (isStale()) return;
       if (!res.ok) { console.warn('TTS falhou:', res.status); return; }
-      const buf = await res.arrayBuffer();
-      ensureAudioContext();
-      const audioBuffer = await state.audioContext.decodeAudioData(buf);
-      stopAllAudio();
-      const src = state.audioContext.createBufferSource();
-      src.buffer = audioBuffer;
-      src.connect(state.audioContext.destination);
-      state.currentAudioSource = src;
+      const blob = await res.blob();
+      if (isStale()) return;
+
+      url = URL.createObjectURL(blob);
+      state.currentTtsBlobUrl = url;
+      audioEl.src = url;
+
+      // Ativa o lipsync ANTES do play.
+      const speakingOk = await kevinChat.startSpeaking();
+      if (isStale()) return;
+      if (!speakingOk) {
+        // Adapter não conseguiu entrar em speaking (audio context travado).
+        // Tenta tocar mesmo assim — o usuário ouve, só fica sem lipsync.
+        console.warn('[Chat] lipsync indisponível, tocando sem animação de boca.');
+      }
+
       setMicBtnState(state.liveMode ? 'speaking' : 'idle');
-      if (headerKevin) headerKevin.classList.add('talking');
+
+      try {
+        await audioEl.play();
+      } catch (playErr) {
+        // Autoplay bloqueado ou aborto (stopAllAudio dispara pause).
+        if (!isStale()) {
+          console.warn('[Chat] play() rejeitado:', playErr);
+        }
+        return;
+      }
+      if (isStale()) return;
+
+      // Espera o áudio terminar (ou erro / abort).
       await new Promise((resolve) => {
-        src.onended = () => {
-          state.currentAudioSource = null;
-          if (headerKevin) headerKevin.classList.remove('talking');
+        const cleanup = () => {
+          audioEl.removeEventListener('ended', cleanup);
+          audioEl.removeEventListener('error', cleanup);
+          audioEl.removeEventListener('pause', onPause);
           resolve();
         };
-        src.start(0);
+        // Resolve também se algo PAUSAR (ex: stopAllAudio chamado externamente).
+        const onPause = () => { if (isStale()) cleanup(); };
+        audioEl.addEventListener('ended', cleanup);
+        audioEl.addEventListener('error', cleanup);
+        audioEl.addEventListener('pause', onPause);
       });
-      if (state.liveMode) setMicBtnState('live');
+
+      if (!isStale()) {
+        kevinChat.stopSpeaking();
+        if (state.liveMode) setMicBtnState('live');
+      }
     } catch (err) {
+      if (err && err.name === 'AbortError') return; // esperado em stopAllAudio
       console.error('playTTS:', err);
+      if (!isStale()) kevinChat.stopSpeaking();
+    } finally {
+      // Cleanup do blob URL: só revoga se ESTE invocation criou e ainda é o atual.
+      if (url && state.currentTtsBlobUrl === url) {
+        try { URL.revokeObjectURL(url); } catch (e) {}
+        state.currentTtsBlobUrl = null;
+      } else if (url && state.currentTtsBlobUrl !== url) {
+        // Eu não sou mais o atual mas criei um url próprio que ninguém revogou.
+        try { URL.revokeObjectURL(url); } catch (e) {}
+      }
+      // Limpa abort controller se ainda for o nosso.
+      if (state.ttsAbortController === abortController) {
+        state.ttsAbortController = null;
+      }
     }
   }
 

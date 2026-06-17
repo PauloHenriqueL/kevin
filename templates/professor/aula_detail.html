@@ -95,9 +95,9 @@
 
     <!-- Main Content: Kevin (left/center) + Chat (right/bottom) -->
     <div class="aula-main-content">
-        <!-- Kevin Stage: Large animated character -->
-        <section class="kevin-stage" aria-label="Kevin, seu assistente">
-            <div class="kevin-stage-bg" aria-hidden="true">
+        <!-- Kevin Stage: o motor kevin-puppet desenha o personagem dentro de #kevin-rig-mount -->
+        <section class="kevin-scene" aria-label="Kevin, seu assistente">
+            <div class="kevin-scene-bg" aria-hidden="true">
                 <span class="stage-blob blob-1"></span>
                 <span class="stage-blob blob-2"></span>
                 <span class="stage-blob blob-3"></span>
@@ -106,10 +106,10 @@
                 <span class="status-dot" aria-hidden="true"></span>
                 <span class="status-text">Pronto pra conversar</span>
             </div>
-            <div class="kevin-stage-container">
-                <div id="kevin-rig-mount" class="kevin-rig-stage" role="img" aria-label="Mascote Kevin animado"></div>
+            <div class="kevin-scene-container">
+                <div id="kevin-rig-mount" class="kevin-puppet-host" role="img" aria-label="Mascote Kevin animado"></div>
             </div>
-            <div class="kevin-stage-subtitle">{{ aula.titulo }}</div>
+            <div class="kevin-scene-subtitle">{{ aula.titulo }}</div>
         </section>
 
         <!-- Chat Panel (right side) -->
@@ -210,15 +210,16 @@ window.KEVIN_CHAT_CONFIG = {
     }
 };
 window.KEVIN_RIG_CONFIG = {
-    svgUrl: "{% static 'css/animations/kevin-rigged.svg' %}",
+    svgUrl:           "{% static 'js/kevin-puppet/kevin-rigged.svg' %}",
+    backgroundUrl:    "{% static 'js/kevin-puppet/background-forest.png' %}",
     rigMountSelector: "#kevin-rig-mount",
 };
 // Modo demo: respostas locais para testar animações (desativar em produção)
 window.KEVIN_DEMO_MODE = true;
 </script>
-<!-- Módulos de animação do Kevin -->
-<script src="{% static 'js/KevinRig.js' %}?v=5"></script>
-<script src="{% static 'js/KevinAnimations.js' %}?v=4"></script>
-<script src="{% static 'js/KevinChatIntegration.js' %}?v=4"></script>
-<script src="{% static 'js/kevin_chat.js' %}?v=14"></script>
+<!-- Adapter do kevin-puppet (ES module) — registra window.KevinChatIntegration.
+     Módulos são defer por padrão e executam antes de DOMContentLoaded, então
+     kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
+<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=2"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=16"></script>
 {% endblock %}

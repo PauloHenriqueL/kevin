@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kevin Puppet - harness de validação</title>
+    <link rel="stylesheet" href="./kevin-puppet.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #11231f;
+        color: #f5f8ec;
+        font-family: "Segoe UI", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      #kevin-container {
+        width: min(900px, 92vw);
+        height: min(70vh, 620px);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        background: #62e1b2;
+        color: #091a19;
+      }
+
+      button.active {
+        outline: 3px solid #ffd470;
+      }
+
+      p.status {
+        opacity: 0.8;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="margin: 0 0 4px">Kevin Puppet - harness de validação</h1>
+    <p class="status" id="status">carregando...</p>
+
+    <div id="kevin-container"></div>
+
+    <div class="controls">
+      <button data-mode="off">Off</button>
+      <button data-mode="standby">Stand by</button>
+      <button data-mode="thinking">Pensando</button>
+      <button data-mode="speaking">Falando (mic)</button>
+    </div>
+
+    <script type="module">
+      import { createKevinPuppet } from "./kevin-puppet.js";
+
+      const statusEl = document.getElementById("status");
+      const buttons = document.querySelectorAll("button[data-mode]");
+
+      function setActiveButton(mode) {
+        for (const btn of buttons) {
+          btn.classList.toggle("active", btn.dataset.mode === mode);
+        }
+      }
+
+      const kevin = await createKevinPuppet(document.getElementById("kevin-container"), {
+        backgroundUrl: "./background-forest.png",
+        onError: (msg) => {
+          statusEl.textContent = `erro: ${msg}`;
+        },
+      });
+
+      statusEl.textContent = "pronto - modo: off";
+      setActiveButton("off");
+
+      for (const btn of buttons) {
+        btn.addEventListener("click", async () => {
+          const mode = btn.dataset.mode;
+          statusEl.textContent = `trocando para: ${mode}...`;
+          const ok = await kevin.setMode(mode);
+          statusEl.textContent = ok ? `modo atual: ${kevin.getMode()}` : `falha ao entrar em "${mode}"`;
+          if (ok) setActiveButton(mode);
+        });
+      }
+    </script>
+  </body>
+</html>

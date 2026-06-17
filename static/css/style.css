@@ -1358,12 +1358,6 @@ body::after {
   gap: 12px;
 }
 
-.chat-header-kevin {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-}
-
 /* Ícone SVG do header (substitui o emoji 💬) */
 .chat-header-icon {
   width: 36px;
@@ -1417,34 +1411,6 @@ body::after {
   flex-direction: column;
   gap: 16px;
   background: var(--cinza-fundo);
-}
-
-/* Kevin welcome banner in chat */
-.chat-kevin-welcome {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  opacity: 0.9;
-}
-
-.chat-kevin-welcome-avatar {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
-}
-
-.chat-kevin-welcome h3 {
-  font-size: 1.2rem;
-  color: var(--azul-escuro);
-  font-weight: 800;
-}
-.chat-kevin-welcome p {
-  color: var(--texto-sec);
-  font-size: 0.9rem;
-  margin-top: 4px;
 }
 
 /* Messages */
@@ -2238,16 +2204,6 @@ body::after {
    KEVIN WIDGET OVERRIDE
    ============================================================ */
 
-/* Make the Kevin widget position relative inside chat instead of fixed */
-.kevin-inline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.kevin-inline svg { display: block; overflow: visible; }
-
 /* ============================================================
    ANIMATIONS & UTILITIES
    ============================================================ */
@@ -2432,7 +2388,9 @@ table.data tr:hover td { background: #F8FAFC; }
    KEVIN STAGE — claymorphism: tátil, com blobs flutuantes,
    halo sutil e pill de status indicando o que ele faz.
    ============================================================ */
-.kevin-stage {
+/* Nosso wrapper do palco do Kevin — renomeado para .kevin-scene
+   porque o motor de animação cria internamente uma .kevin-stage. */
+.kevin-scene {
   position: relative;
   background:
     radial-gradient(120% 80% at 50% 110%, rgba(255,184,48,0.10) 0%, transparent 60%),
@@ -2456,7 +2414,7 @@ table.data tr:hover td { background: #F8FAFC; }
 }
 
 /* Background blobs flutuantes (claymorphism vibe) */
-.kevin-stage-bg {
+.kevin-scene-bg {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -2571,7 +2529,7 @@ table.data tr:hover td { background: #F8FAFC; }
   50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; transform: scale(0.85); }
 }
 
-.kevin-stage-container {
+.kevin-scene-container {
   position: relative;
   z-index: 1;
   display: flex;
@@ -2583,7 +2541,7 @@ table.data tr:hover td { background: #F8FAFC; }
 }
 
 /* Halo radial sutil atrás do Kevin */
-.kevin-stage-container::before {
+.kevin-scene-container::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -2601,21 +2559,20 @@ table.data tr:hover td { background: #F8FAFC; }
   50%      { transform: translate(-50%, -50%) scale(1.06); opacity: 0.75; }
 }
 
-.kevin-rig-stage {
-  width: 320px;
-  height: 320px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: kevin-stage-entrance 0.7s cubic-bezier(.34,1.56,.64,1);
-}
-
-.kevin-rig-stage svg {
+/* Container que recebe o motor (createKevinPuppet appendChild) */
+.kevin-puppet-host {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 12px 32px rgba(43, 125, 233, 0.20));
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  animation: kevin-stage-entrance 0.7s cubic-bezier(.34,1.56,.64,1);
+}
+.kevin-puppet-host > .kevin-stage { /* o motor cria esta classe internamente */
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
 }
 
 @keyframes kevin-stage-entrance {
@@ -2629,7 +2586,7 @@ table.data tr:hover td { background: #F8FAFC; }
   }
 }
 
-.kevin-stage-subtitle {
+.kevin-scene-subtitle {
   position: relative;
   z-index: 2;
   font-size: 0.95rem;
@@ -2764,13 +2721,8 @@ table.data tr:hover td { background: #F8FAFC; }
     gap: 16px;
   }
 
-  .kevin-stage {
-    min-height: 280px;
-  }
-
-  .kevin-rig-stage {
-    width: 280px;
-    height: 280px;
+  .kevin-scene {
+    min-height: 360px;
   }
 }
 
@@ -2782,13 +2734,8 @@ table.data tr:hover td { background: #F8FAFC; }
     grid-template-columns: 1fr;
   }
 
-  .kevin-stage {
-    min-height: 240px;
-  }
-
-  .kevin-rig-stage {
-    width: 240px;
-    height: 240px;
+  .kevin-scene {
+    min-height: 280px;
   }
 }
 
@@ -2805,27 +2752,9 @@ table.data tr:hover td { background: #F8FAFC; }
   transform-origin: 50% 100%;
 }
 
-/* Respiração sutil quando ocioso */
-.kevin-mascot {
-  animation: kv-breathe 3.2s ease-in-out infinite;
-}
-@keyframes kv-breathe {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-2px) scale(1.01); }
-}
-
-/* Fala: bob + scale + micro-tilt (sem identificar a boca no SVG) */
-.chat-panel .chat-header-kevin.talking .kevin-mascot,
-.kevin-avatar.talking .kevin-mascot {
-  animation: kv-talk 0.52s ease-in-out infinite;
-}
-@keyframes kv-talk {
-  0%   { transform: translateY(0)      scale(1.000) rotate(0deg); }
-  25%  { transform: translateY(-2.5px) scale(1.025) rotate(-0.6deg); }
-  50%  { transform: translateY(0)      scale(0.985) rotate(0.4deg); }
-  75%  { transform: translateY(-1.5px) scale(1.015) rotate(-0.2deg); }
-  100% { transform: translateY(0)      scale(1.000) rotate(0deg); }
-}
+/* (As animações kv-breathe e kv-talk foram removidas — o motor
+   kevin-puppet faz toda a animação do personagem no palco. Imagens
+   estáticas de Kevin em topbar/avatares/splash ficam sem animação CSS.) */
 
 /* Avatares: SVG no slot redondo */
 .msg-avatar.kevin-avatar {
@@ -2835,8 +2764,6 @@ table.data tr:hover td { background: #F8FAFC; }
   padding: 0;
 }
 .msg-avatar.kevin-avatar .kevin-mascot { padding: 2px; }
-
-.chat-header-kevin { overflow: hidden; border-radius: 50%; background: rgba(255,255,255,0.22); }
 
 /* Topbar: avatar redondo pequeno */
 .topbar-brand-avatar {
@@ -2919,14 +2846,13 @@ table.data tr:hover td { background: #F8FAFC; }
 
 /* Desabilita animações se usuário preferir reduzir movimento */
 @media (prefers-reduced-motion: reduce) {
-  .kevin-mascot,
   .login-hero,
   .welcome-hero img,
-  .aula-scene img { animation: none !important; }
+  .aula-scene img,
+  .stage-blob,
+  .kevin-scene-container::before,
+  .kevin-puppet-host { animation: none !important; }
 }
-
-/* Kevin dentro do chat fica parado — só anima no topbar e nos avatares/logins */
-.chat-panel .kevin-mascot { animation: none !important; }
 
 /* Botão "ouvir" ao lado das mensagens do Kevin — SVG icons */
 .message.assistant { position: relative; }
@@ -3150,7 +3076,7 @@ table.data tr:hover td { background: #F8FAFC; }
 .splash-screen img {
   width: 220px;
   height: auto;
-  animation: kv-breathe 2.4s ease-in-out infinite;
+  animation: kv-float 2.4s ease-in-out infinite;
   transform-origin: 50% 100%;
   filter: drop-shadow(0 12px 28px rgba(43, 125, 233, 0.18));
 }
