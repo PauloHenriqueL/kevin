@@ -120,9 +120,10 @@ anônima por login para trocar de papel rápido):
 3. Aponte os filtros: **tipo** e **origem** (Bebelingue vs. da escola).
 4. Aponte o badge **"Usado em N aulas"**: *"o professor vê onde cada atividade é
    usada — útil quando falta conteúdo numa aula."*
-5. Filtre por **origem = Da minha escola** e mostre o **"Quiz do Bernoulli"**:
-   *"o professor pode criar atividades locais, que só a escola dele vê — a
-   metodologia oficial de vocês fica protegida."*
+5. Aponte o filtro **origem** (Bebelingue vs. da escola): *"o catálogo oficial é
+   de vocês; se um dia um professor criar uma atividade própria, ela fica só na
+   escola dele — a metodologia oficial de vocês fica protegida."* (No seed, tudo
+   é oficial da Bebelingue.)
 
 ---
 
@@ -164,17 +165,6 @@ Se o público for técnico ou perguntarem "e o que mais mudou":
 
 Puxe a lista de pendências de `docs/PERGUNTAS_REUNIAO_CLIENTE.md` (quadro do topo)
 para combinar os próximos passos.
-
----
-
-## Se algo der errado (plano B)
-
-| Problema | Saída |
-|---|---|
-| Kevin não aparece (tela vazia) | O SVG é grande (~7MB); espere ~5s. Se não vier, recarregue |
-| Chat não responde | Sem chave de IA — diga que em produção responde; mostre o roteiro no "Material da aula" |
-| Áudio/TTS não toca | Normal sem chave; a animação toca sem som |
-| Quer reiniciar os dados | `docker compose exec web python manage.py flush --no-input && python manage.py seed_demo` |
 
 ---
 

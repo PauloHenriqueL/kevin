@@ -176,15 +176,8 @@ class Command(BaseCommand):
             )
             self.atv[nome] = a
 
-        # atividade LOCAL da escola (demonstra isolamento entre clientes)
-        Atividade.objects.get_or_create(
-            nome='Quiz do Bernoulli', escola=self.bernoulli,
-            defaults={'tipo': 'jogo', 'descricao': 'Quiz criado pela professora Maria.',
-                      'como_conduzir': 'Perguntas rápidas de revisão em equipes.',
-                      'objetivo_pedagogico': 'Revisão gamificada', 'tags': 'jogo, revisao, local',
-                      'criado_por': self.maria.user},
-        )
-        self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} oficiais + 1 local (Bernoulli)')
+        # Catálogo é 100% oficial da Bebelingue (Demanda 13). Escola não cria aula.
+        self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} atividades oficiais (Bebelingue)')
 
     # ── TG de Março inteiro ──
     def _aula(self, semana, num, tipo, unit, lesson, titulo, freq=3, bg='floresta',

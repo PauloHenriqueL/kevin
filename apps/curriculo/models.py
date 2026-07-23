@@ -315,6 +315,17 @@ class Aula(models.Model):
 
         return '\n'.join(linhas)
 
+    @property
+    def tem_musica(self):
+        """True se a aula tem um bloco de música — controla o botão de música no
+        telão (Demanda 11). Detecta pela tag 'musica' ou pelo nome da atividade."""
+        for bloco in self.blocos.select_related('atividade').all():
+            a = bloco.atividade
+            if a and ('musica' in a.tags.lower() or 'song' in a.nome.lower()
+                      or 'música' in a.nome.lower()):
+                return True
+        return False
+
 
 class BlocoAula(models.Model):
     """Um item numerado dentro de uma fase da aula.

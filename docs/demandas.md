@@ -128,10 +128,11 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 7 | Área da coordenação | ✅ Aprovada (fase 2) | 1, 2 |
 | 8 | Configuração do comportamento do Kevin | 📌 **Demanda futura** — registrada, não priorizada | 3, 7 |
 | 9 | Animações novas do Kevin | ⚠️ 9A entregue mas **com defeitos graves** → ver Demanda 10 | 9A: nenhuma · 9B: 1 |
-| **10** | **Retrabalho da animação (URGENTE)** | 🔴 **Prioridade máxima** — ou conserta, ou reverte | 9A |
-| 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ Aprovada | 1, 4 |
-| 12 | Background por aula não funciona | ✅ Aprovada (é a 9B pendente) | 1, 9 |
-| 13 | Seed só com currículo da Bebelingue | ✅ Aprovada | 1 |
+| **10** | Retrabalho da animação | ✅ **Resolvida** — era enquadramento, não o motor | 9A |
+| 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ **Feita** | 1, 4 |
+| 12 | Background por aula | ✅ **Feita** | 1, 9 |
+| 13 | Seed só com currículo da Bebelingue | ✅ **Feita** | 1 |
+| 14 | Suíte de testes automatizados | ✅ **Feita** — 30 testes | — |
 
 ### Ordem sugerida de execução
 
@@ -1283,6 +1284,51 @@ Bebelingue; escola não cria aula.
 
 - [ ] `seed_demo` não cria nenhuma atividade com `escola` preenchida
 - [ ] Roteiro de apresentação atualizado
+
+---
+
+## Demanda 14 — Suíte de testes automatizados
+
+**Status:** ✅ Implementada
+**Objetivo:** cobrir as funcionalidades das demandas com testes que rodam sem
+depender de navegador nem de chave de IA.
+
+### 14.1 O que existe
+
+Testes com `django.test.TestCase` (sem dependência nova — roda com `manage.py
+test`). **30 testes**, distribuídos:
+
+| Arquivo | Cobre |
+|---|---|
+| `apps/curriculo/tests.py` | Código da aula (Y5-MAR-W1C1), catálogo + isolamento, contexto do Kevin expandindo atividades, kickoff, `tem_musica`, blocos, frequência 3x/4x, execução |
+| `apps/accounts/tests.py` | Os 4 papéis, `escola`→`diretor`, redirect por papel, coordenador no admin sem loop, professor barrado |
+| `apps/escolas/tests.py` | Busca no catálogo com isolamento, conclusão com presença + redirect para a lista, telão carrega com background |
+
+### 14.2 Como rodar
+
+```bash
+# tudo
+docker compose exec web python manage.py test
+
+# um app
+docker compose exec web python manage.py test apps.curriculo
+
+# um teste específico
+docker compose exec web python manage.py test apps.escolas.tests.ConclusaoAulaTest
+```
+
+### 14.3 O que NÃO cobre (e por quê)
+
+- **Animação do Kevin** — é visual, roda no browser. Validada manualmente com
+  Playwright (screenshots), não em teste unitário.
+- **Chamadas reais de IA/TTS/STT** — dependem de chave paga. O fluxo de chat é
+  testado até o ponto de montar o contexto.
+
+### 14.4 Critérios de aceite
+
+- [x] `manage.py test` roda verde, sem dependência externa
+- [x] Cobre modelo, permissões, isolamento, frequência, busca, conclusão
+- [x] Documentado como rodar
 
 ---
 

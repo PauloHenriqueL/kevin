@@ -43,8 +43,7 @@
                         <span>Desfazer</span>
                     </button>
                 {% else %}
-                    <input type="hidden" name="status" value="concluida">
-                    <button type="submit" class="btn btn-action btn-action-primary" aria-label="Marcar aula como concluída">
+                    <button type="button" class="btn btn-action btn-action-primary" id="btn-abrir-concluir" aria-label="Concluir a aula">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 12l5 5L20 7"/>
                         </svg>
@@ -88,6 +87,7 @@
             </button>
             <span class="call-btn-label">Conversa ao vivo</span>
         </div>
+        {% if aula.tem_musica %}
         <div class="call-btn-wrap">
             <button class="btn-musica" id="btn-musica" type="button" aria-label="Kevin canta com o ukulele" data-playing="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -96,6 +96,7 @@
             </button>
             <span class="call-btn-label">Música</span>
         </div>
+        {% endif %}
     </div>
 
     <!-- FAB do chat (canto inferior direito) -->
@@ -103,6 +104,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
+        <span class="chat-fab-label">Chat</span>
     </button>
 
     <!-- Drawer do chat (deslizante, à direita) -->
@@ -223,6 +225,33 @@
             </button>
         </div>
     </div>
+
+    <!-- Modal de conclusão da aula (Demanda 11) -->
+    <div class="modal-overlay" id="modal-concluir" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-concluir-titulo">
+            <button type="button" class="modal-close" id="modal-concluir-close" aria-label="Fechar">×</button>
+            <h2 id="modal-concluir-titulo">Concluir a aula</h2>
+            <p class="modal-sub">{{ aula.titulo }} · Turma {{ turma.year }}{{ turma.nome }}</p>
+            <form method="post" action="{% url 'professor:atualizar_progresso' turma.id aula.codigo %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="concluida">
+                <input type="hidden" name="redirect" value="lista">
+                <label class="modal-field">
+                    <span>Quantos alunos vieram?</span>
+                    <input type="number" name="presentes" min="0" max="{{ turma.qtd_alunos }}"
+                           placeholder="de {{ turma.qtd_alunos }} alunos" inputmode="numeric">
+                </label>
+                <label class="modal-field">
+                    <span>Observações (opcional)</span>
+                    <textarea name="observacoes" rows="3" placeholder="Como foi a aula? Algo a registrar?"></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="modal-concluir-cancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Concluir e sair</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -238,14 +267,24 @@ window.KEVIN_CHAT_CONFIG = {
         tts:          "/api/chat/tts/",
     }
 };
+// Mapa de cenários → URL do asset (Demanda 12). A chave vem de Aula.background.
+// Enquanto os assets não estão no R2, servimos de static/. Fallback: floresta.
+window.KEVIN_BACKGROUNDS = {
+    "floresta":     "{% static 'js/kevin-puppet/assets/backgrounds/floresta.png' %}",
+    "quarto":       "{% static 'js/kevin-puppet/assets/backgrounds/quarto.png' %}",
+    "banheiro":     "{% static 'js/kevin-puppet/assets/backgrounds/banheiro.png' %}",
+    "escola-int":   "{% static 'js/kevin-puppet/assets/backgrounds/escola-int.png' %}",
+    "escola-ext":   "{% static 'js/kevin-puppet/assets/backgrounds/escola-ext.png' %}",
+    "hospital":     "{% static 'js/kevin-puppet/assets/backgrounds/hospital.png' %}",
+    "hospital-int": "{% static 'js/kevin-puppet/assets/backgrounds/hospital-int.png' %}",
+};
+window.KEVIN_BACKGROUND = "{{ aula.background }}";
 window.KEVIN_RIG_CONFIG = {
     svgUrl:           "{% static 'js/kevin-puppet/kevin-rigged.svg' %}",
-    backgroundUrl:    "{% static 'js/kevin-puppet/background-forest.png' %}",
+    // fundo desta aula, com fallback para floresta se a chave não existir
+    backgroundUrl:    window.KEVIN_BACKGROUNDS["{{ aula.background }}"] || window.KEVIN_BACKGROUNDS["floresta"],
     rigMountSelector: "#kevin-rig-mount",
 };
-// Cenário de fundo definido no cadastro da aula (Demanda 9B). Os assets ficam
-// em storage externo; aqui vai só a chave — a integração resolve a URL.
-window.KEVIN_BACKGROUND = "{{ aula.background }}";
 // Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
 window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
 // Modo demo: respostas locais para testar animações (desativar em produção)

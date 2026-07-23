@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
@@ -266,6 +267,13 @@ class AtualizarProgressoView(ProfessorRequiredMixin, View):
             if obs:
                 progresso.observacoes = obs
         progresso.save()
+
+        # Concluir pelo modal (Demanda 11): volta para a lista de aulas da turma.
+        if novo_status == 'concluida' and request.POST.get('redirect') == 'lista':
+            messages.success(
+                request, f'Aula {aula.codigo} concluída para a turma {turma.year}{turma.nome}.'
+            )
+            return redirect('professor:turma_aulas', turma_id=turma.id)
 
         return redirect('professor:aula_detail', turma_id=turma.id, aula_codigo=aula.codigo)
 

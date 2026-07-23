@@ -3759,16 +3759,56 @@ table.data tbody tr:hover {
 /* ---------- FAB do chat (canto inferior direito) ---------- */
 .chat-fab {
   position: absolute; right: 24px; bottom: 38px; z-index: 9;
-  width: 64px; height: 64px; border-radius: 22px;
+  height: 60px; padding: 0 22px 0 20px; border-radius: 30px;
   border: none; cursor: pointer;
-  background: white; color: var(--azul);
-  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #2B7DE9 0%, #4C6FFF 100%);
+  color: white;
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem;
   box-shadow:
-    0 12px 30px rgba(43,125,233,0.28),
-    0 0 0 1.5px rgba(43,125,233,0.16),
-    0 1px 0 rgba(255,255,255,0.9) inset;
+    0 14px 34px rgba(43,125,233,0.40),
+    0 1px 0 rgba(255,255,255,0.25) inset;
   transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s, opacity 0.2s;
 }
+.chat-fab svg { width: 26px; height: 26px; flex-shrink: 0; }
+.chat-fab-label { white-space: nowrap; }
+.chat-fab:hover { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(43,125,233,0.5); }
+.chat-fab:active { transform: scale(0.95); }
+
+/* ---------- Modal de conclusão (Demanda 11) ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15,23,42,0.55); backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-card {
+  position: relative;
+  background: white; border-radius: 24px;
+  padding: 32px 30px 26px; width: 100%; max-width: 440px;
+  box-shadow: 0 24px 60px rgba(15,23,42,0.30);
+  animation: modal-pop 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modal-pop { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: none; } }
+.modal-card h2 { margin: 0 0 4px; font-size: 1.4rem; color: var(--azul-escuro); }
+.modal-sub { margin: 0 0 20px; color: var(--texto-sec); font-size: 0.9rem; font-weight: 600; }
+.modal-close {
+  position: absolute; top: 16px; right: 18px;
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: var(--cinza-fundo); color: var(--texto-sec);
+  font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.modal-close:hover { background: #e6ebf2; }
+.modal-field { display: block; margin-bottom: 16px; }
+.modal-field > span { display: block; font-weight: 800; font-size: 0.9rem; margin-bottom: 6px; color: var(--azul-escuro); }
+.modal-field input, .modal-field textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid rgba(43,125,233,0.20); font-family: 'Nunito', sans-serif;
+  font-size: 1rem; resize: vertical;
+}
+.modal-field input:focus, .modal-field textarea:focus { outline: none; border-color: var(--azul); }
+.modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 22px; }
 .chat-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(43,125,233,0.4); }
 .chat-fab:active { transform: scale(0.94); }
 .chat-fab:focus-visible { outline: 3px solid rgba(43,125,233,0.45); outline-offset: 3px; }

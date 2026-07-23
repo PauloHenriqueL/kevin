@@ -723,6 +723,25 @@
     }
   });
 
+  // ── Modal de conclusão (Demanda 11) ──
+  const btnAbrirConcluir = document.getElementById('btn-abrir-concluir');
+  const modalConcluir = document.getElementById('modal-concluir');
+  const modalConcluirClose = document.getElementById('modal-concluir-close');
+  const modalConcluirCancelar = document.getElementById('modal-concluir-cancelar');
+  function toggleModalConcluir(abrir) {
+    if (!modalConcluir) return;
+    modalConcluir.hidden = !abrir;
+  }
+  if (btnAbrirConcluir) btnAbrirConcluir.addEventListener('click', () => toggleModalConcluir(true));
+  if (modalConcluirClose) modalConcluirClose.addEventListener('click', () => toggleModalConcluir(false));
+  if (modalConcluirCancelar) modalConcluirCancelar.addEventListener('click', () => toggleModalConcluir(false));
+  if (modalConcluir) {
+    modalConcluir.addEventListener('click', (e) => { if (e.target === modalConcluir) toggleModalConcluir(false); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modalConcluir.hidden) toggleModalConcluir(false);
+    });
+  }
+
   // ── Botão de música (Demanda 9A) ──
   // Toggle: Kevin pega o ukulele e canta / guarda o ukulele. A saída da música
   // é animada pelo próprio motor (integração cuida disso).
