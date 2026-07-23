@@ -257,7 +257,7 @@ Vale destacar na conversa porque é o **diferencial visual** do produto.
 **Arquivos**:
 - Motor: `static/js/kevin-puppet/` (js + css + svg + fundo)
 - Adaptador para o chat: `static/js/kevin-puppet-integration.js`
-- Documentação técnica: `animacao/export/IMPLEMENTACAO.md` (770 linhas, para
+- Documentação técnica: `MOTOR_KEVIN.md` (770 linhas, para
   outra IA estender)
 
 ---
@@ -328,6 +328,6 @@ Para a reunião, sugiro apresentar nessa ordem:
 
 ## Anexos
 
-- `PERGUNTAS_REUNIAO_CLIENTE.md` — perguntas de descoberta agrupadas por tema
+- `PERGUNTAS_REUNIAO_CLIENTE.md` (nesta pasta docs/) — perguntas de descoberta agrupadas por tema
 - `CLAUDE.md` — instruções técnicas pra assistente de código (não pra cliente)
-- `animacao/export/IMPLEMENTACAO.md` — como estender o motor do Kevin animado
+- `MOTOR_KEVIN.md` — como estender o motor do Kevin animado

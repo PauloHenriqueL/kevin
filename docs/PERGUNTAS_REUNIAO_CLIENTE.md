@@ -4,13 +4,38 @@
 > metodologia real da Bebelingue (ver [demandas.md](demandas.md)). Ao escrever as
 > demandas, **tivemos que deduzir** várias coisas a partir dos arquivos que vocês
 > nos passaram. Esta pauta lista essas deduções para confirmação.
+>
+> **Atualizado em 23/07/2026** — 5 perguntas já foram respondidas por WhatsApp
+> (ver quadro abaixo). Elas continuam no corpo do documento, marcadas com ✅.
 
+---
 
-**Total:** 35 perguntas · 13 críticas 🔴
+## ⚡ Status rápido — o que já sabemos e o que ainda falta
 
-> **Se a reunião encurtar:** vá direto às 🔴, e dentro delas priorize
-> **3.1, 3.2 e 5.1** — são as que mais mudam o trabalho de vocês e o nosso.
-> Ver [resumo final](#resumo--deduções-que-precisam-de-confirmação).
+### Já respondido pelo cliente (WhatsApp, 23/07)
+
+| # | Pergunta | Resposta | Efeito |
+|---|---|---|---|
+| 2.6 | TG é igual para todas as escolas? | **Sim**, adaptação quase irrelevante | ✅ Currículo global — implementado |
+| 1.1 | O que é o "3x"? | Frequências **3x/4x/5x**; 4x = 3x + 1 Communication | ✅ `frequencia_minima` — implementado |
+| 3.1 | Existe lista de regras dos jogos? | **Sim — "Games Bank"** no início do TG | ⏳ Falta receber o arquivo |
+| 3.2 | E o BeBooklet (técnicas)? | **Também no início do TG** | ⏳ Falta receber o arquivo |
+| 5.1 | Como sabem que um professor atrasou? | **RMP** mensal + **Yearly Plan Review** | ⏳ Falta receber os modelos |
+
+### Ainda falta receber (bloqueia trabalho)
+
+- [ ] 🔴 **TG completo** (com Games Bank + BeBooklet) — sem ele o catálogo do Kevin nasce vazio
+- [ ] **Modelo de RMP** e **Yearly Plan Review** — destravam as métricas de professor (Demanda 4)
+
+### Perguntas que ainda valem para esta reunião
+
+As respondidas acima estão fechadas. **Priorize agora:**
+
+1. **§9 (Class Feedback)** — a demanda inteira depende desta conversa. É avaliação
+   de desempenho de pessoa; queremos definir quem vê o quê antes de construir.
+2. **Cenários de fundo** (NOVA, ver §11) — quem escolhe qual cenário para qual aula.
+3. **§7.1** — confirmar que aluno nominal não é necessário (já implementamos assim).
+4. As demais 🔴 do corpo que não foram respondidas.
 
 ---
 
@@ -21,7 +46,9 @@
 > de vocês é organizado. Toda a navegação do professor e todos os relatórios
 > dependem disso estar certo.
 
-### 1.1 🔴 A frequência de aulas por semana é sempre 3?
+### 1.1 ✅ A frequência de aulas por semana é sempre 3?
+
+> **RESPONDIDO:** Não — existem TGs de 3x, 4x e 5x. O de 4x é o de 3x mais uma Communication Class. Implementado como `Aula.frequencia_minima`.
 
 **Por quê:** o nome do arquivo é `... - March - 3x`.
 
@@ -189,7 +216,9 @@ professor pode trocar? Se a escola não quiser comemorar, substitui por quê?
 
 ---
 
-### 2.6 🟡 O TG é o mesmo para todas as escolas?
+### 2.6 ✅ O TG é o mesmo para todas as escolas?
+
+> **RESPONDIDO:** Sim. Toda escola que usa o Year 1 recebe o mesmo TG; adaptação é quase irrelevante. Currículo modelado como global.
 
 **O que deduzimos:** que sim — currículo global, definido pela Bebelingue, e a
 escola não edita.
@@ -235,7 +264,9 @@ retrabalho grande se descobrirmos tarde. Registrado como risco R1.
 > catálogo único e reutilizável. É isso que permite o Kevin conduzir uma
 > atividade que ele conhece, em vez de inventar.
 
-### 3.1 🔴 Existe uma lista oficial de jogos?
+### 3.1 ✅ Existe uma lista oficial de jogos?
+
+> **RESPONDIDO:** Sim — a seção **Games Bank**, no início do TG. ⏳ Falta a Bebelingue enviar o arquivo.
 
 **O que deduzimos:** que sim, e que ela é maior que o TG de março.
 
@@ -260,7 +291,9 @@ e precisamos combinar quem e quando.
 
 ---
 
-### 3.2 🔴 Onde está o "BeBooklet"?
+### 3.2 ✅ Onde está o "BeBooklet"?
+
+> **RESPONDIDO:** Também no início do TG. ⏳ Falta a Bebelingue enviar o arquivo.
 
 **O que deduzimos:** que é o documento que descreve as técnicas da metodologia.
 
@@ -370,7 +403,9 @@ Quantos Years vocês querem cadastrar primeiro? Dá para começar com um Year s�
 > do aluno. Separamos em duas: execução (automática, esta seção) e qualidade (o
 > Class Feedback, seção 6).
 
-### 5.1 🔴 O que significa "professor em dia"?
+### 5.1 ✅ O que significa "professor em dia"?
+
+> **RESPONDIDO:** Medido no **RMP** (reunião mensal): o professor informa em que aula está, e o código revela o atraso. O previsto vem do **Yearly Plan Review**, montado no início do ano. ⏳ Falta receber os dois modelos.
 
 > **Esta é a dedução mais frágil de todo o documento.**
 
@@ -650,6 +685,31 @@ Quantos professores? Qual a data?
 
 **O que muda:** define nossa ordem de entrega. Se for uma escola com um Year só,
 podemos entregar bem menos coisa bem mais rápido.
+
+📝 **Resposta:**
+
+<br>
+
+---
+
+## 11. Cenários de fundo do Kevin (NOVA)
+
+> **Contexto:** o animador entregou 7 cenários de fundo (floresta, quarto,
+> banheiro, escola interior/exterior, hospital interior/exterior). O motor já
+> troca de cenário com animação. Cada aula tem um campo `background`.
+
+### 11.1 🔴 Quem escolhe qual cenário para qual aula?
+
+**O que deduzimos:** que o coordenador escolhe ao cadastrar o TG, porque o
+cenário casa com o vocabulário da aula (aula de "daily routines" → quarto;
+"at the doctor" → hospital; "school objects" → escola).
+
+**A pergunta:** faz sentido o coordenador escolher o cenário de cada aula? Vocês
+têm um mapeamento vocabulário → cenário, ou é bom senso? Os 7 cenários cobrem o
+que vocês precisam, ou faltam temas?
+
+**O que muda:** se houver um padrão claro, podemos sugerir o cenário
+automaticamente pelo tipo/tema da aula em vez de deixar tudo manual.
 
 📝 **Resposta:**
 

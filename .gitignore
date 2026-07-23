@@ -1,48 +1,65 @@
-# Python
+# ── Python ──
 __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
 dist/
 build/
+*.egg
 
-# Virtualenv
+# ── Virtualenv ──
 venv/
 .venv/
+env/
 
-# Django
+# ── Django ──
 db.sqlite3
-staticfiles/
-media/
+db.sqlite3-journal
+staticfiles/          # gerado por collectstatic
+media/                # uploads em runtime
+*.log
 
-# Environment
+# ── Ambiente e segredos ──
 .env
+.env.*
+!.env.example         # o exemplo (sem segredos) FICA versionado
 
-# IDE
+# ── IDE / editor ──
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-place.txt
-CLAUDE.md
+# ── SO ──
+.DS_Store
+Thumbs.db
 
-# Claude Code / ferramentas locais
+# ── Claude Code / ferramentas locais ──
 .claude/
+CLAUDE.md             # instruções privadas — NÃO vão pro repo (ver nota no topo do arquivo)
 
-# Áudios de teste locais (não fazem parte do app)
-audios/
+# ── Testes / cobertura / node (playwright de validação) ──
+.coverage
+htmlcov/
+.pytest_cache/
+node_modules/
+package-lock.json
 
-# Entregas do animador — os .zip nunca entram no repositório.
-# Extraia e mova só os arquivos usados (ver CLAUDE.md → Assets do Kevin).
+# ── Entregas do animador ──
+# Os .zip nunca entram no repo. Extraia e mova só os arquivos usados.
 export_*.zip
 export_*/
 
-# Mídia pesada do puppet: backgrounds e vídeo de transição vão para storage
-# externo (S3/R2), não para o Git. Só código (JS/CSS/SVG) fica versionado.
+# ── Mídia pesada do puppet ──
+# Backgrounds e vídeo de transição vão para storage externo (S3/R2), não Git.
+# Só código (JS/CSS/SVG) fica versionado. Ver CLAUDE.md → "Assets do Kevin".
 static/js/kevin-puppet/assets/backgrounds/
 static/js/kevin-puppet/assets/videos/
 
-# Material bruto do cliente (docx/pdf/mp3 da Bebelingue) — documentação de
-# apoio, não faz parte do app.
+# ── Material bruto do cliente ──
+# docx/pdf/mp3 da Bebelingue — apoio, não faz parte do app.
 documento_escola/
+
+# ── Áudios de teste locais ──
+audios/
