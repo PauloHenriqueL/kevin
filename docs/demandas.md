@@ -1104,12 +1104,22 @@ precisão decimal reduzida e sem metadata de edição).
 
 ## Demanda 10 — Retrabalho da animação do Kevin (URGENTE)
 
-> ## 🔴 PRIORIDADE MÁXIMA
+> ## ✅ RESOLVIDA — a causa raiz era enquadramento, não o motor
 >
-> A integração do motor novo (export_2, Demanda 9A) ficou **pior que a versão
-> anterior**. Avaliado com o cliente em teste real: vários defeitos graves.
-> **Se o retrabalho não resolver, reverter para o motor anterior** — a versão
-> antiga funcionava bem e é preferível ao estado atual.
+> Investigação (23/07): o motor do animador funciona bem isolado (testado no
+> `demo.html` do export_2 — standby, dormindo e música ficam ótimos). O defeito
+> estava na **nossa integração**: o Kevin ficava **cortado pela barra de
+> controles** do telão, escondendo pernas, mãos e ukulele. Isso explicava
+> "música não faz nada" (ukulele oculto), "4 mãos" (mãos parciais) e a impressão
+> de esqueleto (mesh comprimido numa pose cortada).
+>
+> **Correção:** faixa segura inferior no `.kevin-puppet-host` (`--controls-safe`)
+> para o Kevin terminar acima dos controles. Validado com Playwright em desktop e
+> mobile: Kevin inteiro, mãos na cintura, ukulele visível na música. O plano B
+> (reverter o motor) não foi necessário.
+>
+> Decisões do cliente: mosca/língua ficam como o animador entregou; animação de
+> entrada da floresta fica com o animador (não feita aqui).
 
 **Objetivo:** deixar a animação do Kevin no mínimo tão boa quanto era antes do
 export_2, corrigindo os defeitos abaixo.
