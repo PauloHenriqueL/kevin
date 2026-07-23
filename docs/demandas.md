@@ -127,7 +127,11 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 6 | Busca global de conteúdo | ✅ Aprovada | 1 |
 | 7 | Área da coordenação | ✅ Aprovada (fase 2) | 1, 2 |
 | 8 | Configuração do comportamento do Kevin | 📌 **Demanda futura** — registrada, não priorizada | 3, 7 |
-| 9 | Animações novas do Kevin | ✅ Aprovada — **9A pode começar já** | 9A: nenhuma · 9B: 1 |
+| 9 | Animações novas do Kevin | ⚠️ 9A entregue mas **com defeitos graves** → ver Demanda 10 | 9A: nenhuma · 9B: 1 |
+| **10** | **Retrabalho da animação (URGENTE)** | 🔴 **Prioridade máxima** — ou conserta, ou reverte | 9A |
+| 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ Aprovada | 1, 4 |
+| 12 | Background por aula não funciona | ✅ Aprovada (é a 9B pendente) | 1, 9 |
+| 13 | Seed só com currículo da Bebelingue | ✅ Aprovada | 1 |
 
 ### Ordem sugerida de execução
 
@@ -1095,6 +1099,180 @@ precisão decimal reduzida e sem metadata de edição).
 - [ ] O telão carrega o cenário da aula aberta
 - [ ] Transição em vídeo roda ao trocar de cenário
 - [ ] Backgrounds servidos do storage externo, não do Git
+
+---
+
+## Demanda 10 — Retrabalho da animação do Kevin (URGENTE)
+
+> ## 🔴 PRIORIDADE MÁXIMA
+>
+> A integração do motor novo (export_2, Demanda 9A) ficou **pior que a versão
+> anterior**. Avaliado com o cliente em teste real: vários defeitos graves.
+> **Se o retrabalho não resolver, reverter para o motor anterior** — a versão
+> antiga funcionava bem e é preferível ao estado atual.
+
+**Objetivo:** deixar a animação do Kevin no mínimo tão boa quanto era antes do
+export_2, corrigindo os defeitos abaixo.
+
+### 10.1 Defeitos observados (teste real, com screenshot)
+
+| # | Defeito | Diagnóstico inicial |
+|---|---|---|
+| A | **Esqueleto exposto** — linhas tracejadas marcando corpo, braços e juntas | O motor tem `bonesGroup` que deveria ficar oculto (o README garante isso). Está sendo desenhado. Ver `initDefaultVisibility` e o CSS do puppet |
+| B | **4 mãos** — o Kevin aparece com mãos a mais | Variantes de mão (`Mão_Ukulele`, `Mão_tchau`) não estão sendo escondidas quando não usadas |
+| C | **Mosca aparece na abertura** — "o vilão" já está lá ao abrir a aula | A mosca deveria surgir só em ociosidade (40-90s). Está iniciando junto. Bug na condição de start |
+| D | **Língua mal implementada / dispara toda hora** | Os frames da língua (`lingua_frame_*`) estão ruins; o intervalo de captura é curto demais. Precisa demorar muito mais entre disparos |
+| E | **Não dá para ver a mosca direito** | Relacionado a C/D — a animação da mosca está confusa |
+| F | **Música não faz nada** ao clicar | `setMode('musica')` provavelmente retorna `false` (sem permissão de áudio / sem gesture). Precisa funcionar mesmo sem faixa de áudio |
+| G | **Sem animação de entrada** — a floresta não "abre" para revelar o Kevin | **Não existe no motor.** É feature nova, não regressão — ver 10.3 |
+
+### 10.2 História de usuário
+
+> **Como professor**, quero abrir a aula e ver o Kevin bem desenhado e parado,
+> **sem** esqueleto à mostra, mãos extras ou mosca, **para que** eu não me
+> envergonhe na frente da turma.
+
+### 10.3 Abordagem sugerida
+
+1. **Primeiro: fazer o motor novo parecer o antigo em standby** — esqueleto
+   oculto (A), uma mão só por lado (B), sem mosca na abertura (C), sem ukulele
+   ao abrir. Um Kevin parado e correto vale mais que um cheio de features quebradas.
+2. **Ajustar a mosca (C, D, E):** só em ociosidade real, intervalo bem maior
+   entre disparos de língua, frames revisados. Se não ficar bom rápido, **cortar
+   a mosca** — ela é enfeite, não requisito.
+3. **Corrigir a música (F):** garantir que `setMode('musica')` funcione; tratar o
+   retorno `false` e destravar o áudio antes.
+4. **Animação de entrada (G):** NOVA — a floresta/cenário "abre" (cortina, fade
+   ou zoom) revelando o Kevin quando a aula inicia. Escopo próprio; não bloqueia
+   o resto.
+5. **Plano B explícito:** se após o retrabalho a animação ainda estiver ruim,
+   **reverter para o motor anterior** (está no histórico do Git, commit anterior
+   ao 9A). O cliente foi claro: o antigo é melhor que o atual quebrado.
+
+### 10.4 Critérios de aceite
+
+- [ ] Ao abrir a aula: Kevin parado, **sem** esqueleto, **sem** mosca, **sem**
+      ukulele, com **duas** mãos
+- [ ] Esqueleto (bones) nunca visível em nenhum modo
+- [ ] Mosca só aparece após ociosidade real; língua dispara raramente
+- [ ] Botão de música toca a animação do ukulele de fato
+- [ ] (Novo) Animação de entrada revelando o Kevin
+- [ ] Se não atingir o padrão anterior → revertido para o motor antigo, funcionando
+
+---
+
+## Demanda 11 — Ajustes do telão (aula)
+
+**Status:** ✅ Aprovada
+**Objetivo:** corrigir comportamentos e visual dos controles da tela da aula.
+
+### 11.1 Botão de música condicional
+
+Hoje o botão de música aparece em toda aula. **Deve aparecer só quando a aula
+tem música** (um bloco/atividade de música no roteiro). Sem música na aula, sem
+botão.
+
+> Implementação: a view já tem os blocos da aula; expor ao template se existe
+> atividade de tipo música/rotina de canção, e renderizar o botão condicionalmente.
+
+### 11.2 Botão de abrir chat — visual
+
+O botão de abrir o chat (FAB) **está feio**. Rever o visual para combinar com o
+resto do telão.
+
+### 11.3 Concluir aula → popup de dados + sair
+
+Hoje "Concluir" **reinicia a aula** (bug) e não coleta dados. O correto:
+
+1. Clicar em **Concluir** abre um **popup/modal** pedindo os dados da aula:
+   - **Quantos alunos foram** (presença)
+   - Outras informações necessárias para analisar o desempenho do professor
+     (a definir — ligado à Demanda 4 / métricas)
+2. Após preencher e confirmar, marca a aula como concluída **e leva o professor
+   para fora — de volta à tela de aulas da turma** (não fica na aula).
+
+> Isto conecta com D22 (concluir = 1 clique, presença opcional): revisar. O
+> cliente agora quer **coletar presença na conclusão** via popup, não deixar
+> totalmente opcional. Presença vira parte do fluxo de conclusão.
+
+### 11.4 Histórias de usuário
+
+> **Como professor**, quero que o botão de música só apareça quando a aula tem
+> música, **para que** a interface não ofereça o que não faz sentido.
+
+> **Como professor**, quero que ao concluir a aula o sistema me pergunte quantos
+> alunos vieram e me leve de volta à lista de aulas, **para que** o registro de
+> desempenho fique completo e eu siga para a próxima.
+
+### 11.5 Critérios de aceite
+
+- [ ] Botão de música só aparece em aulas com música
+- [ ] FAB do chat com visual revisado
+- [ ] Concluir abre popup de presença + dados; não reinicia a aula
+- [ ] Após concluir, redireciona para a lista de aulas da turma
+
+---
+
+## Demanda 12 — Background por aula não está funcionando
+
+**Status:** ✅ Aprovada
+**Objetivo:** fazer o cenário de fundo mudar de fato conforme a aula (Demanda 9B).
+
+### 12.1 O problema
+
+Testado: a primeira aula, a aula em andamento e a de St. Patrick's Day
+**mostraram todas o mesmo fundo**. Ao entrar numa aula "fora da escola", o
+background não mudou.
+
+O campo `Aula.background` existe e o template passa `window.KEVIN_BACKGROUND`,
+mas o motor **não está consumindo** esse valor — provavelmente ainda usa o
+`backgroundUrl` fixo do `KEVIN_RIG_CONFIG`, e os assets de cenário nem foram
+ligados (estão fora do Git, destino R2).
+
+### 12.2 Solução
+
+- A integração deve ler `window.KEVIN_BACKGROUND` e chamar `setBackground()` com
+  a URL do cenário correspondente ao carregar a aula.
+- Mapear a chave (`quarto`, `escola-ext`…) para a URL do asset.
+- Enquanto os assets não estão no R2, servir localmente de `assets/backgrounds/`.
+
+> Esta é a parte 9B da Demanda 9, que ficou pendente. Ver Demanda 9, seção 9.4.
+
+### 12.3 Critérios de aceite
+
+- [ ] Aulas com `background` diferente mostram fundos diferentes
+- [ ] Trocar de aula troca o cenário
+- [ ] (Quando houver R2) assets servidos do storage externo
+
+---
+
+## Demanda 13 — Seed só com currículo da Bebelingue
+
+**Status:** ✅ Aprovada
+**Objetivo:** o seed de demonstração não deve ter aulas criadas por escolas.
+
+### 13.1 O problema
+
+O `seed_demo` cria uma atividade **local de escola** ("Quiz do Bernoulli") para
+demonstrar o isolamento. O cliente pediu para **remover** isso: o seed deve ter
+**apenas conteúdo oficial da Bebelingue**. Currículo e catálogo são da
+Bebelingue; escola não cria aula.
+
+### 13.2 Solução
+
+- Remover a atividade local "Quiz do Bernoulli" do `seed_demo`.
+- Todo o catálogo do seed fica com `escola=None` (oficial).
+- Ajustar o roteiro de apresentação (`ROTEIRO_APRESENTACAO.md`) que mencionava o
+  Quiz do Bernoulli — o passo de "atividade local" sai ou vira menção verbal.
+
+> **Nota:** a *capacidade* de o professor criar atividade local continua no
+> sistema (Decisão D6) — o que muda é só o dado de demonstração, que não deve
+> exibir isso.
+
+### 13.3 Critérios de aceite
+
+- [ ] `seed_demo` não cria nenhuma atividade com `escola` preenchida
+- [ ] Roteiro de apresentação atualizado
 
 ---
 
