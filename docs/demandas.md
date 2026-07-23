@@ -128,7 +128,7 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 7 | Área da coordenação | ✅ Aprovada (fase 2) | 1, 2 |
 | 8 | Configuração do comportamento do Kevin | 📌 **Demanda futura** — registrada, não priorizada | 3, 7 |
 | 9 | Animações novas do Kevin | ⚠️ 9A entregue mas **com defeitos graves** → ver Demanda 10 | 9A: nenhuma · 9B: 1 |
-| **10** | Retrabalho da animação | ✅ **Resolvida** — era enquadramento, não o motor | 9A |
+| **10** | Retrabalho da animação | 🟡 **Parcial** — enquadramento OK; falta esconder esqueleto (ver 10.5) | 9A |
 | 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ **Feita** | 1, 4 |
 | 12 | Background por aula | ✅ **Feita** | 1, 9 |
 | 13 | Seed só com currículo da Bebelingue | ✅ **Feita** | 1 |
@@ -1105,19 +1105,16 @@ precisão decimal reduzida e sem metadata de edição).
 
 ## Demanda 10 — Retrabalho da animação do Kevin (URGENTE)
 
-> ## ✅ RESOLVIDA — a causa raiz era enquadramento, não o motor
+> ## 🟡 PARCIALMENTE RESOLVIDA — enquadramento OK, esqueleto AINDA aparece
 >
-> Investigação (23/07): o motor do animador funciona bem isolado (testado no
-> `demo.html` do export_2 — standby, dormindo e música ficam ótimos). O defeito
-> estava na **nossa integração**: o Kevin ficava **cortado pela barra de
-> controles** do telão, escondendo pernas, mãos e ukulele. Isso explicava
-> "música não faz nada" (ukulele oculto), "4 mãos" (mãos parciais) e a impressão
-> de esqueleto (mesh comprimido numa pose cortada).
+> **Parte 1 (resolvida, 23/07):** o Kevin ficava cortado pela barra de controles.
+> Corrigido com faixa segura inferior no `.kevin-puppet-host` (`--controls-safe`).
+> Kevin agora aparece inteiro. Validado em desktop e mobile.
 >
-> **Correção:** faixa segura inferior no `.kevin-puppet-host` (`--controls-safe`)
-> para o Kevin terminar acima dos controles. Validado com Playwright em desktop e
-> mobile: Kevin inteiro, mãos na cintura, ukulele visível na música. O plano B
-> (reverter o motor) não foi necessário.
+> **Parte 2 (PENDENTE):** o cliente reportou (com screenshot no modo música) que o
+> **esqueleto continua desenhado por cima do Kevin** — as linhas e círculos das
+> juntas (ombros, cotovelos, joelhos, pulsos) ficam visíveis. Isto NÃO era efeito
+> do corte; é um bug real do export_2. Ver 10.5 para a causa e a correção exata.
 >
 > Decisões do cliente: mosca/língua ficam como o animador entregou; animação de
 > entrada da floresta fica com o animador (não feita aqui).
@@ -1162,13 +1159,59 @@ export_2, corrigindo os defeitos abaixo.
 
 ### 10.4 Critérios de aceite
 
-- [ ] Ao abrir a aula: Kevin parado, **sem** esqueleto, **sem** mosca, **sem**
-      ukulele, com **duas** mãos
-- [ ] Esqueleto (bones) nunca visível em nenhum modo
-- [ ] Mosca só aparece após ociosidade real; língua dispara raramente
-- [ ] Botão de música toca a animação do ukulele de fato
-- [ ] (Novo) Animação de entrada revelando o Kevin
-- [ ] Se não atingir o padrão anterior → revertido para o motor antigo, funcionando
+- [x] Ao abrir a aula: Kevin **inteiro** (não cortado pela barra) — feito
+- [ ] 🔴 **Esqueleto (bones) nunca visível em nenhum modo** — PENDENTE, ver 10.5
+- [x] Botão de música toca a animação do ukulele (visível após o fix de enquadramento)
+- [ ] Mosca/língua: manter como o animador entregou (decisão do cliente)
+- [ ] Animação de entrada: responsabilidade do animador (não aqui)
+
+### 10.5 🔴 PENDENTE — esconder o esqueleto (bones)
+
+**Sintoma:** o cliente enviou screenshot (modo música) com as linhas e círculos
+das juntas — ombros, cotovelos, joelhos, pulsos, pelve — desenhados por cima do
+Kevin.
+
+**Causa raiz (investigada):** o motor (`kevin-puppet.js`, `initDefaultVisibility`,
+~linha 1389) esconde **apenas `Pulso_bone1`**. Mas o SVG tem **22 elementos de
+bone** (`Ombro_bone`, `Cotovelo_core_bone`, `Joelho`, `Biceps_bone`,
+`Right_pelvis_Bone`…), agrupados sob 5 grupos-pai:
+`Bones_Body`, `Bones_Left_Arm`, `Bones_Right_Arm`, `Bones_Right_leg`,
+`Bones_Right_leg1`. O motor não esconde esses grupos. O README do export_2
+prometia "esqueleto sempre oculto" — o export **não cumpre**.
+
+**Fato que torna a correção segura:** os bones são `<circle>`/`<line>` com a
+**classe `st36`**, dentro dos grupos `Bones_*`. São puramente decorativos —
+separados do mesh do corpo. Escondê-los **não afeta** o desenho do Kevin.
+
+**Correção recomendada (CSS — 1 regra, não toca o motor):**
+
+```css
+/* Esconde o esqueleto de referência que o export_2 deixou visível.
+   Os bones são class="st36" dentro dos grupos Bones_*. */
+#kevin-rig-mount [id^="Bones_"],
+#kevin-rig-mount .st36 {
+  display: none !important;
+}
+```
+
+Colocar em `static/css/style.css` (junto do bloco do telão) ou em
+`kevin-puppet.css`. Preferir CSS a mexer no motor, para não quebrar na próxima
+entrega do animador.
+
+> ⚠️ **Validar que `st36` é só bone.** Antes de aplicar, confirmar no SVG que a
+> classe `st36` não é usada por nenhuma parte visível do corpo (a inspeção
+> inicial mostrou só circle/line de junta). Se houver risco, usar apenas o
+> seletor `[id^="Bones_"]`, que é 100% seguro (são os grupos-pai do esqueleto).
+
+**Alternativa (JS):** ampliar `initDefaultVisibility` para esconder os grupos
+`Bones_*`. Mais invasivo; some se o animador reexportar. CSS é preferível.
+
+**Pedir ao animador (paralelo):** que o próximo export **não inclua os bones**
+como elementos renderizáveis (ou os marque `display:none` na origem). Isso
+elimina o problema na fonte.
+
+**Critério de aceite:** em nenhum modo (standby, música, dormindo, pensando)
+aparece qualquer linha/círculo de junta sobre o Kevin.
 
 ---
 
