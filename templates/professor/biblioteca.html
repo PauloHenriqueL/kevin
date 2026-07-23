@@ -7,18 +7,18 @@
         <div>
             <h2>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                Biblioteca de conteúdos
+                Buscar no catálogo
             </h2>
-            <p>Materiais criados pelos professores. Use-os em qualquer aula.</p>
+            <p>Jogos, técnicas, rotinas e materiais da metodologia. Busque por assunto e veja em quais aulas cada um é usado.</p>
         </div>
     </div>
 
     <form method="get" class="filter-bar">
         <div class="form-group">
             <label for="q">Buscar</label>
-            <input type="text" id="q" name="q" placeholder="Nome do conteúdo…" value="{{ q }}">
+            <input type="text" id="q" name="q" placeholder="Ex: fruits, movimento, revisão…" value="{{ q }}" autofocus>
         </div>
-        <div class="form-group" style="max-width: 200px;">
+        <div class="form-group" style="max-width: 180px;">
             <label for="tipo">Tipo</label>
             <select id="tipo" name="tipo">
                 <option value="">Todos</option>
@@ -28,12 +28,20 @@
                 <option value="recurso" {% if tipo_filtro == 'recurso' %}selected{% endif %}>Recurso</option>
             </select>
         </div>
+        <div class="form-group" style="max-width: 180px;">
+            <label for="origem">Origem</label>
+            <select id="origem" name="origem">
+                <option value="">Todas</option>
+                <option value="oficial" {% if origem_filtro == 'oficial' %}selected{% endif %}>Bebelingue</option>
+                <option value="escola" {% if origem_filtro == 'escola' %}selected{% endif %}>Da minha escola</option>
+            </select>
+        </div>
         <div class="filter-actions">
             <button type="submit" class="btn btn-primary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Filtrar
+                Buscar
             </button>
-            {% if q or tipo_filtro %}
+            {% if q or tipo_filtro or origem_filtro %}
                 <a href="{% url 'professor:biblioteca' %}" class="btn btn-secondary">Limpar</a>
             {% endif %}
         </div>
@@ -56,17 +64,29 @@
                     {% endif %}
                 </div>
                 <h3>{{ conteudo.nome }}</h3>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin: 2px 0 8px;">
+                    <span class="badge badge-blue" style="font-size:0.7rem;">{{ conteudo.get_tipo_display }}</span>
+                    {% if conteudo.eh_oficial %}
+                        <span class="badge badge-green" style="font-size:0.7rem;">★ Bebelingue</span>
+                    {% else %}
+                        <span class="badge badge-mustard" style="font-size:0.7rem;">Da escola</span>
+                    {% endif %}
+                    {% if conteudo.uso_count %}
+                        <span class="badge" style="font-size:0.7rem; background: var(--cinza-fundo); color: var(--texto-sec);">
+                            Usado em {{ conteudo.uso_count }} aula{{ conteudo.uso_count|pluralize:"s" }}
+                        </span>
+                    {% endif %}
+                </div>
                 <p>
-                    {{ conteudo.descricao|truncatewords:14|default:"—" }}<br>
-                    <small style="color: var(--texto-muted); font-weight: 600;">
-                        Por {{ conteudo.criado_por.get_full_name|default:conteudo.criado_por.username|default:"Bebelingue" }}
-                        · {{ conteudo.created_at|date:"d/m/Y" }}
-                    </small>
+                    {{ conteudo.descricao|truncatewords:16|default:"—" }}<br>
+                    {% if conteudo.objetivo_pedagogico %}
+                        <small style="color: var(--texto-muted); font-weight: 600;">🎯 {{ conteudo.objetivo_pedagogico|truncatewords:10 }}</small>
+                    {% endif %}
                 </p>
                 {% if conteudo.arquivo_url %}
                     <div style="margin-top: auto; padding-top: 14px;">
                         <a href="{{ conteudo.arquivo_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
-                            Abrir
+                            Abrir material
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         </a>
                     </div>
@@ -78,8 +98,8 @@
                     <div class="empty-state-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </div>
-                    <h3>Nenhum conteúdo encontrado</h3>
-                    {% if q or tipo_filtro %}<p>Tente ajustar os filtros.</p>{% endif %}
+                    <h3>Nenhuma atividade encontrada</h3>
+                    {% if q or tipo_filtro or origem_filtro %}<p>Tente outra palavra ou limpe os filtros.</p>{% endif %}
                 </div>
             </div>
         {% endfor %}

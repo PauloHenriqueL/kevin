@@ -172,13 +172,13 @@ class BibliotecaView(ProfessorRequiredMixin, ListView):
     context_object_name = 'conteudos'
 
     def get_queryset(self):
-        from django.db.models import Q
+        from django.db.models import Count, Q
 
         # Catálogo oficial (escola nula) + atividades locais da própria escola.
         escola = self.request.user.professor.escola
         qs = Atividade.objects.select_related('escola', 'criado_por').filter(
             Q(escola__isnull=True) | Q(escola=escola)
-        )
+        ).annotate(uso_count=Count('blocos', distinct=True))
 
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -191,12 +191,19 @@ class BibliotecaView(ProfessorRequiredMixin, ListView):
         if tipo:
             qs = qs.filter(tipo=tipo)
 
+        origem = self.request.GET.get('origem', '').strip()
+        if origem == 'oficial':
+            qs = qs.filter(escola__isnull=True)
+        elif origem == 'escola':
+            qs = qs.filter(escola=escola)
+
         return qs.order_by('tipo', 'nome')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['q'] = self.request.GET.get('q', '')
         ctx['tipo_filtro'] = self.request.GET.get('tipo', '')
+        ctx['origem_filtro'] = self.request.GET.get('origem', '')
         return ctx
 
 
