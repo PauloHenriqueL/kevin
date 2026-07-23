@@ -1,14 +1,15 @@
 from django.contrib import messages
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView
 
 from apps.accounts.mixins import EscolaRequiredMixin
 
-from apps.curriculo.models import Aula, ProgressoTurma
+from apps.curriculo.models import AulaTurma
 
-from .forms import AlunoForm, ProfessorForm, TurmaForm
-from .models import Aluno, Professor, Turma
+from .forms import ProfessorForm, TurmaForm
+from .models import Professor, Turma
 
 
 class DiretorMixin(EscolaRequiredMixin):
@@ -27,7 +28,11 @@ class GestaoDashboardView(DiretorMixin, TemplateView):
         ctx['escola'] = escola
         ctx['total_professores'] = Professor.objects.filter(escola=escola, ativo=True).count()
         ctx['total_turmas'] = Turma.objects.filter(escola=escola).count()
-        ctx['total_alunos'] = Aluno.objects.filter(turma__escola=escola).count()
+        ctx['total_alunos'] = (
+            Turma.objects.filter(escola=escola).aggregate(
+                total=Sum('qtd_alunos'),
+            )['total'] or 0
+        )
         ctx['professores'] = Professor.objects.filter(escola=escola).select_related('user')[:5]
         ctx['turmas'] = Turma.objects.filter(escola=escola).select_related('professor__user')[:5]
         return ctx
@@ -89,7 +94,7 @@ class TurmaListView(DiretorMixin, ListView):
     def get_queryset(self):
         return Turma.objects.filter(
             escola=self.get_escola(),
-        ).select_related('professor__user').prefetch_related('alunos')
+        ).select_related('professor__user')
 
 
 class TurmaCreateView(DiretorMixin, CreateView):
@@ -127,53 +132,6 @@ class TurmaUpdateView(DiretorMixin, UpdateView):
         return redirect(self.success_url)
 
 
-# ── Alunos ──
-
-class AlunoListView(DiretorMixin, ListView):
-    template_name = 'gestao/aluno_list.html'
-    context_object_name = 'alunos'
-
-    def get_queryset(self):
-        return Aluno.objects.filter(
-            turma__escola=self.get_escola(),
-        ).select_related('turma')
-
-
-class AlunoCreateView(DiretorMixin, CreateView):
-    template_name = 'gestao/aluno_form.html'
-    form_class = AlunoForm
-    success_url = reverse_lazy('gestao:aluno_list')
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['escola'] = self.get_escola()
-        return kwargs
-
-    def form_valid(self, form):
-        form.save()
-        messages.success(self.request, 'Aluno cadastrado com sucesso!')
-        return redirect(self.success_url)
-
-
-class AlunoUpdateView(DiretorMixin, UpdateView):
-    template_name = 'gestao/aluno_form.html'
-    form_class = AlunoForm
-    success_url = reverse_lazy('gestao:aluno_list')
-
-    def get_queryset(self):
-        return Aluno.objects.filter(turma__escola=self.get_escola())
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['escola'] = self.get_escola()
-        return kwargs
-
-    def form_valid(self, form):
-        form.save()
-        messages.success(self.request, 'Aluno atualizado com sucesso!')
-        return redirect(self.success_url)
-
-
 # ── Relatórios ──
 
 class RelatorioProgressoView(DiretorMixin, TemplateView):
@@ -186,16 +144,16 @@ class RelatorioProgressoView(DiretorMixin, TemplateView):
 
         turmas = Turma.objects.filter(
             escola=escola,
-        ).select_related('professor__user').prefetch_related('alunos')
+        ).select_related('professor__user')
 
         turmas_data = []
         for turma in turmas:
-            total_aulas = Aula.objects.filter(year=turma.year).count()
-            concluidas = ProgressoTurma.objects.filter(
+            total_aulas = turma.aulas_do_curriculo().count()
+            concluidas = AulaTurma.objects.filter(
                 turma=turma, status='concluida',
             ).count()
-            parciais = ProgressoTurma.objects.filter(
-                turma=turma, status='parcial',
+            parciais = AulaTurma.objects.filter(
+                turma=turma, status='em_andamento',
             ).count()
             nao_iniciadas = total_aulas - concluidas - parciais
             pct = round((concluidas / total_aulas) * 100) if total_aulas else 0
@@ -238,18 +196,18 @@ class RelatorioProfessoresView(DiretorMixin, TemplateView):
 
         professores = Professor.objects.filter(
             escola=escola,
-        ).select_related('user').prefetch_related('turmas__alunos')
+        ).select_related('user').prefetch_related('turmas')
 
         prof_data = []
         for prof in professores:
             turmas = prof.turmas.all()
-            total_alunos = sum(t.alunos.count() for t in turmas)
+            total_alunos = sum(t.qtd_alunos for t in turmas)
 
             total_aulas = 0
             total_concluidas = 0
             for turma in turmas:
-                aulas_turma = Aula.objects.filter(year=turma.year).count()
-                concl = ProgressoTurma.objects.filter(
+                aulas_turma = turma.aulas_do_curriculo().count()
+                concl = AulaTurma.objects.filter(
                     turma=turma, status='concluida',
                 ).count()
                 total_aulas += aulas_turma

@@ -22,11 +22,10 @@
             <label for="tipo">Tipo</label>
             <select id="tipo" name="tipo">
                 <option value="">Todos</option>
-                <option value="musica" {% if tipo_filtro == 'musica' %}selected{% endif %}>Música</option>
-                <option value="video"  {% if tipo_filtro == 'video'  %}selected{% endif %}>Vídeo</option>
-                <option value="texto"  {% if tipo_filtro == 'texto'  %}selected{% endif %}>Texto</option>
-                <option value="audio"  {% if tipo_filtro == 'audio'  %}selected{% endif %}>Áudio</option>
-                <option value="imagem" {% if tipo_filtro == 'imagem' %}selected{% endif %}>Imagem</option>
+                <option value="jogo" {% if tipo_filtro == 'jogo' %}selected{% endif %}>Jogo</option>
+                <option value="tecnica" {% if tipo_filtro == 'tecnica' %}selected{% endif %}>Técnica</option>
+                <option value="rotina" {% if tipo_filtro == 'rotina' %}selected{% endif %}>Rotina</option>
+                <option value="recurso" {% if tipo_filtro == 'recurso' %}selected{% endif %}>Recurso</option>
             </select>
         </div>
         <div class="filter-actions">
@@ -42,25 +41,25 @@
 
     <div class="home-cards">
         {% for conteudo in conteudos %}
-            <div class="home-card {% if conteudo.tipo == 'musica' %}card-admin-add{% elif conteudo.tipo == 'video' %}card-questions{% elif conteudo.tipo == 'texto' %}card-help{% elif conteudo.tipo == 'audio' %}card-lessons{% else %}card-admin-list{% endif %}" style="cursor: default;">
+            <div class="home-card {% if conteudo.tipo == 'jogo' %}card-admin-add{% elif conteudo.tipo == 'tecnica' %}card-questions{% elif conteudo.tipo == 'rotina' %}card-help{% elif conteudo.tipo == 'recurso' %}card-lessons{% else %}card-admin-list{% endif %}" style="cursor: default;">
                 <div class="home-card-icon">
-                    {% if conteudo.tipo == 'musica' %}
+                    {% if conteudo.tipo == 'jogo' %}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                    {% elif conteudo.tipo == 'video' %}
+                    {% elif conteudo.tipo == 'tecnica' %}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                    {% elif conteudo.tipo == 'texto' %}
+                    {% elif conteudo.tipo == 'rotina' %}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-                    {% elif conteudo.tipo == 'audio' %}
+                    {% elif conteudo.tipo == 'recurso' %}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                     {% else %}
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     {% endif %}
                 </div>
-                <h3>{{ conteudo.titulo }}</h3>
+                <h3>{{ conteudo.nome }}</h3>
                 <p>
                     {{ conteudo.descricao|truncatewords:14|default:"—" }}<br>
                     <small style="color: var(--texto-muted); font-weight: 600;">
-                        Por {{ conteudo.criado_por.user.get_full_name|default:conteudo.criado_por.user.username }}
+                        Por {{ conteudo.criado_por.get_full_name|default:conteudo.criado_por.username|default:"Bebelingue" }}
                         · {{ conteudo.created_at|date:"d/m/Y" }}
                     </small>
                 </p>

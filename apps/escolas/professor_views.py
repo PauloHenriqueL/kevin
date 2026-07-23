@@ -5,7 +5,7 @@ from django.views.generic import ListView, TemplateView
 
 from apps.accounts.mixins import ProfessorRequiredMixin
 from apps.chat.models import Conversa, Mensagem
-from apps.curriculo.models import Aula, AulaConteudo, Conteudo, ProgressoTurma
+from apps.curriculo.models import Atividade, Aula, AulaTurma
 
 from .models import Turma
 
@@ -71,7 +71,7 @@ class TurmasYearView(ProfessorRequiredMixin, TemplateView):
         ctx['turmas'] = Turma.objects.filter(
             professor=professor,
             year=year,
-        ).select_related('escola').prefetch_related('alunos')
+        ).select_related('escola')
         ctx['total_aulas'] = Aula.objects.filter(year=year).count()
 
         return ctx
@@ -88,18 +88,16 @@ class TurmaAulasView(ProfessorRequiredMixin, TemplateView):
         turma = Turma.objects.filter(
             id=kwargs['turma_id'],
             professor=professor,
-        ).select_related('escola').prefetch_related('alunos').first()
+        ).select_related('escola').first()
 
         if not turma:
             raise Http404
 
-        aulas = Aula.objects.filter(
-            year=turma.year,
-        ).prefetch_related('aula_conteudos', 'homeworks')
+        aulas = turma.aulas_do_curriculo().prefetch_related('blocos', 'homeworks')
 
         # Anexa status de progresso a cada aula
         progressos = dict(
-            ProgressoTurma.objects.filter(turma=turma).values_list('aula_id', 'status')
+            AulaTurma.objects.filter(turma=turma).values_list('aula_id', 'status')
         )
         for aula in aulas:
             aula.progresso_status = progressos.get(aula.id, 'nao_iniciada')
@@ -133,10 +131,7 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
         if not aula:
             raise Http404
 
-        conteudos = AulaConteudo.objects.filter(
-            aula=aula,
-        ).select_related('conteudo').order_by('ordem')
-
+        blocos = aula.blocos.select_related('atividade').order_by('fase', 'ordem')
         homeworks = aula.homeworks.all()
 
         # Cria ou busca a conversa do professor com esta aula
@@ -150,19 +145,19 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
 
         mensagens = Mensagem.objects.filter(conversa=conversa).order_by('created_at')
 
-        # Marca progresso como parcial se estava não iniciada
-        progresso, _ = ProgressoTurma.objects.get_or_create(
+        # Marca como 'em andamento' se estava não iniciada
+        progresso, _ = AulaTurma.objects.get_or_create(
             turma=turma,
             aula=aula,
-            defaults={'status': 'parcial'},
+            defaults={'status': 'em_andamento'},
         )
         if progresso.status == 'nao_iniciada':
-            progresso.status = 'parcial'
+            progresso.status = 'em_andamento'
             progresso.save()
 
         ctx['turma'] = turma
         ctx['aula'] = aula
-        ctx['conteudos'] = conteudos
+        ctx['blocos'] = blocos
         ctx['homeworks'] = homeworks
         ctx['conversa'] = conversa
         ctx['mensagens'] = mensagens
@@ -177,17 +172,26 @@ class BibliotecaView(ProfessorRequiredMixin, ListView):
     context_object_name = 'conteudos'
 
     def get_queryset(self):
-        qs = Conteudo.objects.select_related('criado_por__user').all()
+        from django.db.models import Q
+
+        # Catálogo oficial (escola nula) + atividades locais da própria escola.
+        escola = self.request.user.professor.escola
+        qs = Atividade.objects.select_related('escola', 'criado_por').filter(
+            Q(escola__isnull=True) | Q(escola=escola)
+        )
 
         q = self.request.GET.get('q', '').strip()
         if q:
-            qs = qs.filter(titulo__icontains=q)
+            qs = qs.filter(
+                Q(nome__icontains=q) | Q(descricao__icontains=q)
+                | Q(objetivo_pedagogico__icontains=q) | Q(tags__icontains=q)
+            )
 
         tipo = self.request.GET.get('tipo', '').strip()
         if tipo:
             qs = qs.filter(tipo=tipo)
 
-        return qs.order_by('-created_at')
+        return qs.order_by('tipo', 'nome')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -202,7 +206,7 @@ class TodasAulasView(ProfessorRequiredMixin, ListView):
     context_object_name = 'aulas'
 
     def get_queryset(self):
-        qs = Aula.objects.prefetch_related('aula_conteudos', 'homeworks').all()
+        qs = Aula.objects.prefetch_related('blocos', 'homeworks').all()
 
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -226,25 +230,35 @@ class TodasAulasView(ProfessorRequiredMixin, ListView):
 
 
 class AtualizarProgressoView(ProfessorRequiredMixin, View):
-    """POST: professor marca status da aula (parcial/concluida)."""
+    """POST: professor marca o status da aula.
+
+    Ao concluir, grava data e professor automaticamente (D22). Presença e
+    observação ficam opcionais — não travam a conclusão.
+    """
 
     def post(self, request, turma_id, aula_codigo):
+        from django.utils import timezone
+
         professor = request.user.professor
         turma = get_object_or_404(Turma, id=turma_id, professor=professor)
         aula = get_object_or_404(Aula, codigo=aula_codigo)
 
-        novo_status = request.POST.get('status', 'parcial')
-        if novo_status not in ('parcial', 'concluida', 'nao_iniciada'):
-            novo_status = 'parcial'
+        novo_status = request.POST.get('status', 'em_andamento')
+        if novo_status not in ('em_andamento', 'concluida', 'nao_iniciada', 'pulada'):
+            novo_status = 'em_andamento'
 
-        progresso, _ = ProgressoTurma.objects.get_or_create(
-            turma=turma,
-            aula=aula,
-            defaults={'status': novo_status},
-        )
-        if progresso.status != novo_status:
-            progresso.status = novo_status
-            progresso.save()
+        progresso, _ = AulaTurma.objects.get_or_create(turma=turma, aula=aula)
+        progresso.status = novo_status
+        if novo_status == 'concluida':
+            progresso.data_realizada = progresso.data_realizada or timezone.localdate()
+            progresso.professor = progresso.professor or professor
+            presentes = request.POST.get('presentes', '').strip()
+            if presentes.isdigit():
+                progresso.presentes = int(presentes)
+            obs = request.POST.get('observacoes', '').strip()
+            if obs:
+                progresso.observacoes = obs
+        progresso.save()
 
         return redirect('professor:aula_detail', turma_id=turma.id, aula_codigo=aula.codigo)
 
@@ -252,7 +266,7 @@ class AtualizarProgressoView(ProfessorRequiredMixin, View):
 class ResetAulaView(ProfessorRequiredMixin, View):
     """
     POST: reseta a aula para aquela turma do zero.
-    - Apaga o ProgressoTurma (na próxima abertura volta a 'parcial').
+    - Apaga o AulaTurma (na próxima abertura volta a 'em_andamento').
     - Limpa o histórico de chat com o Kevin para essa aula e recria
       a mensagem inicial de boas-vindas.
     """
@@ -262,7 +276,7 @@ class ResetAulaView(ProfessorRequiredMixin, View):
         turma = get_object_or_404(Turma, id=turma_id, professor=professor)
         aula = get_object_or_404(Aula, codigo=aula_codigo)
 
-        ProgressoTurma.objects.filter(turma=turma, aula=aula).delete()
+        AulaTurma.objects.filter(turma=turma, aula=aula).delete()
 
         conversa = Conversa.objects.filter(professor=professor, aula=aula).first()
         if conversa:
@@ -282,16 +296,16 @@ class MeuProgressoView(ProfessorRequiredMixin, TemplateView):
 
         turmas = Turma.objects.filter(
             professor=professor,
-        ).select_related('escola').prefetch_related('alunos')
+        ).select_related('escola')
 
         turmas_data = []
         for turma in turmas:
-            total_aulas = Aula.objects.filter(year=turma.year).count()
-            concluidas = ProgressoTurma.objects.filter(
+            total_aulas = turma.aulas_do_curriculo().count()
+            concluidas = AulaTurma.objects.filter(
                 turma=turma, status='concluida',
             ).count()
-            parciais = ProgressoTurma.objects.filter(
-                turma=turma, status='parcial',
+            parciais = AulaTurma.objects.filter(
+                turma=turma, status='em_andamento',
             ).count()
             pct = round((concluidas / total_aulas) * 100) if total_aulas else 0
 

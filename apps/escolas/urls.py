@@ -10,7 +10,6 @@ router.register('planos', views.PlanoViewSet, basename='plano')
 router.register('escolas', views.EscolaViewSet, basename='escola')
 router.register('professores', views.ProfessorViewSet, basename='professor')
 router.register('turmas', views.TurmaViewSet, basename='turma')
-router.register('alunos', views.AlunoViewSet, basename='aluno')
 
 urlpatterns = [
     path('', include(router.urls)),

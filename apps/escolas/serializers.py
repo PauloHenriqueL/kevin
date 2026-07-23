@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Aluno, Escola, Plano, Professor, Turma
+from .models import Escola, Plano, Professor, Turma
 
 
 class PlanoSerializer(serializers.ModelSerializer):
@@ -38,21 +38,11 @@ class TurmaSerializer(serializers.ModelSerializer):
         source='professor.user.get_full_name', read_only=True, default=None,
     )
     display_nome = serializers.CharField(source='__str__', read_only=True)
-    total_alunos = serializers.IntegerField(source='alunos.count', read_only=True)
 
     class Meta:
         model = Turma
         fields = (
             'id', 'year', 'nome', 'escola', 'professor',
-            'professor_nome', 'display_nome', 'total_alunos',
+            'professor_nome', 'display_nome', 'qtd_alunos', 'aulas_por_semana',
         )
-        read_only_fields = ('id',)
-
-
-class AlunoSerializer(serializers.ModelSerializer):
-    turma_nome = serializers.CharField(source='turma.__str__', read_only=True)
-
-    class Meta:
-        model = Aluno
-        fields = ('id', 'nome', 'turma', 'turma_nome')
         read_only_fields = ('id',)

@@ -2,9 +2,8 @@ from rest_framework import viewsets
 
 from apps.accounts.permissions import IsAdmin, IsAdminOrReadOnly
 
-from .models import Aluno, Escola, Plano, Professor, Turma
+from .models import Escola, Plano, Professor, Turma
 from .serializers import (
-    AlunoSerializer,
     EscolaSerializer,
     PlanoSerializer,
     ProfessorSerializer,
@@ -60,17 +59,3 @@ class TurmaViewSet(viewsets.ModelViewSet):
         if user.role == 'professor' and hasattr(user, 'professor'):
             return qs.filter(escola=user.professor.escola)
         return Turma.objects.none()
-
-
-class AlunoViewSet(viewsets.ModelViewSet):
-    """CRUD de alunos — filtrados pela escola do professor."""
-    serializer_class = AlunoSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        qs = Aluno.objects.select_related('turma__escola')
-        if user.role == 'admin':
-            return qs.all()
-        if user.role == 'professor' and hasattr(user, 'professor'):
-            return qs.filter(turma__escola=user.professor.escola)
-        return Aluno.objects.none()

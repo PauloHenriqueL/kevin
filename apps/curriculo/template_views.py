@@ -4,7 +4,7 @@ from django.views.generic import ListView, TemplateView
 
 from apps.accounts.mixins import ProfessorRequiredMixin
 
-from .models import Aula, Conteudo
+from .models import Atividade, Aula
 
 
 class AulaListView(ProfessorRequiredMixin, TemplateView):
@@ -12,7 +12,7 @@ class AulaListView(ProfessorRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        aulas = Aula.objects.prefetch_related('aula_conteudos', 'homeworks').all()
+        aulas = Aula.objects.prefetch_related('blocos', 'homeworks').all()
 
         years = OrderedDict()
         for aula in aulas:
@@ -23,16 +23,17 @@ class AulaListView(ProfessorRequiredMixin, TemplateView):
 
 
 class ConteudoListView(ProfessorRequiredMixin, ListView):
+    """Lista do catálogo de atividades (antiga 'biblioteca de conteúdos')."""
     template_name = 'curriculo/conteudo_list.html'
     context_object_name = 'conteudos'
 
     def get_queryset(self):
-        return Conteudo.objects.select_related('criado_por__user').all()
+        return Atividade.objects.select_related('criado_por', 'escola').all()
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['total_musicas'] = Conteudo.objects.filter(tipo='musica').count()
-        ctx['total_videos'] = Conteudo.objects.filter(tipo='video').count()
-        ctx['total_textos'] = Conteudo.objects.filter(tipo='texto').count()
-        ctx['total_imagens'] = Conteudo.objects.filter(tipo='imagem').count()
+        ctx['total_jogos'] = Atividade.objects.filter(tipo='jogo').count()
+        ctx['total_tecnicas'] = Atividade.objects.filter(tipo='tecnica').count()
+        ctx['total_rotinas'] = Atividade.objects.filter(tipo='rotina').count()
+        ctx['total_recursos'] = Atividade.objects.filter(tipo='recurso').count()
         return ctx

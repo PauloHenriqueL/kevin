@@ -5,7 +5,13 @@ from django.db import models
 class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Administrador'
-        ESCOLA = 'escola', 'Gestor de Escola'
+        # Coordenador pedagógico da Bebelingue (fornecedora). Cadastra o
+        # currículo (TG) e o catálogo oficial de atividades. NÃO tem acesso a
+        # configuração técnica (chaves de API, planos).
+        COORDENADOR = 'coordenador', 'Coordenador Bebelingue'
+        # Diretor da escola cliente. O valor era 'escola' — renomeado para
+        # alinhar com o modelo Diretor e com o resto do projeto.
+        DIRETOR = 'diretor', 'Diretor de Escola'
         PROFESSOR = 'professor', 'Professor'
 
     role = models.CharField(

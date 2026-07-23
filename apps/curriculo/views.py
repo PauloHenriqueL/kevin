@@ -1,23 +1,27 @@
+from django.db.models import Q
 from rest_framework import viewsets
 
-from apps.accounts.permissions import IsAdminOrReadOnly
+from apps.accounts.permissions import IsAdminOrCoordenador, IsAdminOrReadOnly
 
-from .models import Aula, AulaConteudo, Conteudo, Homework, ProgressoTurma
+from .models import Atividade, Aula, AulaTurma, BlocoAula, Homework
 from .serializers import (
-    AulaConteudoSerializer,
+    AtividadeSerializer,
     AulaListSerializer,
     AulaSerializer,
-    ConteudoSerializer,
+    AulaTurmaSerializer,
+    BlocoAulaSerializer,
     HomeworkSerializer,
-    ProgressoTurmaSerializer,
 )
+
+ROLES_GLOBAIS = ('admin', 'coordenador')
 
 
 class AulaViewSet(viewsets.ModelViewSet):
-    """CRUD de aulas — admin cria/edita, professores só leem."""
-    queryset = Aula.objects.prefetch_related('aula_conteudos__conteudo', 'homeworks')
+    """Aulas do TG — coordenador cria/edita, professor só lê."""
+    queryset = Aula.objects.prefetch_related('blocos__atividade', 'homeworks')
     permission_classes = [IsAdminOrReadOnly]
-    filterset_fields = ['year']
+    filterset_fields = ['year', 'mes', 'tipo', 'unit']
+    search_fields = ['codigo', 'titulo']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -25,43 +29,67 @@ class AulaViewSet(viewsets.ModelViewSet):
         return AulaSerializer
 
 
-class ConteudoViewSet(viewsets.ModelViewSet):
-    """CRUD de conteúdos — qualquer professor cria, todos veem."""
-    queryset = Conteudo.objects.select_related('criado_por__user').all()
-    serializer_class = ConteudoSerializer
+class AtividadeViewSet(viewsets.ModelViewSet):
+    """Catálogo de atividades.
+
+    Isolamento entre escolas (D6): cada usuário vê o catálogo oficial da
+    Bebelingue (escola nula) mais as atividades locais da própria escola —
+    nunca as de outra.
+    """
+    serializer_class = AtividadeSerializer
     filterset_fields = ['tipo']
-    search_fields = ['titulo', 'descricao']
+    search_fields = ['nome', 'descricao', 'objetivo_pedagogico', 'tags']
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Atividade.objects.select_related('escola', 'criado_por')
+
+        if user.role in ROLES_GLOBAIS:
+            return qs
+
+        escola = getattr(self.request, 'escola', None)
+        if escola:
+            return qs.filter(Q(escola__isnull=True) | Q(escola=escola))
+        return qs.filter(escola__isnull=True)
 
     def perform_create(self, serializer):
-        serializer.save(criado_por=self.request.user.professor)
+        """Professor só cria atividade LOCAL; coordenador cria a oficial."""
+        user = self.request.user
+        if user.role in ROLES_GLOBAIS:
+            serializer.save(criado_por=user)
+        else:
+            serializer.save(criado_por=user, escola=getattr(self.request, 'escola', None))
 
 
-class AulaConteudoViewSet(viewsets.ModelViewSet):
-    """Vincular conteúdos a aulas — admin gerencia."""
-    queryset = AulaConteudo.objects.select_related('aula', 'conteudo').all()
-    serializer_class = AulaConteudoSerializer
-    permission_classes = [IsAdminOrReadOnly]
-    filterset_fields = ['aula']
+class BlocoAulaViewSet(viewsets.ModelViewSet):
+    """Blocos do roteiro — coordenador gerencia."""
+    queryset = BlocoAula.objects.select_related('aula', 'atividade')
+    serializer_class = BlocoAulaSerializer
+    permission_classes = [IsAdminOrCoordenador]
+    filterset_fields = ['aula', 'fase']
 
 
 class HomeworkViewSet(viewsets.ModelViewSet):
-    """CRUD de homeworks — admin gerencia."""
-    queryset = Homework.objects.select_related('aula').all()
+    """Homeworks — coordenador gerencia."""
+    queryset = Homework.objects.select_related('aula')
     serializer_class = HomeworkSerializer
     permission_classes = [IsAdminOrReadOnly]
     filterset_fields = ['aula']
 
 
-class ProgressoTurmaViewSet(viewsets.ModelViewSet):
-    """Progresso das turmas — professor atualiza as suas."""
-    serializer_class = ProgressoTurmaSerializer
-    filterset_fields = ['turma', 'status']
+class AulaTurmaViewSet(viewsets.ModelViewSet):
+    """Execução das aulas por turma — professor atualiza as suas."""
+    serializer_class = AulaTurmaSerializer
+    filterset_fields = ['turma', 'status', 'aula']
 
     def get_queryset(self):
         user = self.request.user
-        qs = ProgressoTurma.objects.select_related('turma__escola', 'aula')
-        if user.role == 'admin':
-            return qs.all()
+        qs = AulaTurma.objects.select_related('turma__escola', 'aula', 'professor')
+        if user.role in ROLES_GLOBAIS:
+            return qs
         if user.role == 'professor' and hasattr(user, 'professor'):
             return qs.filter(turma__escola=user.professor.escola)
-        return ProgressoTurma.objects.none()
+        escola = getattr(self.request, 'escola', None)
+        if escola:
+            return qs.filter(turma__escola=escola)
+        return AulaTurma.objects.none()

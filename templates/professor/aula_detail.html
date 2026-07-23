@@ -111,26 +111,26 @@
         <details class="aula-materials">
             <summary>📎 Material da aula</summary>
             <div class="aula-materials-body">
-                {% if aula.descricao %}
-                    <h3>📘 Descrição</h3>
-                    <p>{{ aula.descricao }}</p>
+                {% if aula.observacao %}
+                    <h3>📘 Observação</h3>
+                    <p>{{ aula.observacao }}</p>
                 {% endif %}
 
-                {% if conteudos %}
-                    <h3>🎬 Conteúdos ({{ conteudos|length }})</h3>
+                {% if blocos %}
+                    <h3>📋 Roteiro ({{ blocos|length }} bloco{{ blocos|length|pluralize:"s" }})</h3>
                     <div style="display: grid; gap: 8px;">
-                        {% for ac in conteudos %}
+                        {% for bloco in blocos %}
                             <div style="display:flex; gap:12px; padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px;">
-                                <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--azul-claro); color: var(--azul); display:flex; align-items:center; justify-content:center; font-weight: 900; font-size: 0.8rem; flex-shrink:0;">
-                                    {{ ac.ordem }}
+                                <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--azul-claro); color: var(--azul); display:flex; align-items:center; justify-content:center; font-weight: 900; font-size: 0.7rem; flex-shrink:0;">
+                                    {{ bloco.get_fase_display|slice:":1" }}{{ bloco.ordem }}
                                 </div>
                                 <div style="flex: 1;">
-                                    <strong style="font-size: 0.95rem;">
-                                        {% if ac.conteudo.tipo == 'musica' %}🎵{% elif ac.conteudo.tipo == 'video' %}🎬{% elif ac.conteudo.tipo == 'texto' %}📄{% elif ac.conteudo.tipo == 'audio' %}🔊{% elif ac.conteudo.tipo == 'imagem' %}🖼️{% endif %}
-                                        {{ ac.conteudo.titulo }}
-                                    </strong>
-                                    {% if ac.conteudo.descricao %}
-                                        <div style="color: var(--texto-sec); font-size: 0.85rem; margin-top:2px;">{{ ac.conteudo.descricao }}</div>
+                                    <strong style="font-size: 0.95rem;">{{ bloco.rotulo }}</strong>
+                                    {% if bloco.referencia %}
+                                        <div style="color: var(--texto-sec); font-size: 0.85rem; margin-top:2px;">{{ bloco.referencia }}</div>
+                                    {% endif %}
+                                    {% if bloco.instrucoes %}
+                                        <div style="color: var(--texto-sec); font-size: 0.85rem; margin-top:2px; white-space: pre-line;">{{ bloco.instrucoes }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -142,9 +142,7 @@
                     <h3>📝 Homework</h3>
                     {% for hw in homeworks %}
                         <div style="padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px; margin-bottom: 6px;">
-                            <strong>{{ hw.objetivo }}</strong>
-                            {% if hw.vocabulario %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Vocabulário: {{ hw.vocabulario }}</div>{% endif %}
-                            {% if hw.gramatica %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Gramática: {{ hw.gramatica }}</div>{% endif %}
+                            {{ hw.descricao }}
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -237,8 +235,11 @@ window.KEVIN_RIG_CONFIG = {
     backgroundUrl:    "{% static 'js/kevin-puppet/background-forest.png' %}",
     rigMountSelector: "#kevin-rig-mount",
 };
-// Mensagem automática enviada ao clicar em "Iniciar aula" (input oculto).
-window.KEVIN_KICKOFF = "Olá Kevin, o que vamos fazer hoje? Por onde começamos?";
+// Cenário de fundo definido no cadastro da aula (Demanda 9B). Os assets ficam
+// em storage externo; aqui vai só a chave — a integração resolve a URL.
+window.KEVIN_BACKGROUND = "{{ aula.background }}";
+// Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
+window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
 // Modo demo: respostas locais para testar animações (desativar em produção)
 window.KEVIN_DEMO_MODE = true;
 </script>

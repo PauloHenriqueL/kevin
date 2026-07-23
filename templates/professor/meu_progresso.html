@@ -23,7 +23,7 @@
                     <div style="min-width:0;">
                         <h3 style="margin-bottom: 4px;">Turma {{ item.turma.year }}{{ item.turma.nome }}</h3>
                         <p style="color: var(--texto-sec); font-size: 0.88rem; font-weight: 600;">
-                            {{ item.turma.escola.nome }} · {{ item.turma.alunos.count }} aluno{{ item.turma.alunos.count|pluralize:"s" }}
+                            {{ item.turma.escola.nome }} · {{ item.turma.qtd_alunos }} aluno{{ item.turma.qtd_alunos|pluralize:"s" }}
                         </p>
                     </div>
                 </div>

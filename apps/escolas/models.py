@@ -142,8 +142,14 @@ class Professor(models.Model):
 
 
 class Turma(models.Model):
-    year = models.IntegerField(help_text='Ano do currículo (1, 2, 3...)')
-    nome = models.CharField(max_length=10, help_text='Ex: A, B, C')
+    """Uma turma da escola cliente.
+
+    Não guarda alunos nominalmente: a escola não mede aluno individual (ver
+    demandas.md, D8). Só o headcount e, por aula, a presença em AulaTurma.
+    """
+
+    year = models.IntegerField(help_text='Year do currículo (1 a 5). Define qual TG a turma segue.')
+    nome = models.CharField(max_length=20, help_text='Ex: A, B, "Tarde"')
     escola = models.ForeignKey(
         Escola,
         on_delete=models.CASCADE,
@@ -156,6 +162,18 @@ class Turma(models.Model):
         blank=True,
         related_name='turmas',
     )
+    qtd_alunos = models.PositiveIntegerField(
+        default=0,
+        help_text='Quantos alunos a turma tem. Substitui o cadastro individual.',
+    )
+    aulas_por_semana = models.PositiveIntegerField(
+        default=3,
+        choices=[(3, '3x por semana'), (4, '4x por semana'), (5, '5x por semana')],
+        help_text=(
+            'Frequência contratada pela escola. O TG de 4x é o de 3x mais uma '
+            'Communication Class; o de 5x, mais outra.'
+        ),
+    )
 
     class Meta:
         verbose_name = 'Turma'
@@ -165,18 +183,15 @@ class Turma(models.Model):
     def __str__(self):
         return f'{self.escola.nome} — Turma {self.year}{self.nome}'
 
+    def aulas_do_curriculo(self):
+        """Aulas do TG que esta turma deve dar, na ordem.
 
-class Aluno(models.Model):
-    nome = models.CharField(max_length=200)
-    turma = models.ForeignKey(
-        Turma,
-        on_delete=models.CASCADE,
-        related_name='alunos',
-    )
+        Filtra pela frequência: uma turma 3x não vê as Communication Classes
+        extras cadastradas para 4x e 5x (ver D19).
+        """
+        from apps.curriculo.models import Aula
 
-    class Meta:
-        verbose_name = 'Aluno'
-        verbose_name_plural = 'Alunos'
-
-    def __str__(self):
-        return self.nome
+        return Aula.objects.filter(
+            year=self.year,
+            frequencia_minima__lte=self.aulas_por_semana,
+        )

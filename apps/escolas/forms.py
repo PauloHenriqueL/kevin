@@ -2,7 +2,7 @@ from django import forms
 
 from apps.accounts.models import User
 
-from .models import Aluno, Professor, Turma
+from .models import Professor, Turma
 
 
 class ProfessorForm(forms.ModelForm):
@@ -91,7 +91,7 @@ class ProfessorForm(forms.ModelForm):
 class TurmaForm(forms.ModelForm):
     class Meta:
         model = Turma
-        fields = ('year', 'nome', 'professor')
+        fields = ('year', 'nome', 'professor', 'qtd_alunos', 'aulas_por_semana')
 
     def __init__(self, *args, escola=None, **kwargs):
         self.escola = escola
@@ -107,16 +107,3 @@ class TurmaForm(forms.ModelForm):
         if commit:
             turma.save()
         return turma
-
-
-class AlunoForm(forms.ModelForm):
-    class Meta:
-        model = Aluno
-        fields = ('nome', 'turma')
-
-    def __init__(self, *args, escola=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if escola:
-            self.fields['turma'].queryset = Turma.objects.filter(escola=escola)
-        for field in self.fields.values():
-            field.widget.attrs['class'] = 'form-control'

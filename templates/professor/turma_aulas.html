@@ -11,7 +11,7 @@
     <div class="page-header">
         <div>
             <h2>Aulas — Turma {{ turma.year }}{{ turma.nome }}</h2>
-            <p>{{ turma.escola.nome }} · {{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</p>
+            <p>{{ turma.escola.nome }} · {{ turma.qtd_alunos }} aluno{{ turma.qtd_alunos|pluralize:"s" }}</p>
         </div>
     </div>
 
@@ -21,13 +21,13 @@
                 <div style="min-width: 0; flex: 1;">
                     <h4>{{ aula.codigo }} — {{ aula.titulo }}</h4>
                     <div style="display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; font-size: 0.8rem; color: var(--texto-sec); margin-top: 6px; font-weight: 700;">
-                        <span>Year {{ aula.year }} · Unit {{ aula.unit }} · Week {{ aula.week }} · Class {{ aula.class_num }}</span>
+                        <span>Year {{ aula.year }} · {{ aula.get_mes_display }} · Semana {{ aula.semana }} · Aula {{ aula.numero_aula }}</span>
                         {% if aula.progresso_status == 'concluida' %}
                             <span class="status-chip done">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                                 Concluída
                             </span>
-                        {% elif aula.progresso_status == 'parcial' %}
+                        {% elif aula.progresso_status == 'em_andamento' %}
                             <span class="status-chip partial">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="14"/></svg>
                                 Em andamento
@@ -43,13 +43,13 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div class="lesson-list-body">
-                {% if aula.descricao %}
+                {% if aula.observacao %}
                     <div class="lesson-detail-label">Descrição</div>
-                    <div class="lesson-detail-value">{{ aula.descricao|truncatewords:40 }}</div>
+                    <div class="lesson-detail-value">{{ aula.observacao|truncatewords:40 }}</div>
                 {% endif %}
                 <div class="lesson-detail-label">Conteúdos</div>
                 <div class="lesson-detail-value">
-                    {{ aula.aula_conteudos.count }} item{{ aula.aula_conteudos.count|pluralize:"s" }} ·
+                    {{ aula.blocos.count }} bloco{{ aula.blocos.count|pluralize:"s" }} ·
                     {{ aula.homeworks.count }} homework{{ aula.homeworks.count|pluralize:"s" }}
                 </div>
                 <div style="margin-top: 18px;">

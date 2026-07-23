@@ -59,7 +59,7 @@ Relatório de progresso
                     <strong style="font-size: 1rem;">Turma {{ item.turma.year }}{{ item.turma.nome }}</strong>
                     <div style="color: var(--texto-sec); font-size: 0.82rem; font-weight: 600;">
                         {% if item.turma.professor %}Prof. {{ item.turma.professor.user.get_full_name|default:item.turma.professor.user.username }}{% else %}<em>Sem professor</em>{% endif %}
-                        · {{ item.turma.alunos.count }} aluno{{ item.turma.alunos.count|pluralize:"s" }}
+                        · {{ item.turma.qtd_alunos }} aluno{{ item.turma.qtd_alunos|pluralize:"s" }}
                     </div>
                 </div>
             </div>

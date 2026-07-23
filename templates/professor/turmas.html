@@ -27,7 +27,7 @@
                 <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
                 <p>
                     {{ turma.escola.nome }}<br>
-                    <span class="badge badge-blue" style="margin-top:8px;">{{ turma.alunos.count }} aluno{{ turma.alunos.count|pluralize:"s" }}</span>
+                    <span class="badge badge-blue" style="margin-top:8px;">{{ turma.qtd_alunos }} aluno{{ turma.qtd_alunos|pluralize:"s" }}</span>
                     <span class="badge badge-amber" style="margin-top:8px;">{{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</span>
                 </p>
             </a>
