@@ -1679,6 +1679,33 @@ body::after {
 }
 
 /* Live mic button */
+.btn-musica {
+  background: white;
+  color: #16a34a;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  box-shadow:
+    0 3px 8px rgba(22,163,74,0.12),
+    0 1px 2px rgba(15,23,42,0.06),
+    0 0 0 1.5px rgba(22,163,74,0.20);
+}
+.btn-musica svg { width: 22px; height: 22px; }
+.btn-musica:hover { transform: translateY(-2px); }
+.btn-musica:active { transform: scale(0.92); }
+.btn-musica[data-playing="true"] {
+  background: #16a34a;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(22,163,74,0.20), 0 4px 12px rgba(22,163,74,0.30);
+}
+
 .btn-mic-live {
   background: white;
   color: var(--roxo);

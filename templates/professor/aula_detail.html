@@ -88,6 +88,14 @@
             </button>
             <span class="call-btn-label">Conversa ao vivo</span>
         </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica" id="btn-musica" type="button" aria-label="Kevin canta com o ukulele" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Música</span>
+        </div>
     </div>
 
     <!-- FAB do chat (canto inferior direito) -->
@@ -247,5 +255,5 @@ window.KEVIN_DEMO_MODE = true;
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
      kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
 <script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=2"></script>
-<script defer src="{% static 'js/kevin_chat.js' %}?v=17"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=18"></script>
 {% endblock %}
