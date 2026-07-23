@@ -32,3 +32,17 @@ CLAUDE.md
 
 # Áudios de teste locais (não fazem parte do app)
 audios/
+
+# Entregas do animador — os .zip nunca entram no repositório.
+# Extraia e mova só os arquivos usados (ver CLAUDE.md → Assets do Kevin).
+export_*.zip
+export_*/
+
+# Mídia pesada do puppet: backgrounds e vídeo de transição vão para storage
+# externo (S3/R2), não para o Git. Só código (JS/CSS/SVG) fica versionado.
+static/js/kevin-puppet/assets/backgrounds/
+static/js/kevin-puppet/assets/videos/
+
+# Material bruto do cliente (docx/pdf/mp3 da Bebelingue) — documentação de
+# apoio, não faz parte do app.
+documento_escola/
