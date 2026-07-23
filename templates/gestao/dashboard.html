@@ -93,7 +93,7 @@ Dashboard
                             {% if turma.professor %}{{ turma.professor.user.get_full_name|default:turma.professor.user.username }}{% else %}Sem professor{% endif %}
                         </span>
                     </div>
-                    <span class="badge badge-blue">{{ turma.alunos.count }} alunos</span>
+                    <span class="badge badge-blue">{{ turma.qtd_alunos }} alunos</span>
                 </div>
             {% empty %}
                 <div class="empty-state" style="padding: 36px 20px;">

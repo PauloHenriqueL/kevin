@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Aluno, Diretor, Escola, Plano, Professor, Turma
+from .models import Diretor, Escola, Plano, Professor, Turma
 
 
 @admin.register(Plano)
@@ -41,12 +41,9 @@ class ProfessorAdmin(admin.ModelAdmin):
 
 @admin.register(Turma)
 class TurmaAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'escola', 'year', 'nome', 'professor')
-    list_filter = ('escola', 'year')
-
-
-@admin.register(Aluno)
-class AlunoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'turma')
-    list_filter = ('turma__escola',)
-    search_fields = ('nome',)
+    list_display = (
+        '__str__', 'escola', 'year', 'nome', 'professor',
+        'qtd_alunos', 'aulas_por_semana',
+    )
+    list_filter = ('escola', 'year', 'aulas_por_semana')
+    search_fields = ('nome', 'escola__nome')

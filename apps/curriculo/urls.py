@@ -7,10 +7,10 @@ app_name = 'curriculo_api'
 
 router = DefaultRouter()
 router.register('aulas', views.AulaViewSet, basename='aula')
-router.register('conteudos', views.ConteudoViewSet, basename='conteudo')
-router.register('aula-conteudos', views.AulaConteudoViewSet, basename='aula-conteudo')
+router.register('atividades', views.AtividadeViewSet, basename='atividade')
+router.register('blocos', views.BlocoAulaViewSet, basename='bloco')
 router.register('homeworks', views.HomeworkViewSet, basename='homework')
-router.register('progressos', views.ProgressoTurmaViewSet, basename='progresso')
+router.register('aulas-turma', views.AulaTurmaViewSet, basename='aula-turma')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -140,6 +140,70 @@ class KevinPuppetIntegration {
     this._statusTimer = null;
     this._initialized = false;
     this._initError = null;
+
+    // ── Loop de ociosidade (Demanda 9A / D15) ──
+    // Enquanto o Kevin está em standby: mosca aparece a cada 40-90s; se ninguém
+    // interage por ~5 min, ele dorme. Qualquer atividade (msg, fala) reseta.
+    this._idleTimer = null;      // agenda a próxima mosca
+    this._sleepTimer = null;     // agenda o sono
+    this._idleActive = false;    // loop rodando?
+    this.MOSCA_MIN_MS = 40_000;
+    this.MOSCA_MAX_MS = 90_000;
+    this.SLEEP_AFTER_MS = 5 * 60_000;
+  }
+
+  // ── Ociosidade ──────────────────────────────────────────────────────────
+
+  /** Começa a contar ociosidade a partir de agora (Kevin em standby). */
+  _startIdleLoop() {
+    if (!this._initialized || prefersReducedMotion()) return;
+    this._idleActive = true;
+    this._scheduleMosca();
+    this._scheduleSleep();
+  }
+
+  /** Para o loop e limpa timers. Chamado a cada interação e no destroy. */
+  _stopIdleLoop() {
+    this._idleActive = false;
+    clearTimeout(this._idleTimer);
+    clearTimeout(this._sleepTimer);
+    this._idleTimer = null;
+    this._sleepTimer = null;
+  }
+
+  _scheduleMosca() {
+    clearTimeout(this._idleTimer);
+    const espera = this.MOSCA_MIN_MS
+      + Math.floor((this.MOSCA_MAX_MS - this.MOSCA_MIN_MS) * Math.random());
+    this._idleTimer = setTimeout(() => {
+      // Só solta a mosca se ainda estiver ocioso e acordado.
+      if (this._idleActive && this.kevin && this.kevin.getMode() === 'standby'
+          && !this.kevin.isMoscaActive()) {
+        this.kevin.startMosca();
+      }
+      if (this._idleActive) this._scheduleMosca();  // reagenda a próxima
+    }, espera);
+  }
+
+  _scheduleSleep() {
+    clearTimeout(this._sleepTimer);
+    this._sleepTimer = setTimeout(() => {
+      if (this._idleActive && this.kevin && this.kevin.getMode() === 'standby') {
+        this.kevin.setMode('sleeping');
+        this.setStatus('idle', 'Kevin cochilando… fale para acordar');
+      }
+    }, this.SLEEP_AFTER_MS);
+  }
+
+  /**
+   * Marca que houve interação: acorda o Kevin se estiver dormindo e zera a
+   * contagem de ociosidade. Ponto único chamado por todos os eventos de chat.
+   */
+  _kickActivity() {
+    this._stopIdleLoop();
+    if (this.kevin && this.kevin.isMoscaActive()) {
+      this.kevin.dismissMosca();
+    }
   }
 
   async init() {
@@ -175,6 +239,7 @@ class KevinPuppetIntegration {
       await this.kevin.setMode(initialMode);
       this._initialized = true;
       this.setStatus('idle', 'Pronto pra conversar');
+      this._startIdleLoop();
       console.log('[KevinPuppet] ✓ pronto (mode=' + initialMode + ')');
     } catch (err) {
       this._initError = err;
@@ -240,7 +305,9 @@ class KevinPuppetIntegration {
   /** Usuário enviou mensagem — Kevin escuta. Interrompe TTS anterior. */
   onUserMessage(_text) {
     if (!this._initialized) return;
+    this._kickActivity();  // acorda de sleeping / espanta a mosca, zera ociosidade
     this.stopAudio();
+    // sleeping → corte seco (D16). musica: o motor anima a saída sozinho.
     this.kevin.setMode('standby');
     this.setStatus('listening', 'Ouvindo você…');
   }
@@ -248,6 +315,7 @@ class KevinPuppetIntegration {
   /** IA está gerando a resposta. Interrompe TTS anterior. */
   onAssistantThinking() {
     if (!this._initialized) return;
+    this._kickActivity();
     this.stopAudio();
     this.kevin.setMode('thinking');
     this.setStatus('thinking', 'Pensando…');
@@ -262,6 +330,7 @@ class KevinPuppetIntegration {
     if (!this._initialized) return;
     this.kevin.setMode('standby');
     this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();  // resposta entregue → volta a contar ociosidade
   }
 
   /** Modo "falando" — chamado pelo playTTS quando o áudio vai começar. */
@@ -277,6 +346,7 @@ class KevinPuppetIntegration {
     if (!this._initialized) return;
     this.kevin.setMode('standby');
     this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();
   }
 
   /** Erro/timeout — Kevin volta pra standby. Interrompe TTS se estiver tocando. */
@@ -285,9 +355,43 @@ class KevinPuppetIntegration {
     this.stopAudio();
     this.kevin.setMode('standby');
     this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();
+  }
+
+  // ── Música (Demanda 9A / D17, fase 1: botão manual) ──────────────────────
+
+  /**
+   * Kevin pega o ukulele e canta, com lipsync do áudio ativo. Chamado pelo
+   * botão "Kevin, canta!" no telão. Se houver uma faixa, toca junto.
+   * @param {string} [audioUrl] URL de uma música para tocar com lipsync.
+   */
+  async playMusica(audioUrl) {
+    if (!this._initialized) return false;
+    this._kickActivity();
+    if (audioUrl && this.audioEl) {
+      try {
+        await this.unlockAudio();
+        this.audioEl.src = audioUrl;
+        this.audioEl.play().catch(() => {/* autoplay pode falhar sem gesture */});
+      } catch (e) { /* segue sem áudio — a animação toca mesmo assim */ }
+    }
+    const ok = await this.kevin.setMode('musica');
+    if (ok) this.setStatus('speaking', 'Cantando 🎵');
+    return ok;
+  }
+
+  /** Encerra a música: o motor anima a saída (devolve o ukulele) sozinho. */
+  stopMusica() {
+    if (!this._initialized) return;
+    this.stopAudio();
+    this.kevin.setMode('standby');
+    this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();
   }
 
   destroy() {
+    this._stopIdleLoop();
+    clearTimeout(this._statusTimer);
     if (this.kevin) this.kevin.destroy();
     if (this.audioEl && this.audioEl.parentNode) {
       this.audioEl.parentNode.removeChild(this.audioEl);

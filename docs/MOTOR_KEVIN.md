@@ -689,7 +689,7 @@ descarte a referência do API retornada (`kevin = null`) após `destroy()`.
 O harness oficial é `demo.html` nesta pasta. Workflow rápido:
 
 ```sh
-cd animacao/export
+cd static/js/kevin-puppet
 python3 -m http.server 8123
 # abre http://localhost:8123/demo.html
 ```

@@ -6,7 +6,8 @@ class EscolaMiddleware:
     """
     Injeta a escola do usuário logado no request.
     - Admin: request.escola = None (vê tudo)
-    - Escola (diretor): request.escola = escola vinculada
+    - Coordenador Bebelingue: request.escola = None (vê todas as escolas)
+    - Diretor: request.escola = escola vinculada
     - Professor: request.escola = escola do professor
     """
 
@@ -23,7 +24,7 @@ class EscolaMiddleware:
                 request.professor = request.user.professor
                 request.escola = request.user.professor.escola
 
-            elif request.user.role == 'escola' and hasattr(request.user, 'diretor'):
+            elif request.user.role == 'diretor' and hasattr(request.user, 'diretor'):
                 request.diretor = request.user.diretor
                 request.escola = request.user.diretor.escola
 

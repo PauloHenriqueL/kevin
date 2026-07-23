@@ -6,7 +6,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Turmas</h1>
-    {% if user.role == 'admin' or user.role == 'escola' %}
+    {% if user.role == 'admin' or user.role == 'diretor' %}
     <a href="#" class="btn btn-primary">+ Nova Turma</a>
     {% endif %}
 </div>
@@ -46,7 +46,7 @@
                                 <span class="badge badge-mustard">Sem professor</span>
                             {% endif %}
                         </td>
-                        <td>{{ turma.alunos.count }} alunos</td>
+                        <td>{{ turma.qtd_alunos }} alunos</td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <div class="progress-bar" style="width: 100px;">

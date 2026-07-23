@@ -723,5 +723,23 @@
     }
   });
 
+  // ── Botão de música (Demanda 9A) ──
+  // Toggle: Kevin pega o ukulele e canta / guarda o ukulele. A saída da música
+  // é animada pelo próprio motor (integração cuida disso).
+  const btnMusica = document.getElementById('btn-musica');
+  if (btnMusica && kevinChat) {
+    btnMusica.addEventListener('click', async () => {
+      const tocando = btnMusica.dataset.playing === 'true';
+      if (tocando) {
+        if (kevinChat.stopMusica) kevinChat.stopMusica();
+        btnMusica.dataset.playing = 'false';
+      } else {
+        // window.KEVIN_MUSICA_URL pode trazer uma faixa; senão, só a animação.
+        if (kevinChat.playMusica) await kevinChat.playMusica(window.KEVIN_MUSICA_URL);
+        btnMusica.dataset.playing = 'true';
+      }
+    });
+  }
+
   chatBody.scrollTop = chatBody.scrollHeight;
 })();

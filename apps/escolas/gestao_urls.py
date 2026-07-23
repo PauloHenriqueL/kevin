@@ -17,11 +17,6 @@ urlpatterns = [
     path('turmas/nova/', gestao_views.TurmaCreateView.as_view(), name='turma_create'),
     path('turmas/<int:pk>/editar/', gestao_views.TurmaUpdateView.as_view(), name='turma_edit'),
 
-    # Alunos
-    path('alunos/', gestao_views.AlunoListView.as_view(), name='aluno_list'),
-    path('alunos/novo/', gestao_views.AlunoCreateView.as_view(), name='aluno_create'),
-    path('alunos/<int:pk>/editar/', gestao_views.AlunoUpdateView.as_view(), name='aluno_edit'),
-
     # Relatórios
     path('relatorios/progresso/', gestao_views.RelatorioProgressoView.as_view(), name='relatorio_progresso'),
     path('relatorios/professores/', gestao_views.RelatorioProfessoresView.as_view(), name='relatorio_professores'),

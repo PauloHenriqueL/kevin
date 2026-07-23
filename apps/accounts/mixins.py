@@ -10,12 +10,25 @@ class RoleRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.role in self.allowed_roles
 
 
+# Papéis internos da Bebelingue: enxergam todas as escolas, não só uma.
+ROLES_GLOBAIS = ('admin', 'coordenador')
+
+
 class AdminRequiredMixin(RoleRequiredMixin):
     allowed_roles = ['admin']
 
 
-class EscolaRequiredMixin(RoleRequiredMixin):
-    allowed_roles = ['admin', 'escola']
+class CoordenadorRequiredMixin(RoleRequiredMixin):
+    """Área da coordenação Bebelingue — currículo e catálogo oficial."""
+    allowed_roles = ['admin', 'coordenador']
+
+
+class DiretorRequiredMixin(RoleRequiredMixin):
+    allowed_roles = ['admin', 'diretor']
+
+
+# Alias de compatibilidade: o papel 'escola' virou 'diretor'.
+EscolaRequiredMixin = DiretorRequiredMixin
 
 
 class ProfessorRequiredMixin(RoleRequiredMixin):
@@ -25,18 +38,19 @@ class ProfessorRequiredMixin(RoleRequiredMixin):
 class EscolaFilterMixin:
     """
     Filtra querysets pela escola do usuário logado.
-    Admin vê tudo, professor vê só da sua escola.
+    Admin e coordenador Bebelingue veem tudo; diretor e professor veem só
+    a própria escola.
     """
 
     def get_escola_queryset(self, queryset):
-        if self.request.user.role == 'admin':
+        if self.request.user.role in ROLES_GLOBAIS:
             return queryset
         if self.request.escola:
             return queryset.filter(escola=self.request.escola)
         return queryset.none()
 
     def get_turma_queryset(self, queryset):
-        if self.request.user.role == 'admin':
+        if self.request.user.role in ROLES_GLOBAIS:
             return queryset
         if self.request.escola:
             return queryset.filter(turma__escola=self.request.escola)

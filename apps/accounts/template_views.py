@@ -24,10 +24,12 @@ class DashboardView(View):
         if request.user.role == 'professor':
             return redirect(reverse('professor:years'))
 
-        if request.user.role == 'escola':
+        if request.user.role == 'diretor':
             return redirect(reverse('gestao:dashboard'))
 
-        if request.user.role == 'admin':
+        # Coordenador Bebelingue: até a área /coordenacao/ existir (Demanda 7),
+        # ele trabalha pelo Django admin.
+        if request.user.role in ('admin', 'coordenador'):
             return redirect('/admin/')
 
         return redirect('login')
