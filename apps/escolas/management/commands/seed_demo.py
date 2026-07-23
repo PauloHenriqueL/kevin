@@ -71,11 +71,31 @@ class Command(BaseCommand):
             u.save()
         return u
 
+    def _grupo_coordenador(self):
+        """Grupo com as permissões que o coordenador Bebelingue usa no admin:
+        currículo (aulas, atividades, blocos, homeworks) e cadastro de escolas/
+        professores/turmas. NÃO inclui Plano (chaves de API)."""
+        from django.contrib.auth.models import Group, Permission
+
+        grupo, _ = Group.objects.get_or_create(name='Coordenador Bebelingue')
+        apps_perms = {
+            'curriculo': ['aula', 'atividade', 'blocoaula', 'homework', 'aulaturma'],
+            'escolas': ['escola', 'professor', 'turma', 'diretor'],
+        }
+        perms = Permission.objects.filter(
+            content_type__app_label__in=apps_perms.keys(),
+            content_type__model__in=[m for ms in apps_perms.values() for m in ms],
+        )
+        grupo.permissions.set(perms)
+        return grupo
+
     def _usuarios(self):
         self._mk_user('admin', 'admin', 'Admin', 'Bebelingue', 'admin123',
                       is_staff=True, is_superuser=True)
         self.coord = self._mk_user('coord', 'coordenador', 'Coordenação',
                                    'Bebelingue', 'coord123', is_staff=True)
+        # dá ao coordenador as permissões de admin para cadastrar o TG
+        self.coord.groups.add(self._grupo_coordenador())
         # diretor
         dir_user = self._mk_user('carlos', 'diretor', 'Carlos', 'Oliveira', 'dir123')
         Diretor.objects.get_or_create(user=dir_user, defaults={'escola': self.bernoulli})

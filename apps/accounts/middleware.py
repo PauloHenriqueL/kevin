@@ -44,9 +44,13 @@ class LoginRequiredMiddleware:
             if not any(request.path.startswith(p) for p in self.PUBLIC_PATHS):
                 return redirect(reverse('login'))
 
-        # Bloqueia Django admin para não-superusuários
+        # Django admin: liberado para superuser (admin) e coordenador Bebelingue,
+        # que cadastra o TG por lá (fase 1, antes da área /coordenacao/).
+        # Os demais são mandados ao dashboard.
         if request.path.startswith('/admin/') and not request.path.startswith('/admin/login'):
-            if request.user.is_authenticated and not request.user.is_superuser:
-                return redirect(reverse('dashboard'))
+            if request.user.is_authenticated:
+                pode_admin = request.user.is_superuser or request.user.role == 'coordenador'
+                if not pode_admin:
+                    return redirect(reverse('dashboard'))
 
         return self.get_response(request)
