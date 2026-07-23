@@ -33,7 +33,7 @@ As respondidas acima estão fechadas. **Priorize agora:**
 
 1. **§9 (Class Feedback)** — a demanda inteira depende desta conversa. É avaliação
    de desempenho de pessoa; queremos definir quem vê o quê antes de construir.
-2. **Cenários de fundo** (NOVA, ver §11) — quem escolhe qual cenário para qual aula.
+2. **Cenários de fundo** (NOVA, ver §10) — quem escolhe qual cenário para qual aula.
 3. **§7.1** — confirmar que aluno nominal não é necessário (já implementamos assim).
 4. As demais 🔴 do corpo que não foram respondidas.
 
@@ -692,13 +692,13 @@ podemos entregar bem menos coisa bem mais rápido.
 
 ---
 
-## 11. Cenários de fundo do Kevin (NOVA)
+## 10. Cenários de fundo do Kevin (NOVA)
 
 > **Contexto:** o animador entregou 7 cenários de fundo (floresta, quarto,
 > banheiro, escola interior/exterior, hospital interior/exterior). O motor já
 > troca de cenário com animação. Cada aula tem um campo `background`.
 
-### 11.1 🔴 Quem escolhe qual cenário para qual aula?
+### 10.1 🔴 Quem escolhe qual cenário para qual aula?
 
 **O que deduzimos:** que o coordenador escolhe ao cadastrar o TG, porque o
 cenário casa com o vocabulário da aula (aula de "daily routines" → quarto;
@@ -717,31 +717,32 @@ automaticamente pelo tipo/tema da aula em vez de deixar tudo manual.
 
 ---
 
-## Resumo — deduções que precisam de confirmação
+## Resumo — deduções que ainda precisam de confirmação
 
-As mais caras se estiverem erradas. **Se a reunião encurtar, garanta estas.**
+As respondidas no WhatsApp (2.6, 1.1, 3.1, 3.2, 5.1) estão fora daqui — já foram
+fechadas. **Estas continuam abertas; se a reunião encurtar, garanta-as:**
 
 | § | Assumimos que… | Se estiver errado |
 |---|---|---|
-| 2.6 | O TG é igual para todas as escolas | **Remodelagem completa do currículo** |
-| 3.1 | Existe lista oficial de jogos com regras escritas | **Alguém precisa escrever 25+ regras** |
-| 3.2 | O BeBooklet descreve as técnicas | Kevin descreve a metodologia com palavras dele |
-| 5.1 | Dá para calcular "professor em dia" por data prevista | **A métrica principal precisa ser redefinida** |
-| 7.1 | Não precisamos de aluno nominal | Migração destrutiva mal decidida |
-| 2.7 | Revisar TG pode alterar aula já dada | Precisamos versionar (retrabalho grande) |
-| 1.1 | A frequência semanal varia por escola (o "3x") | Campo desnecessário, simplifica |
-| 1.3 | Turma pode atrasar e repor no próprio ritmo | Muda o cálculo de progresso |
-| 2.1 | Existem 4 tipos de aula | Retrabalho no cadastro |
+| 7.1 | Não precisamos de aluno nominal | Já implementamos sem — reverter é migração |
+| 2.1 | Existem 4 tipos de aula | Retrabalho no cadastro (já implementado com 4) |
 | 2.2 | Warm Up é sempre a mesma estrutura | Perdemos a chance de acelerar o cadastro |
+| 1.3 | Turma pode atrasar e repor no próprio ritmo | Muda o cálculo de progresso |
+| 2.7 | Revisar TG pode alterar aula já dada | Precisamos versionar (retrabalho grande) |
+| 1.2 | Week 5 / Extra Class é slot de folga | Muda a grade do cadastro |
+| 10.1 | Coordenador escolhe o cenário de fundo por aula | Automatizamos pelo tema |
 
 ---
 
 ## Checklist de saída da reunião
 
-- [ ] Recebemos (ou combinamos prazo para) o **BeBooklet** — §3.2
-- [ ] Sabemos se existe **documento com as regras dos jogos** — §3.1
-- [ ] Definimos o que é **"professor em dia"** — §5.1
-- [ ] Confirmamos que **aluno nominal não é necessário** — §7.1
-- [ ] Sabemos **qual escola entra primeiro e quando** — §9.1
-- [ ] Definimos **quem vê o Class Feedback** (professor / escola) — §6.2, §6.3
-- [ ] Combinamos **quem cadastra o quê** e o prazo de população — §4.2, §4.3
+**Arquivos a receber (o mais importante):**
+- [ ] 🔴 **TG completo** com **Games Bank** (regras dos jogos) e **BeBooklet** (técnicas) — §3.1, §3.2
+- [ ] Modelo de **RMP** e **Yearly Plan Review** — destrava as métricas — §5.1
+
+**Definições:**
+- [ ] **Class Feedback**: quem vê o quê (professor / escola) — §6
+- [ ] **Cenários de fundo**: quem mapeia vocabulário → cenário — §10
+- [ ] Confirmar que **aluno nominal não é necessário** — §7.1
+- [ ] **Qual escola entra primeiro e quando** — §9.1
+- [ ] **Quem cadastra o quê** e prazo de população — §4.2, §4.3
