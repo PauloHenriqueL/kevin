@@ -3,19 +3,35 @@
 {% block title %}{{ aula.titulo }} — Turma {{ turma.year }}{{ turma.nome }}{% endblock %}
 
 {% block content %}
-<div class="aula-chat-page">
-    <!-- Cabeçalho compacto -->
-    <div class="aula-header">
-        <div>
-            <div class="code">
-                <a href="{% url 'professor:turma_aulas' turma.id %}" style="color: inherit; text-decoration:none; opacity: 0.85;">
-                    ← Turma {{ turma.year }}{{ turma.nome }}
-                </a>
-                · {{ aula.codigo }}
-            </div>
+<div class="aula-call" id="aula-call" data-state="standby">
+
+    <!-- Palco: Kevin em tela cheia -->
+    <div class="call-stage">
+        <div class="kevin-scene-bg" aria-hidden="true">
+            <span class="stage-blob blob-1"></span>
+            <span class="stage-blob blob-2"></span>
+            <span class="stage-blob blob-3"></span>
+        </div>
+        <div id="kevin-rig-mount" class="kevin-puppet-host" role="img" aria-label="Mascote Kevin animado"></div>
+    </div>
+
+    <!-- Status do Kevin (flutuante, topo) -->
+    <div class="kevin-status-pill" id="kevin-status-pill" data-state="idle" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-text">Pronto pra conversar</span>
+    </div>
+
+    <!-- Top bar translúcida -->
+    <header class="call-topbar">
+        <a class="call-back" href="{% url 'professor:turma_aulas' turma.id %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Turma {{ turma.year }}{{ turma.nome }}</span>
+        </a>
+        <div class="call-title">
+            <div class="call-code">{{ aula.codigo }}</div>
             <h1>{{ aula.titulo }}</h1>
         </div>
-        <div class="aula-header-actions">
+        <div class="call-actions">
             <form method="post" action="{% url 'professor:atualizar_progresso' turma.id aula.codigo %}" style="margin:0;">
                 {% csrf_token %}
                 {% if progresso_status == 'concluida' %}
@@ -47,152 +63,159 @@
                 </button>
             </form>
         </div>
+    </header>
+
+    <!-- Controles de voz (centro/baixo, estilo chamada) -->
+    <div class="call-controls" aria-label="Controles de voz">
+        <div class="call-btn-wrap">
+            <button class="btn-mic" id="btn-mic" type="button" aria-label="Falar com o Kevin (clique para começar, para sozinho no silêncio)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Falar</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-mic-live" id="btn-mic-live" type="button" aria-label="Conversa ao vivo, mãos livres">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                <div class="live-waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            </button>
+            <span class="call-btn-label">Conversa ao vivo</span>
+        </div>
     </div>
 
-    <!-- Materiais da aula (colapsável) — no topo, antes de Kevin + Chat -->
-    <details class="aula-materials">
-        <summary>📎 Material da aula — conteúdos, descrição e homework</summary>
-        <div class="aula-materials-body">
-            {% if aula.descricao %}
-                <h3>📘 Descrição</h3>
-                <p>{{ aula.descricao }}</p>
-            {% endif %}
+    <!-- FAB do chat (canto inferior direito) -->
+    <button class="chat-fab" id="chat-fab" type="button" aria-label="Abrir chat com o Kevin" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+    </button>
 
-            {% if conteudos %}
-                <h3>🎬 Conteúdos ({{ conteudos|length }})</h3>
-                <div style="display: grid; gap: 8px;">
-                    {% for ac in conteudos %}
-                        <div style="display:flex; gap:12px; padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px;">
-                            <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--azul-claro); color: var(--azul); display:flex; align-items:center; justify-content:center; font-weight: 900; font-size: 0.8rem; flex-shrink:0;">
-                                {{ ac.ordem }}
+    <!-- Drawer do chat (deslizante, à direita) -->
+    <aside class="chat-drawer" id="chat-drawer" aria-label="Chat com Kevin" aria-hidden="true">
+        <header class="chat-drawer-head">
+            <div>
+                <h3>Chat com Kevin</h3>
+                <div class="sub">{{ aula.titulo }}</div>
+            </div>
+            <button class="chat-drawer-close" id="chat-drawer-close" type="button" aria-label="Fechar chat">×</button>
+        </header>
+
+        <!-- Material da aula (colapsável) -->
+        <details class="aula-materials">
+            <summary>📎 Material da aula</summary>
+            <div class="aula-materials-body">
+                {% if aula.descricao %}
+                    <h3>📘 Descrição</h3>
+                    <p>{{ aula.descricao }}</p>
+                {% endif %}
+
+                {% if conteudos %}
+                    <h3>🎬 Conteúdos ({{ conteudos|length }})</h3>
+                    <div style="display: grid; gap: 8px;">
+                        {% for ac in conteudos %}
+                            <div style="display:flex; gap:12px; padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px;">
+                                <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--azul-claro); color: var(--azul); display:flex; align-items:center; justify-content:center; font-weight: 900; font-size: 0.8rem; flex-shrink:0;">
+                                    {{ ac.ordem }}
+                                </div>
+                                <div style="flex: 1;">
+                                    <strong style="font-size: 0.95rem;">
+                                        {% if ac.conteudo.tipo == 'musica' %}🎵{% elif ac.conteudo.tipo == 'video' %}🎬{% elif ac.conteudo.tipo == 'texto' %}📄{% elif ac.conteudo.tipo == 'audio' %}🔊{% elif ac.conteudo.tipo == 'imagem' %}🖼️{% endif %}
+                                        {{ ac.conteudo.titulo }}
+                                    </strong>
+                                    {% if ac.conteudo.descricao %}
+                                        <div style="color: var(--texto-sec); font-size: 0.85rem; margin-top:2px;">{{ ac.conteudo.descricao }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div style="flex: 1;">
-                                <strong style="font-size: 0.95rem;">
-                                    {% if ac.conteudo.tipo == 'musica' %}🎵{% elif ac.conteudo.tipo == 'video' %}🎬{% elif ac.conteudo.tipo == 'texto' %}📄{% elif ac.conteudo.tipo == 'audio' %}🔊{% elif ac.conteudo.tipo == 'imagem' %}🖼️{% endif %}
-                                    {{ ac.conteudo.titulo }}
-                                </strong>
-                                {% if ac.conteudo.descricao %}
-                                    <div style="color: var(--texto-sec); font-size: 0.85rem; margin-top:2px;">{{ ac.conteudo.descricao }}</div>
-                                {% endif %}
-                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if homeworks %}
+                    <h3>📝 Homework</h3>
+                    {% for hw in homeworks %}
+                        <div style="padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px; margin-bottom: 6px;">
+                            <strong>{{ hw.objetivo }}</strong>
+                            {% if hw.vocabulario %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Vocabulário: {{ hw.vocabulario }}</div>{% endif %}
+                            {% if hw.gramatica %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Gramática: {{ hw.gramatica }}</div>{% endif %}
                         </div>
                     {% endfor %}
-                </div>
-            {% endif %}
-
-            {% if homeworks %}
-                <h3>📝 Homework</h3>
-                {% for hw in homeworks %}
-                    <div style="padding: 10px 12px; background: var(--cinza-fundo); border-radius: 10px; margin-bottom: 6px;">
-                        <strong>{{ hw.objetivo }}</strong>
-                        {% if hw.vocabulario %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Vocabulário: {{ hw.vocabulario }}</div>{% endif %}
-                        {% if hw.gramatica %}<div style="color: var(--texto-sec); font-size: 0.9rem;">Gramática: {{ hw.gramatica }}</div>{% endif %}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        </div>
-    </details>
-
-    <!-- Main Content: Kevin (left/center) + Chat (right/bottom) -->
-    <div class="aula-main-content">
-        <!-- Kevin Stage: o motor kevin-puppet desenha o personagem dentro de #kevin-rig-mount -->
-        <section class="kevin-scene" aria-label="Kevin, seu assistente">
-            <div class="kevin-scene-bg" aria-hidden="true">
-                <span class="stage-blob blob-1"></span>
-                <span class="stage-blob blob-2"></span>
-                <span class="stage-blob blob-3"></span>
+                {% endif %}
             </div>
-            <div class="kevin-status-pill" id="kevin-status-pill" data-state="idle" aria-live="polite">
-                <span class="status-dot" aria-hidden="true"></span>
-                <span class="status-text">Pronto pra conversar</span>
-            </div>
-            <div class="kevin-scene-container">
-                <div id="kevin-rig-mount" class="kevin-puppet-host" role="img" aria-label="Mascote Kevin animado"></div>
-            </div>
-            <div class="kevin-scene-subtitle">{{ aula.titulo }}</div>
-        </section>
+        </details>
 
-        <!-- Chat Panel (right side) -->
-        <aside class="chat-panel" aria-label="Chat com Kevin">
-            <div class="chat-header-bar">
-                <div class="chat-header-left">
-                    <div class="chat-header-icon" aria-hidden="true">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="chat-body" id="chat-body" role="log" aria-live="polite" aria-label="Mensagens da conversa">
+            {% if not mensagens %}
+                <div class="chat-empty-state" id="chat-empty-state">
+                    <div class="empty-state-icon" aria-hidden="true">
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                     </div>
-                    <div class="chat-header-info">
-                        <h3>Chat com Kevin</h3>
-                        <p>Pergunte sobre a aula</p>
+                    <h4>Vamos conversar?</h4>
+                    <p>Pergunte qualquer coisa sobre <strong>{{ aula.titulo }}</strong>.<br>O Kevin tá pronto pra te ajudar!</p>
+                    <div class="empty-state-suggestions">
+                        <button class="suggestion-chip" type="button" data-suggestion="Como começo esta aula?">Como começo esta aula?</button>
+                        <button class="suggestion-chip" type="button" data-suggestion="Me dá uma atividade rápida pra essa turma">Atividade rápida</button>
+                        <button class="suggestion-chip" type="button" data-suggestion="Quais palavras devo focar?">Vocabulário-chave</button>
                     </div>
                 </div>
-            </div>
-
-            <div class="chat-body" id="chat-body" role="log" aria-live="polite" aria-label="Mensagens da conversa">
-                {% if not mensagens %}
-                    <div class="chat-empty-state" id="chat-empty-state">
-                        <div class="empty-state-icon" aria-hidden="true">
-                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
+            {% endif %}
+            {% for msg in mensagens %}
+                <div class="message {{ msg.role }}">
+                    {% if msg.role == 'assistant' %}
+                        <div class="msg-avatar kevin-avatar" aria-hidden="true">
+                            <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="">
                         </div>
-                        <h4>Vamos conversar?</h4>
-                        <p>Pergunte qualquer coisa sobre <strong>{{ aula.titulo }}</strong>.<br>O Kevin tá pronto pra te ajudar!</p>
-                        <div class="empty-state-suggestions">
-                            <button class="suggestion-chip" type="button" data-suggestion="Como começo esta aula?">Como começo esta aula?</button>
-                            <button class="suggestion-chip" type="button" data-suggestion="Me dá uma atividade rápida pra essa turma">Atividade rápida</button>
-                            <button class="suggestion-chip" type="button" data-suggestion="Quais palavras devo focar?">Vocabulário-chave</button>
-                        </div>
-                    </div>
-                {% endif %}
-                {% for msg in mensagens %}
-                    <div class="message {{ msg.role }}">
-                        {% if msg.role == 'assistant' %}
-                            <div class="msg-avatar kevin-avatar" aria-hidden="true">
-                                <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="">
-                            </div>
-                            <div class="msg-content">
-                                <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
-                                <button class="btn-listen" type="button" aria-label="Ouvir resposta do Kevin" data-text="{{ msg.conteudo|escape }}">
-                                    <svg class="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <path d="M3 22V2l18 10z"/>
-                                    </svg>
-                                    <svg class="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
-                                    </svg>
-                                    <span class="btn-listen-label">Ouvir</span>
-                                </button>
-                            </div>
-                        {% else %}
-                            <div class="msg-avatar user-avatar" aria-hidden="true">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                        <div class="msg-content">
                             <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
+                            <button class="btn-listen" type="button" aria-label="Ouvir resposta do Kevin" data-text="{{ msg.conteudo|escape }}">
+                                <svg class="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M3 22V2l18 10z"/>
+                                </svg>
+                                <svg class="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+                                </svg>
+                                <span class="btn-listen-label">Ouvir</span>
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="msg-avatar user-avatar" aria-hidden="true">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                        <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
 
-            <div class="chat-input-area">
-                <button class="btn-mic" id="btn-mic" type="button" aria-label="Gravar áudio (clique para começar, para sozinho ao silêncio)">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </button>
-                <button class="btn-mic-live" id="btn-mic-live" type="button" aria-label="Conversa em tempo real, mãos livres">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    </svg>
-                    <div class="live-waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-                </button>
-                <textarea id="chat-input" placeholder="Pergunte ao Kevin sobre esta aula…" rows="1" aria-label="Mensagem para o Kevin"></textarea>
-                <button class="btn-send" id="btn-send" type="button" aria-label="Enviar mensagem">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-                </button>
+        <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Escreva pro Kevin…" rows="1" aria-label="Mensagem para o Kevin"></textarea>
+            <button class="btn-send" id="btn-send" type="button" aria-label="Enviar mensagem">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Standby sépia — tela inicial antes de começar -->
+    <div class="call-standby" id="call-standby">
+        <div class="standby-card">
+            <div class="standby-kevin">
+                <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
             </div>
-        </aside>
+            <div class="standby-code">{{ aula.codigo }} · Turma {{ turma.year }}{{ turma.nome }}</div>
+            <h2>{{ aula.titulo }}</h2>
+            <p>Quando a turma estiver pronta, comece a aula. O Kevin vai receber vocês e conduzir a partir daí.</p>
+            <button class="btn-iniciar" id="btn-iniciar-aula" type="button">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <span>Iniciar aula</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -214,6 +237,8 @@ window.KEVIN_RIG_CONFIG = {
     backgroundUrl:    "{% static 'js/kevin-puppet/background-forest.png' %}",
     rigMountSelector: "#kevin-rig-mount",
 };
+// Mensagem automática enviada ao clicar em "Iniciar aula" (input oculto).
+window.KEVIN_KICKOFF = "Olá Kevin, o que vamos fazer hoje? Por onde começamos?";
 // Modo demo: respostas locais para testar animações (desativar em produção)
 window.KEVIN_DEMO_MODE = true;
 </script>
@@ -221,5 +246,5 @@ window.KEVIN_DEMO_MODE = true;
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
      kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
 <script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=2"></script>
-<script defer src="{% static 'js/kevin_chat.js' %}?v=16"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=17"></script>
 {% endblock %}

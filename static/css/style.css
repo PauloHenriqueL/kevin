@@ -3588,3 +3588,272 @@ table.data tbody tr:hover {
   .chat-sidebar { display: none; }
 }
 
+/* ============================================================
+   AULA — MODO CHAMADA (TV)
+   Kevin em tela cheia (estilo Skype/Meet), controles de voz
+   grandes ao centro-baixo, chat em drawer lateral acionado por
+   um FAB no canto, e standby sépia com botão "Iniciar aula".
+   ============================================================ */
+.aula-call {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 68px);
+  height: calc(100dvh - 68px);
+  overflow: hidden;
+  background: linear-gradient(160deg, #EAF2FF 0%, #FFFFFF 45%, #FFF3DC 100%);
+}
+
+/* Palco em tela cheia: recebe os blobs + o motor do Kevin */
+.call-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+.call-stage .kevin-puppet-host { width: 100%; height: 100%; }
+
+/* Status pill (reaproveitada) — camada acima do palco, abaixo da topbar */
+.aula-call .kevin-status-pill { z-index: 6; top: 78px; }
+
+/* ---------- Top bar translúcida ---------- */
+.call-topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 7;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+.call-topbar > * { pointer-events: auto; }
+.call-back {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-weight: 800; font-size: 0.85rem;
+  color: var(--azul-escuro);
+  text-decoration: none;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(43,125,233,0.16);
+  padding: 9px 15px; border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(43,125,233,0.12);
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.call-back:hover { background: white; transform: translateY(-1px); }
+.call-title { text-align: center; min-width: 0; padding-top: 2px; }
+.call-title .call-code {
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--azul); opacity: 0.9;
+}
+.call-title h1 {
+  font-size: 1.1rem; font-weight: 900; color: var(--azul-escuro);
+  margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 44vw;
+}
+.call-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.call-actions form { margin: 0; }
+/* Os .btn-action eram desenhados pro header azul-escuro (texto branco).
+   Na top bar clara, re-tematiza ghost/danger pra ficarem legíveis. */
+.call-actions .btn-action-ghost {
+  background: rgba(255,255,255,0.9);
+  color: var(--azul-escuro);
+  border: 1.5px solid rgba(43,125,233,0.22);
+  box-shadow: 0 2px 8px rgba(43,125,233,0.12);
+}
+.call-actions .btn-action-ghost:hover { background: white; }
+.call-actions .btn-action-danger {
+  background: rgba(255,255,255,0.9);
+  color: var(--vermelho);
+  border: 1.5px solid rgba(217,48,37,0.30);
+  box-shadow: 0 2px 8px rgba(217,48,37,0.12);
+}
+.call-actions .btn-action-danger:hover {
+  background: var(--vermelho);
+  color: white;
+  border-color: var(--vermelho);
+}
+.call-actions .btn-action-primary { box-shadow: 0 2px 8px rgba(43,125,233,0.18); }
+
+/* ---------- Controles de voz (centro/baixo) ---------- */
+.call-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 44px;
+  padding: 20px 38px;
+  background: rgba(255,255,255,0.74);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(43,125,233,0.12);
+  border-radius: 32px;
+  box-shadow: 0 14px 40px rgba(15,23,42,0.16), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+.call-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 11px; }
+.call-btn-label {
+  font-size: 0.84rem; font-weight: 800; color: var(--azul-escuro);
+  letter-spacing: 0.2px;
+}
+/* Botões de mic grandes — reaproveitam os estados .recording / .active */
+.call-controls .btn-mic,
+.call-controls .btn-mic-live {
+  width: 88px; height: 88px; border-radius: 28px;
+}
+.call-controls .btn-mic svg,
+.call-controls .btn-mic-live svg { width: 38px; height: 38px; }
+.call-controls .btn-mic-live .live-waves { bottom: 9px; right: 9px; height: 16px; }
+
+/* ---------- FAB do chat (canto inferior direito) ---------- */
+.chat-fab {
+  position: absolute; right: 24px; bottom: 38px; z-index: 9;
+  width: 64px; height: 64px; border-radius: 22px;
+  border: none; cursor: pointer;
+  background: white; color: var(--azul);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    0 12px 30px rgba(43,125,233,0.28),
+    0 0 0 1.5px rgba(43,125,233,0.16),
+    0 1px 0 rgba(255,255,255,0.9) inset;
+  transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s, opacity 0.2s;
+}
+.chat-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(43,125,233,0.4); }
+.chat-fab:active { transform: scale(0.94); }
+.chat-fab:focus-visible { outline: 3px solid rgba(43,125,233,0.45); outline-offset: 3px; }
+.aula-call.drawer-open .chat-fab { opacity: 0; pointer-events: none; transform: scale(0.8); }
+
+/* ---------- Drawer do chat ---------- */
+.chat-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 10;
+  width: min(420px, 92vw);
+  background: white;
+  box-shadow: -16px 0 48px rgba(15,23,42,0.18);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+}
+.chat-drawer.open { transform: translateX(0); }
+.chat-drawer-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-escuro) 100%);
+  color: white; flex-shrink: 0;
+}
+.chat-drawer-head h3 { font-size: 1rem; font-weight: 900; margin: 0; }
+.chat-drawer-head .sub { font-size: 0.76rem; opacity: 0.85; font-weight: 700; margin-top: 1px; }
+.chat-drawer-close {
+  width: 38px; height: 38px; border-radius: 12px; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.18); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; line-height: 1; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.chat-drawer-close:hover { background: rgba(255,255,255,0.30); }
+.chat-drawer .chat-body { flex: 1; min-height: 0; background: var(--cinza-fundo); padding: 18px; gap: 14px; }
+.chat-drawer .chat-input-area { padding: 14px 16px; gap: 10px; align-items: flex-end; }
+
+/* Material da aula dentro do drawer (re-escopado a partir de .aula-chat-page) */
+.chat-drawer .aula-materials { flex-shrink: 0; border-bottom: 1px solid var(--cinza-borda); }
+.chat-drawer .aula-materials > summary {
+  list-style: none; cursor: pointer;
+  padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 0.9rem; color: var(--azul-escuro);
+  border-left: 4px solid var(--azul);
+  transition: background 0.2s;
+}
+.chat-drawer .aula-materials > summary:hover { background: var(--azul-claro); }
+.chat-drawer .aula-materials > summary::-webkit-details-marker { display: none; }
+.chat-drawer .aula-materials > summary::before {
+  content: '▶'; font-size: 0.7rem; color: var(--azul); transition: transform 0.2s;
+}
+.chat-drawer .aula-materials[open] > summary::before { transform: rotate(90deg); }
+.chat-drawer .aula-materials-body {
+  padding: 14px 18px 18px; border-top: 1px solid var(--cinza-borda);
+  max-height: 40vh; overflow-y: auto;
+}
+.chat-drawer .aula-materials-body h3 {
+  font-size: 0.82rem; font-weight: 800; color: var(--azul-escuro);
+  margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.chat-drawer .aula-materials-body h3:first-child { margin-top: 0; }
+.chat-drawer .aula-materials-body p { font-size: 0.88rem; line-height: 1.5; }
+
+/* ---------- Standby sépia ---------- */
+.call-standby {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: radial-gradient(120% 90% at 50% 28%, rgba(120,72,20,0.16), rgba(55,38,14,0.5));
+  backdrop-filter: sepia(0.65) saturate(1.1) blur(2px) brightness(0.95);
+  -webkit-backdrop-filter: sepia(0.65) saturate(1.1) blur(2px) brightness(0.95);
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+.aula-call[data-state="live"] .call-standby {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.standby-card {
+  text-align: center;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: 28px;
+  padding: 34px 40px 38px;
+  max-width: 460px;
+  box-shadow: 0 26px 70px rgba(40,28,10,0.45);
+  animation: standby-pop 0.5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes standby-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.standby-kevin {
+  width: 96px; height: 96px; margin: 0 auto 14px;
+  border-radius: 50%; padding: 10px;
+  background: var(--azul-claro);
+}
+.standby-kevin img { width: 100%; height: 100%; object-fit: contain; }
+.standby-code {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--azul); margin-bottom: 6px;
+}
+.standby-card h2 { font-size: 1.5rem; font-weight: 900; color: var(--azul-escuro); margin: 0 0 8px; }
+.standby-card p { font-size: 0.95rem; color: var(--texto-sec); line-height: 1.5; margin: 0 0 24px; }
+.btn-iniciar {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-escuro) 100%);
+  color: white; border: none; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-size: 1.15rem; font-weight: 900;
+  padding: 16px 36px; border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(43,125,233,0.40), 0 1px 0 rgba(255,255,255,0.25) inset;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s;
+}
+.btn-iniciar:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(43,125,233,0.5); }
+.btn-iniciar:active { transform: scale(0.96); }
+.btn-iniciar:focus-visible { outline: 3px solid rgba(43,125,233,0.5); outline-offset: 3px; }
+.btn-iniciar svg { width: 22px; height: 22px; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 640px) {
+  .call-controls { gap: 24px; padding: 15px 22px; bottom: 22px; }
+  .call-controls .btn-mic,
+  .call-controls .btn-mic-live { width: 72px; height: 72px; border-radius: 24px; }
+  .call-controls .btn-mic svg,
+  .call-controls .btn-mic-live svg { width: 30px; height: 30px; }
+  .call-title h1 { font-size: 0.95rem; max-width: 38vw; }
+  .call-actions .btn-action span { display: none; }
+  .chat-fab { right: 16px; bottom: 104px; width: 56px; height: 56px; }
+  .standby-card { padding: 28px 24px 30px; }
+  .standby-card h2 { font-size: 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .standby-card { animation: none; }
+  .chat-drawer { transition: none; }
+}
+

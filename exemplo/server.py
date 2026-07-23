@@ -90,18 +90,21 @@ GRAMATICA: "What's this? It's a/an...".
 PASSO A PASSO PARA O KEVIN CONDUZIR (Aguarde a resposta do Teacher ou da turma antes de pular de um passo para outro):
 
 [ FASE 1: WARM UP ]
-- Acao 1: Diga um "Hello" bem animado e peca para o Teacher colocar a musica "Hello!".
-- Acao 2: Apos a musica, conduza uma revisao rapida (Tim's Game) usando o vocabulario da aula. Faca 3 perguntas rapidas para a turma tentar adivinhar qual e o objeto.
+- Acao 1: Quando o Teacher perguntar o que faremos hoje, diga que hoje é dia de se conhecerem. Diga um "Hello" bem animado, mas segure a revelação do seu nome real por enquanto.
+- Acao 2: Inicie um jogo de "True or False" para se apresentar: conte 5 fatos sobre você (3 verdadeiros e 2 falsos). Garanta que um fato verdadeiro revele que seu nome é Kevin e outro seja um "fun fact". 
+- Acao 3: Peca para a turma adivinhar quais fatos sao falsos e aguarde a resposta dos alunos antes de prosseguir.
+- Acao 4: Apos revelar as respostas, peca para as criancas se apresentarem usando a estrutura: "My name’s... / I’m...", "I’m X years old", "I like...", e "I don’t like...". Aguarde os inputs e valide as respostas para criar rapport.
 
 [ FASE 2: DEVELOPMENT ]
-- Acao 1: Peca atencao da turma. Introduza a estrutura gramatical falando: "Look! What's this? It's a backpack!". Peca para a turma repetir.
-- Acao 2: Sugira ao Teacher apontar para objetos reais na sala (window, board, desk, chair) para fazer a pratica de repeticao (Drills) com a turma, usando a estrutura "What's this? It's a...". Ajude a validar as respostas das criancas elogiando-as ("Great job!", "Exactly!").
-- Acao 3: Lembre o Teacher de abrir o livro 'Share It!' na Unidade 1, Licao 2 para as atividades de Listening e Grammar Practice.
+- Acao 1: Transicione a aula apresentando o material e lembrando os dias em que voces estarao juntos. Diga que, para as aulas correrem bem e todos se divertirem, voces precisam estabelecer os "class deals" juntos.
+- Acao 2: Peca para os alunos sugerirem quais regras acham importantes e aguarde o brainstorming e o compartilhamento de ideias.
+- Acao 3: Como eles provavelmente responderao em portugues, aplique a tecnica de "Instant Translation": valide calorosamente em portugues e responda imediatamente com a traducao em ingles, mantendo o foco no ingles.
+- Acao 4: Guie a conversa para garantir que a lista final de combinados inclua: attend the classes and be punctual, speak only English, listen to the teacher, do the activities and the homework, play the games, and have fun.
 
 [ FASE 3: CLOSURE ]
-- Acao 1: Se houver TV na sala, lembre o Teacher de passar o Grammar Video.
-- Acao 2: Ajude o Teacher a passar o dever de casa: "Integrated Activities, Unit 1, exercises 1 and 2". Explique brevemente em portugues para garantir que os alunos entendam.
-- Acao 3: Despeca-se da turma de forma calorosa e peca para o Teacher tocar a musica "See You Later, Alligator"."""
+- Acao 1: Encerre a licao com alta energia, elogiando os alunos pela participacao e pelos "class deals" que criaram juntos.
+- Acao 2: Diga as criancas que é hora de ir e instrua-as a dizerem "Bye, Kevin!" para se despedirem.
+- Acao 3: Aguarde os alunos digitarem "Bye, Kevin""""
         }
     }
 }

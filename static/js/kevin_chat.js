@@ -650,5 +650,78 @@
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
+  // ───────────── Modo chamada (TV): standby + kickoff + drawer ─────────────
+  const callRoot    = document.getElementById('aula-call');
+  const btnIniciar  = document.getElementById('btn-iniciar-aula');
+  const chatFab     = document.getElementById('chat-fab');
+  const chatDrawer  = document.getElementById('chat-drawer');
+  const drawerClose = document.getElementById('chat-drawer-close');
+
+  /**
+   * Envia um texto e faz o Kevin FALAR a resposta (TTS), como no fluxo de
+   * áudio. Funciona em modo demo (resposta local) e em modo normal (backend
+   * síncrono). O TTS é opcional: se não houver chave configurada, o endpoint
+   * falha e seguimos só com o texto.
+   */
+  async function sendTextAndSpeak(texto) {
+    appendMessage('user', texto);
+    if (kevinChat) kevinChat.onUserMessage(texto);
+    showTyping();
+
+    let resp = null;
+    try {
+      if (window.KEVIN_DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 1300 + Math.random() * 700));
+        resp = demoReply(texto);
+      } else {
+        const data = await enviarMensagemSync(texto);
+        resp = data && data.resposta && data.resposta.conteudo;
+      }
+    } catch (err) {
+      console.error('[Chat] sendTextAndSpeak:', err);
+    }
+
+    hideTyping();
+    if (!resp) {
+      appendMessage('assistant', 'Ops, tive um problema pra começar. Tenta o microfone!');
+      if (kevinChat) kevinChat.onError();
+      return;
+    }
+    appendMessage('assistant', resp);
+    if (kevinChat) kevinChat.onAssistantMessage(resp);
+    try { await playTTS(resp); } catch (e) { /* TTS é opcional */ }
+  }
+
+  /** Clique em "Iniciar aula": destrava o áudio (gesture) e dispara o kickoff. */
+  async function iniciarAula() {
+    if (!callRoot || callRoot.dataset.state === 'live') return;
+    // Esse clique é o user gesture — destrava o AudioContext pro TTS tocar sozinho.
+    if (kevinChat && kevinChat.unlockAudio) {
+      try { await kevinChat.unlockAudio(); } catch (e) {/* já logado */}
+    }
+    callRoot.dataset.state = 'live';
+    const kickoff = window.KEVIN_KICKOFF || 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?';
+    sendTextAndSpeak(kickoff);
+  }
+
+  function toggleDrawer(force) {
+    if (!chatDrawer) return;
+    const open = (force !== undefined) ? force : !chatDrawer.classList.contains('open');
+    chatDrawer.classList.toggle('open', open);
+    chatDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (chatFab) chatFab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (callRoot) callRoot.classList.toggle('drawer-open', open);
+    if (open) { chatBody.scrollTop = chatBody.scrollHeight; input.focus(); }
+  }
+
+  if (btnIniciar) btnIniciar.addEventListener('click', iniciarAula);
+  if (chatFab) chatFab.addEventListener('click', () => toggleDrawer());
+  if (drawerClose) drawerClose.addEventListener('click', () => toggleDrawer(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && chatDrawer && chatDrawer.classList.contains('open')) {
+      toggleDrawer(false);
+    }
+  });
+
   chatBody.scrollTop = chatBody.scrollHeight;
 })();
