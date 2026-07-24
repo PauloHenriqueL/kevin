@@ -8,8 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|
 | `docs/demandas.md` | **Fonte de verdade do escopo.** Todas as demandas, decisões (D1–D22), modelo de dados alvo, migração. Leia antes de mexer no domínio |
 | `docs/PERGUNTAS_REUNIAO_CLIENTE.md` | Pauta de validação com a Bebelingue; o que já foi respondido e o que falta |
-| `docs/mensagens.md` | Rascunhos de comunicação (cliente, animador, dev) |
-| `docs/animador.md` | Guia para o ANIMADOR: como exportar o Kevin certo (regras + bugs conhecidos) |
+| `docs/mensagens.md` | Mensagens para o **cliente** e o **Arthur** |
+| `docs/mensagem.md` | **Tudo do animador (Vitor)**: guia, bloco do CLAUDE.md dele, histórico |
+| `docs/ROTEIRO_APRESENTACAO.md` | Roteiro passo a passo para demonstrar o sistema ao cliente |
+| `scripts/validar_export.py` | Valida um export do animador contra o contrato |
 | `docs/PRODUTO_KEVIN.md` | Visão de produto (parcialmente pré-Demanda 1) |
 | `docs/MOTOR_KEVIN.md` | Como o motor de animação do Kevin funciona (para estendê-lo) |
 | `docs/KEVIN_ANIMATION_SETUP.md` | Setup do sistema de animação |
@@ -24,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **Paulo** | PO / dev | Decide escopo, prioriza, testa e valida com o cliente |
 | **Claude** (aqui) | dev | Implementa, testa, documenta. Não decide escopo sozinho |
 | **Arthur** | dev | Frontend/telão. Trabalha no mesmo repo — ver `docs/mensagens.md` §2 |
-| **Vitor** | animador | Entrega `export_N.zip` (Kevin + motor). Contrato em `docs/mensagens.md` §4 |
+| **Vitor** | animador | Entrega `export_N.zip` (Kevin + motor). Contrato em `docs/mensagem.md` |
 | **Bebelingue** | cliente | Metodologia, TG, decisões pedagógicas |
 
 ### O ciclo de uma demanda
@@ -587,27 +589,81 @@ window.KEVIN_CHAT_CONFIG = { ... };
 
 **CSS:** `static/css/kevin-chat-animation.css` includes animations and stage styling
 
-## Estado atual e próximos passos
+## ✅ Estado atual e TODO
 
-> Atualizado em 24/07/2026. Status detalhado de cada demanda em
-> `docs/demandas.md` (tabela "Panorama das demandas").
+> Atualizado em **24/07/2026**. Branch `feat/remodelagem-curriculo`, 23 commits,
+> PR aberto (draft). Status por demanda em `docs/demandas.md`.
 
-**Feito e validado:** remodelagem do currículo (D1), papéis (D2), prompt do
-Kevin (D3), busca no catálogo (D6), motor de animação novo (D9A),
-enquadramento (D10 parcial), ajustes do telão (D11), background por aula (D12),
-seed oficial (D13), 30 testes automatizados (D14).
+### Feito e validado
 
-**Bloqueado esperando o cliente:**
-- Métricas de professor (D4) — falta o **Yearly Plan Review** e o modelo de RMP
-- Class Feedback (D5) — falta reunião de definição
-- Popular o catálogo real — falta o **TG completo** (Games Bank + BeBooklet)
+| # | Demanda | O que entregou |
+|---|---|---|
+| 1 | Remodelagem do banco | `Aula` (Y5-MAR-W1C1) + `Atividade` + `BlocoAula` + `AulaTurma`. `Aluno`/`Conteudo` removidos |
+| 2 | Papéis | `escola`→`diretor`, novo `coordenador`, admin sem loop |
+| 3 | Prompt do Kevin | Reescrito em blocos; Instant Translation isolada; ~411 tokens |
+| 6 | Busca no catálogo | Filtros de tipo/origem, badge "usado em N aulas" |
+| 9 + 10 | Animação | Motor novo (7 modos, mosca), enquadramento corrigido, export do animador validado |
+| 11 | Telão | Modal de conclusão com presença, FAB do chat, botão de música condicional |
+| 12 | Background por aula | Cada aula mostra seu cenário |
+| 13 | Seed | Catálogo 100% Bebelingue |
+| 14 | Testes | 30 testes (`manage.py test`) |
+| — | Deploy | whitenoise + collectstatic prontos (não subiu ainda) |
 
-**Bloqueado esperando o animador:**
-- SVG leve, `Pulso_bone1` no grupo certo, grupo `Mosca`, chão dos cenários
-  (ver `docs/mensagens.md` seção 4 — bloco para o CLAUDE.md dele)
+---
 
-**Livre para fazer a qualquer momento:**
-- Área da coordenação `/coordenacao/` (D7)
-- Ajuste de piso por cenário (contorna o "Kevin na cama" sem depender do animador)
-- Converter backgrounds para WebP (~2 MB → ~300 KB cada)
-- Subir para produção (código pronto; falta bucket R2 e escolher plataforma)
+## 🔜 TODO — o que falta
+
+### A. Livre para fazer agora (sem depender de ninguém)
+
+- [ ] **Demanda 7 — área `/coordenacao/`**
+      Telas próprias para o coordenador cadastrar o TG (hoje ele usa o Django
+      admin). A mais importante é a **grade do mês** (semana × aula) espelhando o
+      TG em papel, com editor de blocos arrastáveis. Escopo em `docs/demandas.md`.
+
+- [ ] **Subir para produção**
+      Código pronto (whitenoise, collectstatic, Dockerfile). Falta: escolher
+      plataforma (Render recomendado), criar bucket R2 para os backgrounds,
+      configurar as env vars. Passo a passo na seção "🚧 Deploy" acima.
+
+- [ ] **Marcar o PR como "ready for review"**
+      https://github.com/PauloHenriqueL/kevin/pull/1 — está em draft. 14 demandas
+      prontas; o Arthur precisa ver a remodelagem.
+
+- [ ] **Converter backgrounds para WebP** (opcional)
+      Hoje ~500 KB cada em PNG; em WebP ficariam ~150 KB. Ganho de carregamento.
+
+### B. Esperando o cliente (Bebelingue)
+
+- [ ] **TG completo** com **Games Bank** (regras dos ~27 jogos) e **BeBooklet**
+      (técnicas) → sem isso o catálogo do Kevin fica vazio. **É o mais crítico.**
+- [ ] **Yearly Plan Review** e modelo de **RMP** → destravam a Demanda 4 (métricas)
+- [ ] **Reunião do Class Feedback** (Demanda 5) → definir quem vê o quê
+- [ ] **Cenários**: quem mapeia vocabulário → cenário de fundo (§10 da pauta)
+
+> Perguntas prontas em `docs/PERGUNTAS_REUNIAO_CLIENTE.md`; mensagens em
+> `docs/mensagens.md`.
+
+### C. Esperando o animador (Vitor)
+
+> Ele já configurou o sistema dele com nosso contrato e o validador. Pedidos
+> em `docs/mensagem.md` §C.4.
+
+- [ ] **Ligar o `entrada-kevin.webm`** — o vídeo existe no projeto dele (2 MB) mas
+      não está no export nem é usado pelo motor. É a animação de entrada
+      ("floresta abrindo") que faltava
+- [ ] **Chão do cenário `quarto`** — o Kevin ainda pisa **em cima da cama**
+- [ ] **Changelog no README** do export (regra que a IA dele não aplicou)
+
+### D. Registrado, sem prioridade
+
+- [ ] **Demanda 8** — configuração do comportamento do Kevin (idioma, tom) por UI
+- [ ] Remover o CSS defensivo do `#Pulso_bone1` quando o export novo chegar
+      (hoje é redundante com o hardcode do motor)
+
+---
+
+### Onde retomar
+
+O caminho de menor atrito é a **Demanda 7** (área da coordenação) — é a única
+frente grande que não depende de terceiros. Se o objetivo for mostrar ao cliente,
+priorize **subir para produção** e marcar o PR como pronto.

@@ -127,8 +127,8 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 6 | Busca global de conteúdo | ✅ Aprovada | 1 |
 | 7 | Área da coordenação | ✅ Aprovada (fase 2) | 1, 2 |
 | 8 | Configuração do comportamento do Kevin | 📌 **Demanda futura** — registrada, não priorizada | 3, 7 |
-| 9 | Animações novas do Kevin | ⚠️ 9A entregue mas **com defeitos graves** → ver Demanda 10 | 9A: nenhuma · 9B: 1 |
-| **10** | Retrabalho da animação | 🟡 **Parcial** — enquadramento OK; falta esconder esqueleto (ver 10.5) | 9A |
+| 9 | Animações novas do Kevin | ✅ **Feita** — motor novo integrado e validado | — |
+| **10** | Retrabalho da animação | ✅ **Resolvida** — enquadramento + export_2 corrigido do animador | 9A |
 | 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ **Feita** | 1, 4 |
 | 12 | Background por aula | ✅ **Feita** | 1, 9 |
 | 13 | Seed só com currículo da Bebelingue | ✅ **Feita** | 1 |
