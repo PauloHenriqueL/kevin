@@ -12,6 +12,8 @@
 docker compose up -d
 docker compose exec web python manage.py migrate
 docker compose exec web python manage.py seed_demo
+# popula o catálogo com o Games Bank do TG (91 jogos + técnicas):
+docker compose exec web python manage.py importar_catalogo_tg "documento_escola/Y5 3x Part 1 .pdf" --sobrescrever
 ```
 
 Abra **http://localhost:8000** e deixe estas abas prontas (ou use uma janela
@@ -34,44 +36,61 @@ anônima por login para trocar de papel rápido):
 ## A mensagem central (diga isto no início — 1 min)
 
 > "Na primeira versão, o Kevin refletia o que *eu imaginei* que a metodologia de
-> vocês fosse. Agora, depois de estudar o TG, o Class Feedback e a prova de
-> vocês, o sistema reflete **como vocês realmente trabalham**: o TG organizado
-> por mês, os jogos e técnicas de vocês como peças reutilizáveis, e o Kevin
-> sabendo conduzir cada uma. Vou mostrar."
+> vocês fosse. Agora, depois de estudar o TG completo, o Class Feedback e a prova
+> de vocês, o sistema reflete **como vocês realmente trabalham**: o TG endereçado
+> por Unit como na apostila, os jogos e técnicas de vocês — que já **importamos
+> do TG** — como peças reutilizáveis, e o Kevin sabendo conduzir cada uma. E o
+> coordenador de vocês agora tem uma **tela própria** para montar o TG, não mais
+> o painel técnico. Vou mostrar."
 
 ---
 
-## Parte 1 — O currículo agora é o TG de vocês (5 min)
+## Parte 1 — A área da coordenação: montar o TG (6 min)
 
-**Papel: Coordenador (`coord` / `coord123`) → vai para `/admin/`**
+**Papel: Coordenador (`coord` / `coord123`) → agora vai para `/coordenacao/`**
 
-### 1.1 A grade de Março
-1. No admin, abra **Curriculo → Aulas (TG)**.
-2. **Destaque:** as 12 aulas de Março, com o código no formato **`Y5-MAR-W1C1`** —
-   *"é o mesmo endereçamento do arquivo de vocês: mês, semana, aula."*
-3. Aponte a coluna **tipo**: Content, Communication, Culture — *"o sistema sabe
-   que tipo de aula é cada uma."*
+> **A grande novidade desta fase.** Antes o coordenador usava o painel técnico
+> (Django admin). Agora tem uma área desenhada para o trabalho dele.
 
-### 1.2 Uma aula por dentro
-1. Clique na aula **`Y5-MAR-W1C1` — Share It! — Daily Routines**.
-2. **Destaque os blocos** (Warm Up / Development / Closure): *"o roteiro não é um
-   texto solto — é uma sequência de blocos, cada um ligado a uma atividade do
-   catálogo de vocês."*
-3. Mostre que o bloco 1 do Warm Up é **BeCalendar**, o 2 é **Songs Collection** —
-   *"as rotinas fixas de vocês."*
+### 1.1 O painel inicial
+1. Após o login, mostre o **dashboard**: o retrato do TG (aulas, atividades no
+   catálogo, escolas) e o alerta de "atividades sem regra".
+2. *"Aqui ele vê o estado do TG num relance."*
 
-### 1.3 O catálogo — o que faz o Kevin "saber" a atividade
-1. Abra **Curriculo → Atividades (catálogo)**.
-2. **Destaque:** os jogos (Simon Says, Hangman…), técnicas (Sandwich, Instant
-   Translation), rotinas (BeCalendar). *"Cada um é cadastrado uma vez e
-   reutilizado em quantas aulas quiserem."*
-3. Abra **Simon Says** e mostre o campo **"Como conduzir"**: *"É isto que o Kevin
-   lê. Ele não inventa a regra — ele usa a de vocês."*
-4. Aponte a coluna **"Kevin sabe conduzir?"** — o indicador verde.
+### 1.2 A grade do TG — a tela mais importante
+1. Clique em **Grade do TG** → escolha **Year 5 → Unit 1**.
+2. **Destaque:** a grade **semana × aula**, no mesmo formato do arquivo de vocês.
+   *"É a sua grade de papel, virada em tela. Cada célula é uma aula."*
+3. Aponte o código **`Y5-U1W1C1`**: *"é o endereçamento da apostila — Unit,
+   Week, Class."*
+4. Aponte as **cores por tipo** (Content, Communication, Culture, CLIL) e a
+   contagem de blocos. Mostre uma **célula vazia**: *"onde falta aula, é só
+   clicar para criar."*
 
-> **Pergunta que vai surgir:** "de onde vêm essas regras?" → Resposta: do
-> **Games Bank** e do **BeBooklet** no início do TG. *"Quando vocês nos
-> enviarem, populamos o catálogo oficial com o texto de vocês."*
+### 1.3 O editor de blocos — arrastar e montar
+1. Clique numa aula (ex: **Share It! — Daily Routines**).
+2. **Destaque as três fases** (Warm Up / Development / Closure) com os blocos.
+3. **Arraste um bloco** para outra posição: *"reordenar é arrastar. E salva
+   sozinho — sem botão de salvar."*
+4. Clique em **+ adicionar**, digite **"Bingo"** no busca: *"ele escolhe a
+   atividade do catálogo de vocês por um autocomplete."*
+
+### 1.4 O catálogo — o que faz o Kevin "saber" a atividade
+1. Vá em **Catálogo**.
+2. **Destaque:** *"91 jogos e as técnicas de vocês — **importados direto do TG
+   que vocês nos mandaram**. Não digitamos à mão nem inventamos: é o texto de
+   vocês."*
+3. Abra **Simon Says** e mostre o **"Como conduzir"**: *"É isto que o Kevin lê.
+   Ele não inventa a regra — usa a de vocês."*
+4. Aponte o **"usado em N aulas"**: *"antes de mudar uma atividade, o coordenador
+   vê onde ela é usada — não quebra aula sem perceber."*
+
+### 1.5 Duplicar uma Unit (se sobrar tempo)
+1. Na grade, clique em **Duplicar esta Unit** → destino **U2**.
+2. *"Ele parte da estrutura do mês anterior em vez de montar do zero."*
+
+> **Não vai mais surgir a pergunta "de onde vêm as regras?"** — elas já estão lá,
+> importadas. Se perguntarem: *"do Games Bank, no início do TG de vocês."*
 
 ---
 
@@ -83,7 +102,7 @@ anônima por login para trocar de papel rápido):
 1. Entre em **Year 5 → Turma 5A**.
 2. **Destaque:** a lista de aulas com status (concluídas, atual). *"A Maria está
    adiantada — já deu 7 aulas."*
-3. Abra a aula **`Y5-MAR-W1C1`**.
+3. Abra a aula **`Y5-U1W1C1`**.
 
 ### 2.2 O telão
 1. **Destaque a tela cheia:** o Kevin grande, no cenário de **quarto** (*"o fundo
@@ -157,11 +176,13 @@ Se o público for técnico ou perguntarem "e o que mais mudou":
 
 ## Fecho (1 min)
 
-> "Resumindo o que mudou: o currículo agora é o **TG de vocês**, os jogos e
-> técnicas são **peças reutilizáveis** que o Kevin conhece, o professor **busca**
-> em vez de folhear PDF, e o Kevin ganhou **vida** — canta, dorme, reage. O que
-> falta pra completar depende de vocês: o **TG completo** com o Games Bank e o
-> BeBooklet, e os modelos de **RMP** e **Yearly Plan**."
+> "Resumindo o que mudou: o coordenador de vocês tem uma **área própria** para
+> montar o TG, o currículo é endereçado **por Unit** como na apostila, os jogos e
+> técnicas — **já importados do TG de vocês** — são peças reutilizáveis que o
+> Kevin conhece, o professor **busca** em vez de folhear PDF, e o Kevin ganhou
+> **vida** — canta, dorme, reage. Para completar, precisamos de vocês: decidir
+> como o **5x** entra (é um TG diferente do 3x), os **TGs dos outros Years**, e
+> os modelos de **RMP** e **Yearly Plan**."
 
 Puxe a lista de pendências de `docs/PERGUNTAS_REUNIAO_CLIENTE.md` (quadro do topo)
 para combinar os próximos passos.
@@ -170,10 +191,10 @@ para combinar os próximos passos.
 
 ## Checklist rápido (imprima ou deixe ao lado)
 
-- [ ] `seed_demo` rodado, app no ar em localhost:8000
+- [ ] `seed_demo` **e** `importar_catalogo_tg` rodados, app no ar em localhost:8000
 - [ ] 5 logins testados
-- [ ] **P1** Coordenador: grade de Março + catálogo + "Como conduzir"
+- [ ] **P1** Coordenador: grade do TG + editor arrastável + catálogo importado + "usado em N aulas"
 - [ ] **P2** Maria: telão + Música + Concluir
-- [ ] **P3** Busca: fruits + filtros + Quiz do Bernoulli
+- [ ] **P3** Busca: fruits + filtros
 - [ ] **P4** Carlos: relatório 5A vs 5B
-- [ ] **Fecho:** pedir TG completo, RMP e Yearly Plan
+- [ ] **Fecho:** decidir 5x vs 3x (§11) e Class Feedback; pedir TGs dos Years 1–4, RMP e Yearly Plan

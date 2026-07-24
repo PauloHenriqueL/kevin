@@ -1414,15 +1414,16 @@ uma tem consequência em cascata sobre as demais.
 | **D26** | Visão de aderência **fora** da Demanda 7 | Entregar junto | Depende da Demanda 4, travada esperando Yearly Plan Review e RMP do cliente |
 | **D27** | **Chave da aula volta a ser `Year + Unit + Semana + Aula`** (`U1W1C1`) — **revoga a D2** | Manter mês como chave | O TG real entregue em 24/07/2026 endereça por Unit: o código impresso é `U1W1C1`, e o mês aparece só como faixa lateral. A D2 foi tomada sobre o CSV de março, uma amostra de um mês só, que dava a impressão de que o mês era o eixo. Com o TG completo em mãos, não é |
 | **D28** | `CLIL` entra como tipo de aula | Encaixar em `content` | O TG usa CLIL em ~30 das 128 aulas do Y5 3x. É uma natureza de aula da metodologia (Content and Language Integrated Learning), não uma variação de Content |
-| **D29** | 3x e 5x são **TGs distintos**, não um derivado do outro — **revisa a D19** | Manter `frequencia_minima` sobre um cadastro único | Comparados os PDFs: a Welcome Unit tem 12 células no 3x e 20 no 5x, com conteúdo próprio — não é o 3x mais um apêndice. A D19 registrou o que o cliente disse; o material mostra outra coisa. **Confirmar com o cliente antes de migrar** |
+| **D29** | 3x e 5x são **TGs distintos**; o **4x** é que é o 3x + uma Communication. **Complementa a D19, não a revoga** | `frequencia_minima` sobre um cadastro único cobrindo 3x/4x/5x | Confirmado com o cliente (24/07/2026): o eixo da frequência tem **duas coisas diferentes**. (a) 4x = 3x + uma Communication Class — é isso que a D19 modela com `frequencia_minima`, e continua válido. (b) 5x é um **TG próprio**, não um 3x turbinado: a Welcome Unit tem 12 células no 3x e 20 no 5x, com conteúdo diferente. Logo `frequencia_minima` **não** basta para 5x — ele precisa de aulas próprias (mesmo `year`/`unit`/`semana`, `numero_aula` maior, ou um campo de trilha). **Decisão de modelagem pendente** — ver pergunta na pauta |
 | **D30** | O catálogo é **importado** do TG, não digitado | Manter D7 (sem seed) para o catálogo | A D7 protege contra inventar dados. Aqui a fonte é o documento oficial do cliente — a seção "GAMES FOR THE WHOLE YEAR", com 87 jogos e regra completa. Importar é transcrever, não inventar. O TG segue cadastrado à mão pelo coordenador |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, 657 páginas, recebidos em 24/07/2026). São os primeiros documentos
 > que mostram o ano inteiro; as decisões anteriores foram tomadas sobre o CSV de
-> março. Quando o material contradiz o que foi dito em reunião, o material vale —
-> mas **D29 precisa de confirmação do cliente**, porque contraria uma resposta
-> explícita dele.
+> março. A D19 (4x = 3x + uma Communication) **continua correta** — o cliente
+> reconfirmou. O que a D29 acrescenta é que o **5x é um TG distinto**, não um 3x
+> ampliado; isso deixa uma **decisão de modelagem em aberto** (como o 5x convive
+> com o 3x no banco), levada à reunião.
 
 ---
 

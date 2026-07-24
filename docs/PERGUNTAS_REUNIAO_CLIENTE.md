@@ -5,46 +5,56 @@
 > demandas, **tivemos que deduzir** várias coisas a partir dos arquivos que vocês
 > nos passaram. Esta pauta lista essas deduções para confirmação.
 >
-> **Atualizado em 23/07/2026** — 5 perguntas já foram respondidas por WhatsApp
-> (ver quadro abaixo). Elas continuam no corpo do documento, marcadas com ✅.
+> **Atualizado em 24/07/2026** — recebemos os TGs completos do Y5 (3x e 5x) e
+> **importamos o Games Bank** (91 jogos) e as técnicas para o catálogo. Isso
+> fechou várias pendências e **abriu duas novas** (endereçamento por Unit, e como
+> o 5x convive com o 3x no banco). O quadro abaixo reflete o estado atual.
 
 ---
 
 ## ⚡ Status rápido — o que já sabemos e o que ainda falta
 
-### Já respondido pelo cliente (WhatsApp, 23/07)
+### Já respondido e já implementado
 
 | # | Pergunta | Resposta | Efeito |
 |---|---|---|---|
-| 2.6 | TG é igual para todas as escolas? | **Sim**, adaptação quase irrelevante | ✅ Currículo global — implementado |
-| 1.1 | O que é o "3x"? | Frequências **3x/4x/5x**; 4x = 3x + 1 Communication | ✅ `frequencia_minima` — implementado |
-| 3.1 | Existe lista de regras dos jogos? | **Sim — "Games Bank"** no início do TG | ⏳ Falta receber o arquivo |
-| 3.2 | E o BeBooklet (técnicas)? | **Também no início do TG** | ⏳ Falta receber o arquivo |
-| 5.1 | Como sabem que um professor atrasou? | **RMP** mensal + **Yearly Plan Review** | ⏳ Falta receber os modelos |
+| 2.6 | TG é igual para todas as escolas? | **Sim**, adaptação quase irrelevante | ✅ Currículo global |
+| 1.1 | O que é o "3x"? | 3x/4x/5x; **4x = 3x + 1 Communication** | ✅ `frequencia_minima` |
+| 3.1 | Existe lista de regras dos jogos? | **Sim — Games Bank** no início do TG | ✅ **Recebido e importado (91 jogos)** |
+| 3.2 | E o BeBooklet (técnicas)? | **No início do TG** | ✅ **Técnicas importadas** |
+| 5.1 | Como sabem que um professor atrasou? | **RMP** + **Yearly Plan Review** | ⏳ Falta receber os modelos |
 
-### Ainda falta receber (bloqueia trabalho)
+### Ainda falta receber
 
-- [ ] 🔴 **TG completo** (com Games Bank + BeBooklet) — sem ele o catálogo do Kevin nasce vazio
+- [ ] **TGs dos Years 1–4** — só temos o Y5. Cada Year é um TG próprio; o
+      catálogo importado já serve para todos, mas as **aulas** de cada Year
+      precisam ser cadastradas (agora tem a grade nova para isso)
 - [ ] **Modelo de RMP** e **Yearly Plan Review** — destravam as métricas de professor (Demanda 4)
 
 ### Perguntas que ainda valem para esta reunião
 
-As respondidas acima estão fechadas. **Priorize agora:**
+**Priorize agora:**
 
-1. **§9 (Class Feedback)** — a demanda inteira depende desta conversa. É avaliação
-   de desempenho de pessoa; queremos definir quem vê o quê antes de construir.
-2. **Cenários de fundo** (NOVA, ver §10) — quem escolhe qual cenário para qual aula.
-3. **§7.1** — confirmar que aluno nominal não é necessário (já implementamos assim).
-4. As demais 🔴 do corpo que não foram respondidas.
+1. 🔴 **§11 (5x vs 3x — NOVA)** — decisão de modelagem. O 5x é um TG distinto, não
+   um 3x ampliado. Precisamos saber como vocês querem que ele conviva com o 3x.
+2. 🔴 **§6 (Class Feedback)** — avaliação de desempenho de pessoa; definir quem vê
+   o quê antes de construir.
+3. **§10 (Cenários de fundo)** — quem escolhe qual cenário para qual aula.
+4. **§7.1** — confirmar que aluno nominal não é necessário (já implementado assim).
+5. As demais 🔴 do corpo que não foram respondidas.
+
+> **Já não são mais bloqueio:** o Games Bank e o BeBooklet chegaram. As perguntas
+> §3.1 e §3.2 ficam só como registro histórico.
 
 ---
 
 ## 1. Calendário e ritmo das aulas
 
-> **Por que este bloco é crítico:** decidimos que a aula passa a ser endereçada
-> por **Year + Mês + Semana + Aula** (ex: `Y5-MAR-W1C1`), porque é assim que o TG
-> de vocês é organizado. Toda a navegação do professor e todos os relatórios
-> dependem disso estar certo.
+> **Por que este bloco é crítico:** a aula é endereçada por **Year + Unit +
+> Semana + Aula** (ex: `Y5-U1W1C1`) — é o código impresso no TG completo que
+> vocês nos enviaram. (Na primeira versão tínhamos endereçado por mês, a partir
+> do CSV de março; o TG inteiro mostrou que o eixo é a Unit, e o mês é a faixa de
+> calendário.) Toda a navegação do professor e os relatórios dependem disso.
 
 ### 1.1 ✅ A frequência de aulas por semana é sempre 3?
 
@@ -266,7 +276,9 @@ retrabalho grande se descobrirmos tarde. Registrado como risco R1.
 
 ### 3.1 ✅ Existe uma lista oficial de jogos?
 
-> **RESPONDIDO:** Sim — a seção **Games Bank**, no início do TG. ⏳ Falta a Bebelingue enviar o arquivo.
+> **RESPONDIDO e RESOLVIDO:** Sim — a seção **"GAMES FOR THE WHOLE YEAR"** (o
+> Games Bank), no início do TG. **Recebemos o TG e importamos 91 jogos** com a
+> regra completa de cada um. O catálogo do Kevin já nasce populado.
 
 **O que deduzimos:** que sim, e que ela é maior que o TG de março.
 
@@ -293,7 +305,8 @@ e precisamos combinar quem e quando.
 
 ### 3.2 ✅ Onde está o "BeBooklet"?
 
-> **RESPONDIDO:** Também no início do TG. ⏳ Falta a Bebelingue enviar o arquivo.
+> **RESPONDIDO e RESOLVIDO:** No início do TG. As técnicas de L1/L2 (Instant
+> Translation, Correlation, Sandwich) foram importadas para o catálogo.
 
 **O que deduzimos:** que é o documento que descreve as técnicas da metodologia.
 
@@ -717,6 +730,52 @@ automaticamente pelo tipo/tema da aula em vez de deixar tudo manual.
 
 ---
 
+## 11. Frequência 5x — como convive com o 3x? (NOVA — decisão de modelagem)
+
+> **Contexto:** recebemos os TGs completos do Y5 em 3x e 5x. Comparando os dois,
+> ficou claro que **3x e 5x são TGs diferentes**, com conteúdo próprio — a
+> Welcome Unit tem 12 aulas no 3x e 20 no 5x. Isso é diferente do 4x, que vocês
+> já confirmaram ser "o 3x mais uma Communication Class".
+
+### 11.1 🔴 Confirmam que 3x e 5x são TGs distintos, e só o 4x é derivado?
+
+**O que entendemos:** o eixo da frequência tem duas naturezas:
+- **4x = 3x + uma Communication** — uma aula extra sobre a mesma base (já
+  modelado, funciona).
+- **5x = TG próprio** — não é o 3x turbinado; tem aulas e sequência diferentes.
+
+**A pergunta:** está correto? O 5x é montado do zero, ou parte do 3x e diverge?
+Existe 2x em algum Year?
+
+**O que muda:** confirma como guardamos o 5x no banco (ver 11.2).
+
+📝 **Resposta:**
+
+<br>
+
+---
+
+### 11.2 🔴 Uma escola/turma usa um TG por vez, ou pode misturar?
+
+**O que deduzimos:** que cada turma segue **um** TG do começo ao fim do ano — ou
+o 3x, ou o 4x, ou o 5x —, nunca alternando.
+
+**Por quê:** define a modelagem. Se é um por turma, guardamos o 5x como um
+conjunto de aulas próprio (mesma Unit/semana, identificado pela frequência) e a
+turma puxa o TG da frequência dela. Se pudesse misturar, seria bem mais complexo.
+
+**A pergunta:** uma turma de 5x usa o TG de 5x inteiro? Uma escola pode ter
+turmas de 3x e de 5x ao mesmo tempo (turmas diferentes)?
+
+**O que muda:** é a decisão que destrava cadastrar o Y5 5x. Hoje o banco guarda
+bem o 3x/4x; o 5x precisa desta resposta antes de entrar.
+
+📝 **Resposta:**
+
+<br>
+
+---
+
 ## Resumo — deduções que ainda precisam de confirmação
 
 As respondidas no WhatsApp (2.6, 1.1, 3.1, 3.2, 5.1) estão fora daqui — já foram
@@ -736,13 +795,19 @@ fechadas. **Estas continuam abertas; se a reunião encurtar, garanta-as:**
 
 ## Checklist de saída da reunião
 
-**Arquivos a receber (o mais importante):**
-- [ ] 🔴 **TG completo** com **Games Bank** (regras dos jogos) e **BeBooklet** (técnicas) — §3.1, §3.2
+**Decisões que destravam trabalho (prioridade):**
+- [ ] 🔴 **5x vs 3x**: confirmar que são TGs distintos e como convivem no banco — §11
+- [ ] 🔴 **Class Feedback**: quem vê o quê (professor / escola) — §6
+
+**Arquivos a receber:**
+- [ ] **TGs dos Years 1–4** (o Y5 já temos) — para cadastrar as aulas na grade nova
 - [ ] Modelo de **RMP** e **Yearly Plan Review** — destrava as métricas — §5.1
 
 **Definições:**
-- [ ] **Class Feedback**: quem vê o quê (professor / escola) — §6
 - [ ] **Cenários de fundo**: quem mapeia vocabulário → cenário — §10
 - [ ] Confirmar que **aluno nominal não é necessário** — §7.1
 - [ ] **Qual escola entra primeiro e quando** — §9.1
 - [ ] **Quem cadastra o quê** e prazo de população — §4.2, §4.3
+
+> **Já resolvido, não precisa cobrar:** Games Bank e BeBooklet (recebidos e
+> importados) — §3.1, §3.2.
