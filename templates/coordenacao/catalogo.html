@@ -1,0 +1,46 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Catálogo — Kevin{% endblock %}
+
+{% block coord_heading %}Catálogo oficial{% endblock %}
+{% block coord_subheading %}<p>Jogos, técnicas, rotinas e recursos da Bebelingue</p>{% endblock %}
+
+{% block coord_actions %}
+<a href="{% url 'coordenacao:atividade_create' %}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nova atividade
+</a>
+{% endblock %}
+
+{% block coord_body %}
+
+<form method="get" class="catalogo-filtros">
+    <input type="search" name="q" value="{{ termo }}" placeholder="Buscar por nome ou tag…" class="form-control">
+    <div class="filtro-tipos">
+        <a href="?{% if termo %}q={{ termo }}{% endif %}" class="chip {% if not tipo_ativo %}ativo{% endif %}">Todos</a>
+        {% for valor, label in tipos %}
+        <a href="?tipo={{ valor }}{% if termo %}&q={{ termo }}{% endif %}" class="chip {% if tipo_ativo == valor %}ativo{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+</form>
+
+<div class="catalogo-tabela">
+    {% for a in atividades %}
+    <a href="{% url 'coordenacao:atividade_edit' pk=a.pk %}" class="catalogo-linha">
+        <span class="cat-badge tipo-atv-{{ a.tipo }}">{{ a.get_tipo_display }}</span>
+        <span class="cat-nome">
+            {{ a.nome }}
+            {% if not a.como_conduzir %}<span class="cat-alerta" title="Sem regra — o Kevin improvisa">⚠ sem regra</span>{% endif %}
+        </span>
+        <span class="cat-desc">{{ a.descricao|truncatechars:70 }}</span>
+        <span class="badge {% if a.usos %}badge-blue{% else %}badge-muted{% endif %}">
+            {{ a.usos }} aula{{ a.usos|pluralize:"s" }}
+        </span>
+    </a>
+    {% empty %}
+    <div class="empty-state" style="padding:48px 20px;">
+        <p>Nenhuma atividade encontrada.</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

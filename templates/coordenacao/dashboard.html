@@ -1,0 +1,67 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Coordenação — Kevin{% endblock %}
+
+{% block coord_heading %}Olá, {{ user.first_name|default:user.username }} 👋{% endblock %}
+{% block coord_subheading %}<p>O que a coordenação Bebelingue faz por aqui</p>{% endblock %}
+
+{% block coord_body %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_aulas }}</h3>
+            <p>Aula{{ total_aulas|pluralize:"s" }} no TG</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_atividades }}</h3>
+            <p>Atividade{{ total_atividades|pluralize:"s" }} no catálogo</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon mustard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_escolas }}</h3>
+            <p>Escola{{ total_escolas|pluralize:"s" }} cliente</p>
+        </div>
+    </div>
+</div>
+
+{% if atividades_sem_regra %}
+<div class="alerta-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div>
+        <strong>{{ atividades_sem_regra }} atividade{{ atividades_sem_regra|pluralize:"s" }} sem regra preenchida.</strong>
+        Sem o "como conduzir", o Kevin improvisa em sala.
+        <a href="{% url 'coordenacao:catalogo' %}">Revisar o catálogo →</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="acao-grid">
+    <a href="{% url 'coordenacao:tg_index' %}" class="acao-card">
+        <div class="acao-card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        </div>
+        <h3>Grade do TG</h3>
+        <p>Monte o mês como no seu arquivo: semana × aula, com o roteiro de cada aula.</p>
+    </a>
+    <a href="{% url 'coordenacao:catalogo' %}" class="acao-card">
+        <div class="acao-card-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <h3>Catálogo</h3>
+        <p>Jogos, técnicas, rotinas e recursos oficiais. Veja onde cada um é usado antes de editar.</p>
+    </a>
+</div>
+
+{% endblock %}

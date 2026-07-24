@@ -49,10 +49,11 @@ class RedirectPorPapelTest(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn('/gestao/', r['Location'])
 
-    def test_coordenador_vai_para_admin(self):
+    def test_coordenador_vai_para_coordenacao(self):
+        # D23: o coordenador tem área própria; o admin fica só para o técnico.
         r = self._login_e_home('coord')
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/', r['Location'])
+        self.assertIn('/coordenacao/', r['Location'])
 
 
 class AdminAcessoTest(TestCase):

@@ -1,0 +1,49 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} atividade — Kevin{% endblock %}
+
+{% block coord_heading %}{% if form.instance.pk %}Editar atividade{% else %}Nova atividade{% endif %}{% endblock %}
+{% block coord_subheading %}
+    <p><a href="{% url 'coordenacao:catalogo' %}" class="link-voltar">← catálogo</a></p>
+{% endblock %}
+
+{% block coord_body %}
+<div class="form-coord">
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}<div class="toast error" style="position:static;box-shadow:none;margin-bottom:16px;">Corrija os erros abaixo.</div>{% endif %}
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                {% if form.instance.pk %}Salvar{% else %}Criar{% endif %}
+            </button>
+            <a href="{% url 'coordenacao:catalogo' %}" class="btn btn-ghost">Cancelar</a>
+        </div>
+    </form>
+
+    {% if usos is not None %}
+    <aside class="usos-card">
+        <h4>Onde é usada</h4>
+        {% if usos %}
+        <p class="usos-aviso">Editar afeta {{ usos|length }} aula{{ usos|length|pluralize:"s" }}:</p>
+        <ul>
+            {% for bloco in usos %}
+            <li><a href="{% url 'coordenacao:aula_editor' pk=bloco.aula.pk %}">{{ bloco.aula.codigo }}</a> — {{ bloco.get_fase_display }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="usos-vazio">Ainda não usada em nenhuma aula. Seguro editar.</p>
+        {% endif %}
+    </aside>
+    {% endif %}
+</div>
+{% endblock %}

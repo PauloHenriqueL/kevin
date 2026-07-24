@@ -23,6 +23,9 @@ urlpatterns = [
     # Painel do diretor (gestão da escola)
     path('gestao/', include('apps.escolas.gestao_urls')),
 
+    # Área da coordenação Bebelingue (currículo e catálogo oficial)
+    path('coordenacao/', include('apps.curriculo.coordenacao_urls')),
+
     # Páginas de visualização (legado admin)
     path('escolas/', include('apps.escolas.template_urls')),
     path('curriculo/', include('apps.curriculo.template_urls')),
