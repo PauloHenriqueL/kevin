@@ -1404,6 +1404,21 @@ uma tem consequência em cascata sobre as demais.
 | **D20** | Yearly Plan no sistema + retrato automático; RMP segue como reunião | Só o retrato; ou digitalizar o RMP inteiro | O "previsto" é **acordado**, não calculado — vem do Yearly Plan. O sistema elimina a digitação manual do forms, mas não substitui a conversa |
 | **D21** | Navegação: card "próxima aula" + grade do mês | Lista cronológica; só o card; ou calendário | Com ~100 aulas por Year, o professor às 14h quer a aula de hoje em 1 clique — sem perder a opção de voltar ou adiantar |
 | **D22** | Concluir aula = 1 clique; data e professor automáticos; presença opcional | Sem campo algum; ou formulário obrigatório | Melhor 100% de aulas marcadas com 30% de presença do que 40% de tudo. Data e professor o sistema já sabe |
+| **D23** | `/coordenacao/` é o caminho **exclusivo** do coordenador; Django admin só para `admin` técnico | Admin como escape para casos raros | Se o coordenador precisa cair no admin, a tela falhou. Consequência: todo CRUD que ele usa entra no escopo, inclusive os cantos chatos |
+| **D24** | Redesign visual restrito à área nova; `/gestao/` e `/professor/` intactos | Repaginar o sistema todo | Aquelas telas já foram validadas e demonstradas. O visual da coordenação vira o padrão candidato, propagado depois em commit separado |
+| **D25** | Reordenar blocos em **vanilla JS** com **autosave** via fetch | Lib de drag-and-drop; ou botão "Salvar" | Mantém a convenção do projeto (sem bundler, sem dependência nova). Autosave é o que se espera de arrastar |
+| **D26** | Visão de aderência **fora** da Demanda 7 | Entregar junto | Depende da Demanda 4, travada esperando Yearly Plan Review e RMP do cliente |
+| **D27** | **Chave da aula volta a ser `Year + Unit + Semana + Aula`** (`U1W1C1`) — **revoga a D2** | Manter mês como chave | O TG real entregue em 24/07/2026 endereça por Unit: o código impresso é `U1W1C1`, e o mês aparece só como faixa lateral. A D2 foi tomada sobre o CSV de março, uma amostra de um mês só, que dava a impressão de que o mês era o eixo. Com o TG completo em mãos, não é |
+| **D28** | `CLIL` entra como tipo de aula | Encaixar em `content` | O TG usa CLIL em ~30 das 128 aulas do Y5 3x. É uma natureza de aula da metodologia (Content and Language Integrated Learning), não uma variação de Content |
+| **D29** | 3x e 5x são **TGs distintos**, não um derivado do outro — **revisa a D19** | Manter `frequencia_minima` sobre um cadastro único | Comparados os PDFs: a Welcome Unit tem 12 células no 3x e 20 no 5x, com conteúdo próprio — não é o 3x mais um apêndice. A D19 registrou o que o cliente disse; o material mostra outra coisa. **Confirmar com o cliente antes de migrar** |
+| **D30** | O catálogo é **importado** do TG, não digitado | Manter D7 (sem seed) para o catálogo | A D7 protege contra inventar dados. Aqui a fonte é o documento oficial do cliente — a seção "GAMES FOR THE WHOLE YEAR", com 87 jogos e regra completa. Importar é transcrever, não inventar. O TG segue cadastrado à mão pelo coordenador |
+
+> **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
+> (3x e 5x, 657 páginas, recebidos em 24/07/2026). São os primeiros documentos
+> que mostram o ano inteiro; as decisões anteriores foram tomadas sobre o CSV de
+> março. Quando o material contradiz o que foi dito em reunião, o material vale —
+> mas **D29 precisa de confirmação do cliente**, porque contraria uma resposta
+> explícita dele.
 
 ---
 

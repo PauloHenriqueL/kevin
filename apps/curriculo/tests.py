@@ -144,3 +144,82 @@ class AulaTurmaTest(TestCase):
         AulaTurma.objects.create(turma=self.turma, aula=self.aula)
         with self.assertRaises(Exception):
             AulaTurma.objects.create(turma=self.turma, aula=self.aula)
+
+
+class ImportadorCatalogoTest(TestCase):
+    """Parsing do Games Bank do TG (D30).
+
+    O parser é a única coisa entre o PDF do cliente e o `como_conduzir` que o
+    Kevin usa em sala. Se ele engolir um jogo, o Kevin improvisa a regra.
+    """
+
+    def _parsear(self, texto):
+        from .management.commands.importar_catalogo_tg import (
+            parsear_jogos, recortar_banco_de_jogos,
+        )
+        return parsear_jogos(recortar_banco_de_jogos(texto))
+
+    def test_parseia_jogo_simples(self):
+        texto = (
+            'GAMES FOR THE WHOLE YEAR\n'
+            'A\n'
+            '    ANSWER!\n'
+            '    Have two students come to the front.\n'
+            '\n'
+            'WARM UP (10 minutes)\n'
+        )
+        jogos = self._parsear(texto)
+        self.assertEqual(len(jogos), 1)
+        self.assertEqual(jogos[0]['nome'], 'Answer!')
+
+    def test_titulo_com_pontuacao_vira_jogo_proprio(self):
+        """Regressão: "WHAT AM I?" era absorvido no corpo do jogo anterior."""
+        texto = (
+            'GAMES FOR THE WHOLE YEAR\n'
+            '    UNSCRAMBLE\n'
+            '    Give them cards with letters.\n'
+            '    WHAT AM I?\n'
+            '    Tape a card to each student back.\n'
+            '    UP, UP; DOWN, DOWN\n'
+            '    Say a sentence and they stand up.\n'
+            'WARM UP\n'
+        )
+        nomes = [j['nome'] for j in self._parsear(texto)]
+        self.assertEqual(nomes, ['Unscramble', 'What Am I?', 'Up, Up; Down, Down'])
+
+    def test_ignora_rodape_e_divisoria_alfabetica(self):
+        texto = (
+            'GAMES FOR THE WHOLE YEAR\n'
+            'B\n'
+            '    BINGO\n'
+            '    Call out a number.\n'
+            '    Proibida a reprodução. Todos os direitos reservados Bebilíngue Ltda.\n'
+            'WARM UP\n'
+        )
+        jogos = self._parsear(texto)
+        self.assertEqual(len(jogos), 1)
+        self.assertNotIn('Proibida', jogos[0]['linhas'][0])
+
+    def test_captura_contexto_entre_parenteses(self):
+        texto = (
+            'GAMES FOR THE WHOLE YEAR\n'
+            '    TONGUE TWISTER (Phonics)\n'
+            '    Say it fast.\n'
+            'WARM UP\n'
+        )
+        jogo = self._parsear(texto)[0]
+        self.assertEqual(jogo['nome'], 'Tongue Twister')
+        self.assertEqual(jogo['contexto'], 'Phonics')
+
+    def test_capitalizacao_preserva_apostrofo_e_siglas(self):
+        from .management.commands.importar_catalogo_tg import capitalizar_nome
+        self.assertEqual(capitalizar_nome('DON’T SAY IT'), 'Don’t Say It')
+        self.assertEqual(capitalizar_nome('YES/NO'), 'Yes/No')
+        self.assertEqual(capitalizar_nome('TIC-TAC-TOE'), 'Tic-Tac-Toe')
+        self.assertEqual(capitalizar_nome('Q&A LINES'), 'Q&A Lines')
+
+    def test_secao_ausente_falha_com_mensagem_clara(self):
+        from django.core.management.base import CommandError
+        from .management.commands.importar_catalogo_tg import recortar_banco_de_jogos
+        with self.assertRaises(CommandError):
+            recortar_banco_de_jogos('um PDF qualquer sem banco de jogos')
