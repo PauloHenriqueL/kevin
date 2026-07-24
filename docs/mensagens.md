@@ -8,6 +8,7 @@ Rascunhos de comunicação do projeto Kevin. Copiar e colar.
 | [2](#2-alinhamento-com-o-arthur--contexto-novo-do-projeto) | Arthur (dev) | Contexto novo, prompt e roteiro | ⬜ rascunho |
 | [3](#3-vitor-tostes-animador--peso-do-svg-do-puppet) | Vitor Tostes (animador) | Peso do `kevin-rigged.svg` | ⬜ não enviada |
 | [4](#4-vitor-animador--bloco-para-o-claudemd-dele) | Vitor (animador) | **Bloco para o CLAUDE.md dele** — padrão do export + validador | ⬜ não enviada |
+| [5](#5-vitor--resposta-sim-para-os-dois-nesta-ordem) | Vitor (animador) | Resposta: corrigir backgrounds → estrutura → SVG | ⬜ não enviada |
 
 ---
 
@@ -410,3 +411,71 @@ Saída real do validador no `export_2`:
 **quebra os braços** — o motor move o mesh do braço para dentro desses grupos
 (`setupArmDrivers`). Testado e confirmado visualmente. Só dá para esconder bones
 soltos individualmente.
+
+---
+
+## 5. Vitor — resposta: sim para os dois, nesta ordem
+
+**Data:** 24/07/2026
+**Contexto:** ele rodou o validador no export dele, confirmou os 5 problemas, e
+trouxe uma nuance importante — os 2 bugs estruturais estão sendo *compensados*
+por exceções no motor (hardcode do `Pulso_bone1` por nome; fallback da mosca).
+Perguntou se deve corrigir a estrutura e/ou otimizar os backgrounds.
+**Status:** ⬜ não enviada
+
+---
+
+Perfeito, e obrigado pela nuance — ela é importante e eu confirmei no código:
+
+- `initDefaultVisibility` tem mesmo o hardcode `for (const id of ["Pulso_bone1"])`
+- e o fallback `getNodeById("Mosca") ?? getNodeById("Corpo_mosca")?.parentElement`
+
+Você está certo: **funciona hoje, mas por exceção, não por estrutura.** É
+exatamente o tipo de coisa que quebra num export futuro sem ninguém entender por
+quê. Vale corrigir na origem.
+
+**Resposta: sim para os dois.** Sugiro nesta ordem:
+
+**1º — Backgrounds (maior impacto, mais rápido)**
+
+É o que mais dói hoje: 7 cenários somando ~13 MB. Numa escola com internet ruim,
+o professor espera olhando tela vazia. Padronizar resolução resolve dois
+problemas de uma vez — peso **e** o "Kevin em cima da cama", porque ele é
+ancorado na base da imagem e resoluções diferentes deslocam onde ele pisa.
+
+- Todos na mesma resolução (sugiro **1920×1080**)
+- WebP ou PNG otimizado, ≤ 500 KB cada
+- No `quarto`, se der, deixe piso visível na frente da cama — hoje o Kevin
+  aparece sobre o móvel
+
+**2º — Estrutura do SVG**
+
+Mover `Pulso_bone1` para dentro de `Bones_Left_Arm` e envolver `Corpo_mosca` num
+grupo `id="Mosca"`. Como você disse: tira a dependência dos hardcodes.
+
+Se fizer isso, **pode remover as duas exceções do motor** — a regra geral
+(varrer os grupos `Bones_*`) passa a cobrir sozinha, e o próximo bone que você
+criar já nasce protegido.
+
+**3º — SVG leve (6,5 MB → ≤ 2,5 MB)**
+
+Esse é o mais chato porque é configuração de export, não arte. Se as opções do
+Illustrator (2 casas decimais, sem "Preserve Editing Capabilities") não derem
+conta, me avisa que a gente vê outra saída — dá pra comprimir do nosso lado, mas
+prefiro não criar um passo manual a cada entrega.
+
+---
+
+**Uma coisa que descobri e vale pra você:** tentei esconder os grupos `Bones_*`
+inteiros por CSS do nosso lado, como rede de segurança — e **isso apaga os
+braços do Kevin**. O motor move o mesh do braço para dentro desses grupos
+(`setupArmDrivers`), então esconder o grupo esconde o membro junto. Só dá pra
+mirar bones soltos individualmente. Fica o registro caso você tente algo
+parecido.
+
+**Do nosso lado, enquanto isso:** deixei um CSS mirando só o `Pulso_bone1` como
+segunda camada (redundante com seu hardcode hoje, mas protege se ele sumir).
+Quando o `export_3` chegar com a estrutura corrigida, eu removo.
+
+Sem pressa nos três — o sistema está rodando. O que mais destrava pra gente é o
+**1º (backgrounds)**, porque é o que o cliente vê.

@@ -3776,10 +3776,14 @@ table.data tbody tr:hover {
 .chat-fab:active { transform: scale(0.95); }
 
 /* ---------- Rede de segurança: esqueleto do rig nunca visível ----------
-   O motor já esconde os bones via JS (buildRigState), mas só os que estão
-   DENTRO dos grupos Bones_*. No export_2 o `Pulso_bone1` ficou dentro de
-   `Mão_Ukulele`, fora do alcance — e reaparece quando a mão do ukulele é
-   exibida no modo música.
+   O motor esconde os bones via JS (buildRigState), mas só os que estão DENTRO
+   dos grupos Bones_*. No export_2 o `Pulso_bone1` ficou fora (dentro de
+   `Mão_Ukulele`) — o motor cobre esse caso com um hardcode por nome literal
+   em initDefaultVisibility, então hoje ele NÃO vaza.
+
+   Esta regra é uma segunda camada: protege se o hardcode sumir num export
+   futuro, ou se outro bone cair fora do grupo. Redundante hoje, barata, e
+   evita o esqueleto aparecer na frente de uma turma.
 
    Isto é uma proteção temporária do NOSSO lado: o certo é o export vir com
    os bones nos grupos corretos (ver docs/animador.md, Regra 1, e o
