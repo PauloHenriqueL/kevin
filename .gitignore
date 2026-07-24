@@ -36,7 +36,6 @@ media/                # uploads em runtime
 Thumbs.db
 
 # ── Claude Code / ferramentas locais ──
-.claude/
 # CLAUDE.md É versionado de propósito: contém o workflow, as regras de negócio
 # e as regras do prompt — o time todo precisa ver.
 
