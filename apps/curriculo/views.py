@@ -20,7 +20,7 @@ class AulaViewSet(viewsets.ModelViewSet):
     """Aulas do TG — coordenador cria/edita, professor só lê."""
     queryset = Aula.objects.prefetch_related('blocos__atividade', 'homeworks')
     permission_classes = [IsAdminOrReadOnly]
-    filterset_fields = ['year', 'mes', 'tipo', 'unit']
+    filterset_fields = ['year', 'unit', 'mes', 'tipo']
     search_fields = ['codigo', 'titulo']
 
     def get_serializer_class(self):

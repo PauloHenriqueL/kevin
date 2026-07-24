@@ -127,7 +127,12 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 6 | Busca global de conteúdo | ✅ Aprovada | 1 |
 | 7 | Área da coordenação | ✅ Aprovada (fase 2) | 1, 2 |
 | 8 | Configuração do comportamento do Kevin | 📌 **Demanda futura** — registrada, não priorizada | 3, 7 |
-| 9 | Animações novas do Kevin | ✅ Aprovada — **9A pode começar já** | 9A: nenhuma · 9B: 1 |
+| 9 | Animações novas do Kevin | ✅ **Feita** — motor novo integrado e validado | — |
+| **10** | Retrabalho da animação | ✅ **Resolvida** — enquadramento + export_2 corrigido do animador | 9A |
+| 11 | Ajustes do telão (música condicional, chat, concluir) | ✅ **Feita** | 1, 4 |
+| 12 | Background por aula | ✅ **Feita** | 1, 9 |
+| 13 | Seed só com currículo da Bebelingue | ✅ **Feita** | 1 |
+| 14 | Suíte de testes automatizados | ✅ **Feita** — 30 testes | — |
 
 ### Ordem sugerida de execução
 
@@ -788,7 +793,9 @@ só, não faz union de quatro).
 
 ## Demanda 7 — Área da coordenação
 
-**Status:** ✅ Aprovada — **fase 2** (após a fundação)
+**Status:** ✅ Implementada (24/07/2026) — grade, editor de blocos, catálogo,
+duplicar Unit. Fora desta entrega: visão de aderência (depende da Demanda 4) e
+cadastro de escolas/diretores/professores (segue no admin por ora).
 **Objetivo:** dar ao coordenador da Bebelingue telas próprias, em vez do Django admin cru.
 
 ### 7.1 Contexto e sequenciamento
@@ -830,11 +837,13 @@ definida pelo atrito observado, não por suposição.
 
 ### 7.4 Critérios de aceite
 
-- [ ] Coordenador cadastra um mês inteiro sem abrir o Django admin
-- [ ] Grade exibe mês × semana × aula como no TG original
-- [ ] Blocos reordenáveis com persistência da ordem
-- [ ] Autocomplete de atividade no editor de blocos
-- [ ] Tela de atividade mostra as aulas que a referenciam
+- [x] Coordenador cadastra uma Unit inteira sem abrir o Django admin
+- [x] Grade exibe Unit × semana × aula como no TG original (a chave é a Unit,
+      não o mês — ver D27; o mês virou faixa de contexto)
+- [x] Blocos reordenáveis com persistência da ordem (autosave, D25)
+- [x] Autocomplete de atividade no editor de blocos
+- [x] Tela de atividade mostra as aulas que a referenciam
+- [x] Duplicar Unit para uma Unit vazia (D7.2, "duplicar mês")
 
 ---
 
@@ -1098,6 +1107,278 @@ precisão decimal reduzida e sem metadata de edição).
 
 ---
 
+## Demanda 10 — Retrabalho da animação do Kevin (URGENTE)
+
+> ## 🟡 PARCIALMENTE RESOLVIDA — enquadramento OK, esqueleto AINDA aparece
+>
+> **Parte 1 (resolvida, 23/07):** o Kevin ficava cortado pela barra de controles.
+> Corrigido com faixa segura inferior no `.kevin-puppet-host` (`--controls-safe`).
+> Kevin agora aparece inteiro. Validado em desktop e mobile.
+>
+> **Parte 2 (PENDENTE):** o cliente reportou (com screenshot no modo música) que o
+> **esqueleto continua desenhado por cima do Kevin** — as linhas e círculos das
+> juntas (ombros, cotovelos, joelhos, pulsos) ficam visíveis. Isto NÃO era efeito
+> do corte; é um bug real do export_2. Ver 10.5 para a causa e a correção exata.
+>
+> Decisões do cliente: mosca/língua ficam como o animador entregou; animação de
+> entrada da floresta fica com o animador (não feita aqui).
+
+**Objetivo:** deixar a animação do Kevin no mínimo tão boa quanto era antes do
+export_2, corrigindo os defeitos abaixo.
+
+### 10.1 Defeitos observados (teste real, com screenshot)
+
+| # | Defeito | Diagnóstico inicial |
+|---|---|---|
+| A | **Esqueleto exposto** — linhas tracejadas marcando corpo, braços e juntas | O motor tem `bonesGroup` que deveria ficar oculto (o README garante isso). Está sendo desenhado. Ver `initDefaultVisibility` e o CSS do puppet |
+| B | **4 mãos** — o Kevin aparece com mãos a mais | Variantes de mão (`Mão_Ukulele`, `Mão_tchau`) não estão sendo escondidas quando não usadas |
+| C | **Mosca aparece na abertura** — "o vilão" já está lá ao abrir a aula | A mosca deveria surgir só em ociosidade (40-90s). Está iniciando junto. Bug na condição de start |
+| D | **Língua mal implementada / dispara toda hora** | Os frames da língua (`lingua_frame_*`) estão ruins; o intervalo de captura é curto demais. Precisa demorar muito mais entre disparos |
+| E | **Não dá para ver a mosca direito** | Relacionado a C/D — a animação da mosca está confusa |
+| F | **Música não faz nada** ao clicar | `setMode('musica')` provavelmente retorna `false` (sem permissão de áudio / sem gesture). Precisa funcionar mesmo sem faixa de áudio |
+| G | **Sem animação de entrada** — a floresta não "abre" para revelar o Kevin | **Não existe no motor.** É feature nova, não regressão — ver 10.3 |
+
+### 10.2 História de usuário
+
+> **Como professor**, quero abrir a aula e ver o Kevin bem desenhado e parado,
+> **sem** esqueleto à mostra, mãos extras ou mosca, **para que** eu não me
+> envergonhe na frente da turma.
+
+### 10.3 Abordagem sugerida
+
+1. **Primeiro: fazer o motor novo parecer o antigo em standby** — esqueleto
+   oculto (A), uma mão só por lado (B), sem mosca na abertura (C), sem ukulele
+   ao abrir. Um Kevin parado e correto vale mais que um cheio de features quebradas.
+2. **Ajustar a mosca (C, D, E):** só em ociosidade real, intervalo bem maior
+   entre disparos de língua, frames revisados. Se não ficar bom rápido, **cortar
+   a mosca** — ela é enfeite, não requisito.
+3. **Corrigir a música (F):** garantir que `setMode('musica')` funcione; tratar o
+   retorno `false` e destravar o áudio antes.
+4. **Animação de entrada (G):** NOVA — a floresta/cenário "abre" (cortina, fade
+   ou zoom) revelando o Kevin quando a aula inicia. Escopo próprio; não bloqueia
+   o resto.
+5. **Plano B explícito:** se após o retrabalho a animação ainda estiver ruim,
+   **reverter para o motor anterior** (está no histórico do Git, commit anterior
+   ao 9A). O cliente foi claro: o antigo é melhor que o atual quebrado.
+
+### 10.4 Critérios de aceite
+
+- [x] Ao abrir a aula: Kevin **inteiro** (não cortado pela barra) — feito
+- [ ] 🔴 **Esqueleto (bones) nunca visível em nenhum modo** — PENDENTE, ver 10.5
+- [x] Botão de música toca a animação do ukulele (visível após o fix de enquadramento)
+- [ ] Mosca/língua: manter como o animador entregou (decisão do cliente)
+- [ ] Animação de entrada: responsabilidade do animador (não aqui)
+
+### 10.5 🔴 PENDENTE — esconder o esqueleto (bones)
+
+**Sintoma:** o cliente enviou screenshot (modo música) com as linhas e círculos
+das juntas — ombros, cotovelos, joelhos, pulsos, pelve — desenhados por cima do
+Kevin.
+
+**Causa raiz (investigada):** o motor (`kevin-puppet.js`, `initDefaultVisibility`,
+~linha 1389) esconde **apenas `Pulso_bone1`**. Mas o SVG tem **22 elementos de
+bone** (`Ombro_bone`, `Cotovelo_core_bone`, `Joelho`, `Biceps_bone`,
+`Right_pelvis_Bone`…), agrupados sob 5 grupos-pai:
+`Bones_Body`, `Bones_Left_Arm`, `Bones_Right_Arm`, `Bones_Right_leg`,
+`Bones_Right_leg1`. O motor não esconde esses grupos. O README do export_2
+prometia "esqueleto sempre oculto" — o export **não cumpre**.
+
+**Fato que torna a correção segura:** os bones são `<circle>`/`<line>` com a
+**classe `st36`**, dentro dos grupos `Bones_*`. São puramente decorativos —
+separados do mesh do corpo. Escondê-los **não afeta** o desenho do Kevin.
+
+**Correção recomendada (CSS — 1 regra, não toca o motor):**
+
+```css
+/* Esconde o esqueleto de referência que o export_2 deixou visível.
+   Os bones são class="st36" dentro dos grupos Bones_*. */
+#kevin-rig-mount [id^="Bones_"],
+#kevin-rig-mount .st36 {
+  display: none !important;
+}
+```
+
+Colocar em `static/css/style.css` (junto do bloco do telão) ou em
+`kevin-puppet.css`. Preferir CSS a mexer no motor, para não quebrar na próxima
+entrega do animador.
+
+> ⚠️ **Validar que `st36` é só bone.** Antes de aplicar, confirmar no SVG que a
+> classe `st36` não é usada por nenhuma parte visível do corpo (a inspeção
+> inicial mostrou só circle/line de junta). Se houver risco, usar apenas o
+> seletor `[id^="Bones_"]`, que é 100% seguro (são os grupos-pai do esqueleto).
+
+**Alternativa (JS):** ampliar `initDefaultVisibility` para esconder os grupos
+`Bones_*`. Mais invasivo; some se o animador reexportar. CSS é preferível.
+
+**Pedir ao animador (paralelo):** que o próximo export **não inclua os bones**
+como elementos renderizáveis (ou os marque `display:none` na origem). Isso
+elimina o problema na fonte.
+
+**Critério de aceite:** em nenhum modo (standby, música, dormindo, pensando)
+aparece qualquer linha/círculo de junta sobre o Kevin.
+
+---
+
+## Demanda 11 — Ajustes do telão (aula)
+
+**Status:** ✅ Aprovada
+**Objetivo:** corrigir comportamentos e visual dos controles da tela da aula.
+
+### 11.1 Botão de música condicional
+
+Hoje o botão de música aparece em toda aula. **Deve aparecer só quando a aula
+tem música** (um bloco/atividade de música no roteiro). Sem música na aula, sem
+botão.
+
+> Implementação: a view já tem os blocos da aula; expor ao template se existe
+> atividade de tipo música/rotina de canção, e renderizar o botão condicionalmente.
+
+### 11.2 Botão de abrir chat — visual
+
+O botão de abrir o chat (FAB) **está feio**. Rever o visual para combinar com o
+resto do telão.
+
+### 11.3 Concluir aula → popup de dados + sair
+
+Hoje "Concluir" **reinicia a aula** (bug) e não coleta dados. O correto:
+
+1. Clicar em **Concluir** abre um **popup/modal** pedindo os dados da aula:
+   - **Quantos alunos foram** (presença)
+   - Outras informações necessárias para analisar o desempenho do professor
+     (a definir — ligado à Demanda 4 / métricas)
+2. Após preencher e confirmar, marca a aula como concluída **e leva o professor
+   para fora — de volta à tela de aulas da turma** (não fica na aula).
+
+> Isto conecta com D22 (concluir = 1 clique, presença opcional): revisar. O
+> cliente agora quer **coletar presença na conclusão** via popup, não deixar
+> totalmente opcional. Presença vira parte do fluxo de conclusão.
+
+### 11.4 Histórias de usuário
+
+> **Como professor**, quero que o botão de música só apareça quando a aula tem
+> música, **para que** a interface não ofereça o que não faz sentido.
+
+> **Como professor**, quero que ao concluir a aula o sistema me pergunte quantos
+> alunos vieram e me leve de volta à lista de aulas, **para que** o registro de
+> desempenho fique completo e eu siga para a próxima.
+
+### 11.5 Critérios de aceite
+
+- [ ] Botão de música só aparece em aulas com música
+- [ ] FAB do chat com visual revisado
+- [ ] Concluir abre popup de presença + dados; não reinicia a aula
+- [ ] Após concluir, redireciona para a lista de aulas da turma
+
+---
+
+## Demanda 12 — Background por aula não está funcionando
+
+**Status:** ✅ Aprovada
+**Objetivo:** fazer o cenário de fundo mudar de fato conforme a aula (Demanda 9B).
+
+### 12.1 O problema
+
+Testado: a primeira aula, a aula em andamento e a de St. Patrick's Day
+**mostraram todas o mesmo fundo**. Ao entrar numa aula "fora da escola", o
+background não mudou.
+
+O campo `Aula.background` existe e o template passa `window.KEVIN_BACKGROUND`,
+mas o motor **não está consumindo** esse valor — provavelmente ainda usa o
+`backgroundUrl` fixo do `KEVIN_RIG_CONFIG`, e os assets de cenário nem foram
+ligados (estão fora do Git, destino R2).
+
+### 12.2 Solução
+
+- A integração deve ler `window.KEVIN_BACKGROUND` e chamar `setBackground()` com
+  a URL do cenário correspondente ao carregar a aula.
+- Mapear a chave (`quarto`, `escola-ext`…) para a URL do asset.
+- Enquanto os assets não estão no R2, servir localmente de `assets/backgrounds/`.
+
+> Esta é a parte 9B da Demanda 9, que ficou pendente. Ver Demanda 9, seção 9.4.
+
+### 12.3 Critérios de aceite
+
+- [ ] Aulas com `background` diferente mostram fundos diferentes
+- [ ] Trocar de aula troca o cenário
+- [ ] (Quando houver R2) assets servidos do storage externo
+
+---
+
+## Demanda 13 — Seed só com currículo da Bebelingue
+
+**Status:** ✅ Aprovada
+**Objetivo:** o seed de demonstração não deve ter aulas criadas por escolas.
+
+### 13.1 O problema
+
+O `seed_demo` cria uma atividade **local de escola** ("Quiz do Bernoulli") para
+demonstrar o isolamento. O cliente pediu para **remover** isso: o seed deve ter
+**apenas conteúdo oficial da Bebelingue**. Currículo e catálogo são da
+Bebelingue; escola não cria aula.
+
+### 13.2 Solução
+
+- Remover a atividade local "Quiz do Bernoulli" do `seed_demo`.
+- Todo o catálogo do seed fica com `escola=None` (oficial).
+- Ajustar o roteiro de apresentação (`ROTEIRO_APRESENTACAO.md`) que mencionava o
+  Quiz do Bernoulli — o passo de "atividade local" sai ou vira menção verbal.
+
+> **Nota:** a *capacidade* de o professor criar atividade local continua no
+> sistema (Decisão D6) — o que muda é só o dado de demonstração, que não deve
+> exibir isso.
+
+### 13.3 Critérios de aceite
+
+- [ ] `seed_demo` não cria nenhuma atividade com `escola` preenchida
+- [ ] Roteiro de apresentação atualizado
+
+---
+
+## Demanda 14 — Suíte de testes automatizados
+
+**Status:** ✅ Implementada
+**Objetivo:** cobrir as funcionalidades das demandas com testes que rodam sem
+depender de navegador nem de chave de IA.
+
+### 14.1 O que existe
+
+Testes com `django.test.TestCase` (sem dependência nova — roda com `manage.py
+test`). **30 testes**, distribuídos:
+
+| Arquivo | Cobre |
+|---|---|
+| `apps/curriculo/tests.py` | Código da aula (Y5-MAR-W1C1), catálogo + isolamento, contexto do Kevin expandindo atividades, kickoff, `tem_musica`, blocos, frequência 3x/4x, execução |
+| `apps/accounts/tests.py` | Os 4 papéis, `escola`→`diretor`, redirect por papel, coordenador no admin sem loop, professor barrado |
+| `apps/escolas/tests.py` | Busca no catálogo com isolamento, conclusão com presença + redirect para a lista, telão carrega com background |
+
+### 14.2 Como rodar
+
+```bash
+# tudo
+docker compose exec web python manage.py test
+
+# um app
+docker compose exec web python manage.py test apps.curriculo
+
+# um teste específico
+docker compose exec web python manage.py test apps.escolas.tests.ConclusaoAulaTest
+```
+
+### 14.3 O que NÃO cobre (e por quê)
+
+- **Animação do Kevin** — é visual, roda no browser. Validada manualmente com
+  Playwright (screenshots), não em teste unitário.
+- **Chamadas reais de IA/TTS/STT** — dependem de chave paga. O fluxo de chat é
+  testado até o ponto de montar o contexto.
+
+### 14.4 Critérios de aceite
+
+- [x] `manage.py test` roda verde, sem dependência externa
+- [x] Cobre modelo, permissões, isolamento, frequência, busca, conclusão
+- [x] Documentado como rodar
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1127,6 +1408,22 @@ uma tem consequência em cascata sobre as demais.
 | **D20** | Yearly Plan no sistema + retrato automático; RMP segue como reunião | Só o retrato; ou digitalizar o RMP inteiro | O "previsto" é **acordado**, não calculado — vem do Yearly Plan. O sistema elimina a digitação manual do forms, mas não substitui a conversa |
 | **D21** | Navegação: card "próxima aula" + grade do mês | Lista cronológica; só o card; ou calendário | Com ~100 aulas por Year, o professor às 14h quer a aula de hoje em 1 clique — sem perder a opção de voltar ou adiantar |
 | **D22** | Concluir aula = 1 clique; data e professor automáticos; presença opcional | Sem campo algum; ou formulário obrigatório | Melhor 100% de aulas marcadas com 30% de presença do que 40% de tudo. Data e professor o sistema já sabe |
+| **D23** | `/coordenacao/` é o caminho **exclusivo** do coordenador; Django admin só para `admin` técnico | Admin como escape para casos raros | Se o coordenador precisa cair no admin, a tela falhou. Consequência: todo CRUD que ele usa entra no escopo, inclusive os cantos chatos |
+| **D24** | Redesign visual restrito à área nova; `/gestao/` e `/professor/` intactos | Repaginar o sistema todo | Aquelas telas já foram validadas e demonstradas. O visual da coordenação vira o padrão candidato, propagado depois em commit separado |
+| **D25** | Reordenar blocos em **vanilla JS** com **autosave** via fetch | Lib de drag-and-drop; ou botão "Salvar" | Mantém a convenção do projeto (sem bundler, sem dependência nova). Autosave é o que se espera de arrastar |
+| **D26** | Visão de aderência **fora** da Demanda 7 | Entregar junto | Depende da Demanda 4, travada esperando Yearly Plan Review e RMP do cliente |
+| **D27** | **Chave da aula volta a ser `Year + Unit + Semana + Aula`** (`U1W1C1`) — **revoga a D2** | Manter mês como chave | O TG real entregue em 24/07/2026 endereça por Unit: o código impresso é `U1W1C1`, e o mês aparece só como faixa lateral. A D2 foi tomada sobre o CSV de março, uma amostra de um mês só, que dava a impressão de que o mês era o eixo. Com o TG completo em mãos, não é |
+| **D28** | `CLIL` entra como tipo de aula | Encaixar em `content` | O TG usa CLIL em ~30 das 128 aulas do Y5 3x. É uma natureza de aula da metodologia (Content and Language Integrated Learning), não uma variação de Content |
+| **D29** | 3x e 5x são **TGs distintos**; o **4x** é que é o 3x + uma Communication. **Complementa a D19, não a revoga** | `frequencia_minima` sobre um cadastro único cobrindo 3x/4x/5x | Confirmado com o cliente (24/07/2026): o eixo da frequência tem **duas coisas diferentes**. (a) 4x = 3x + uma Communication Class — é isso que a D19 modela com `frequencia_minima`, e continua válido. (b) 5x é um **TG próprio**, não um 3x turbinado: a Welcome Unit tem 12 células no 3x e 20 no 5x, com conteúdo diferente. Logo `frequencia_minima` **não** basta para 5x — ele precisa de aulas próprias (mesmo `year`/`unit`/`semana`, `numero_aula` maior, ou um campo de trilha). **Decisão de modelagem pendente** — ver pergunta na pauta |
+| **D30** | O catálogo é **importado** do TG, não digitado | Manter D7 (sem seed) para o catálogo | A D7 protege contra inventar dados. Aqui a fonte é o documento oficial do cliente — a seção "GAMES FOR THE WHOLE YEAR", com 87 jogos e regra completa. Importar é transcrever, não inventar. O TG segue cadastrado à mão pelo coordenador |
+
+> **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
+> (3x e 5x, 657 páginas, recebidos em 24/07/2026). São os primeiros documentos
+> que mostram o ano inteiro; as decisões anteriores foram tomadas sobre o CSV de
+> março. A D19 (4x = 3x + uma Communication) **continua correta** — o cliente
+> reconfirmou. O que a D29 acrescenta é que o **5x é um TG distinto**, não um 3x
+> ampliado; isso deixa uma **decisão de modelagem em aberto** (como o 5x convive
+> com o 3x no banco), levada à reunião.
 
 ---
 

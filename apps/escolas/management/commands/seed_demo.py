@@ -71,11 +71,31 @@ class Command(BaseCommand):
             u.save()
         return u
 
+    def _grupo_coordenador(self):
+        """Grupo com as permissões que o coordenador Bebelingue usa no admin:
+        currículo (aulas, atividades, blocos, homeworks) e cadastro de escolas/
+        professores/turmas. NÃO inclui Plano (chaves de API)."""
+        from django.contrib.auth.models import Group, Permission
+
+        grupo, _ = Group.objects.get_or_create(name='Coordenador Bebelingue')
+        apps_perms = {
+            'curriculo': ['aula', 'atividade', 'blocoaula', 'homework', 'aulaturma'],
+            'escolas': ['escola', 'professor', 'turma', 'diretor'],
+        }
+        perms = Permission.objects.filter(
+            content_type__app_label__in=apps_perms.keys(),
+            content_type__model__in=[m for ms in apps_perms.values() for m in ms],
+        )
+        grupo.permissions.set(perms)
+        return grupo
+
     def _usuarios(self):
         self._mk_user('admin', 'admin', 'Admin', 'Bebelingue', 'admin123',
                       is_staff=True, is_superuser=True)
         self.coord = self._mk_user('coord', 'coordenador', 'Coordenação',
                                    'Bebelingue', 'coord123', is_staff=True)
+        # dá ao coordenador as permissões de admin para cadastrar o TG
+        self.coord.groups.add(self._grupo_coordenador())
         # diretor
         dir_user = self._mk_user('carlos', 'diretor', 'Carlos', 'Oliveira', 'dir123')
         Diretor.objects.get_or_create(user=dir_user, defaults={'escola': self.bernoulli})
@@ -156,22 +176,18 @@ class Command(BaseCommand):
             )
             self.atv[nome] = a
 
-        # atividade LOCAL da escola (demonstra isolamento entre clientes)
-        Atividade.objects.get_or_create(
-            nome='Quiz do Bernoulli', escola=self.bernoulli,
-            defaults={'tipo': 'jogo', 'descricao': 'Quiz criado pela professora Maria.',
-                      'como_conduzir': 'Perguntas rápidas de revisão em equipes.',
-                      'objetivo_pedagogico': 'Revisão gamificada', 'tags': 'jogo, revisao, local',
-                      'criado_por': self.maria.user},
-        )
-        self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} oficiais + 1 local (Bernoulli)')
+        # Catálogo é 100% oficial da Bebelingue (Demanda 13). Escola não cria aula.
+        self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} atividades oficiais (Bebelingue)')
 
     # ── TG de Março inteiro ──
     def _aula(self, semana, num, tipo, unit, lesson, titulo, freq=3, bg='floresta',
               blocos=None, hw=None, obs='', kickoff=''):
+        # O seed de demonstração cobre a Unit 1 (que cai em março). A `unit`
+        # posicional é numérica por herança; aqui vira a sigla do TG.
+        sigla_unit = f'U{unit}' if isinstance(unit, int) else unit
         aula, created = Aula.objects.get_or_create(
-            year=5, mes=3, semana=semana, numero_aula=num,
-            defaults={'tipo': tipo, 'unit': unit, 'lesson': lesson, 'titulo': titulo,
+            year=5, unit=sigla_unit, semana=semana, numero_aula=num,
+            defaults={'tipo': tipo, 'mes': 3, 'lesson': lesson, 'titulo': titulo,
                       'frequencia_minima': freq, 'background': bg, 'observacao': obs,
                       'kickoff': kickoff},
         )

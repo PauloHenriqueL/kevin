@@ -1,0 +1,51 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Grade do TG — Kevin{% endblock %}
+
+{% block coord_heading %}Grade do TG{% endblock %}
+{% block coord_subheading %}<p>Escolha o Year e a Unit para montar ou editar</p>{% endblock %}
+
+{% block coord_body %}
+
+<div class="year-tabs" role="tablist">
+    {% for painel in painel_por_year %}
+    <button class="year-tab {% if forloop.first %}active{% endif %}" data-year="{{ painel.year }}">Year {{ painel.year }}</button>
+    {% endfor %}
+</div>
+
+{% for painel in painel_por_year %}
+<div class="unit-panel" data-year="{{ painel.year }}" {% if not forloop.first %}hidden{% endif %}>
+    <div class="unit-grid">
+        {% for u in painel.units %}
+        <a href="{% url 'coordenacao:grade' year=painel.year unit=u.sigla %}"
+           class="unit-card {% if u.n %}preenchida{% else %}vazia{% endif %}">
+            <span class="unit-sigla">{{ u.sigla }}</span>
+            <span class="unit-rotulo">{{ u.rotulo }}</span>
+            {% if u.n %}
+                <span class="badge badge-green">{{ u.n }} aula{{ u.n|pluralize:"s" }}</span>
+            {% else %}
+                <span class="badge badge-muted">vazia</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Troca de aba de Year — mostra só o painel de units do year selecionado.
+  document.querySelectorAll('.year-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var year = tab.dataset.year;
+      document.querySelectorAll('.year-tab').forEach(function (t) {
+        t.classList.toggle('active', t === tab);
+      });
+      document.querySelectorAll('.unit-panel').forEach(function (p) {
+        p.hidden = p.dataset.year !== year;
+      });
+    });
+  });
+</script>
+{% endblock %}

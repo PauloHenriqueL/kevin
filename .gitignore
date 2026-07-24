@@ -36,8 +36,8 @@ media/                # uploads em runtime
 Thumbs.db
 
 # ── Claude Code / ferramentas locais ──
-.claude/
-CLAUDE.md             # instruções privadas — NÃO vão pro repo (ver nota no topo do arquivo)
+# CLAUDE.md É versionado de propósito: contém o workflow, as regras de negócio
+# e as regras do prompt — o time todo precisa ver.
 
 # ── Testes / cobertura / node (playwright de validação) ──
 .coverage
@@ -50,6 +50,10 @@ package-lock.json
 # Os .zip nunca entram no repo. Extraia e mova só os arquivos usados.
 export_*.zip
 export_*/
+# Projeto do animador (centenas de MB — masters .mov, node_modules)
+kevin_animador.zip
+kevin_animador/
+*.mov
 
 # ── Mídia pesada do puppet ──
 # Backgrounds e vídeo de transição vão para storage externo (S3/R2), não Git.

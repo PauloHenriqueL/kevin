@@ -1,0 +1,36 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} aula — Kevin{% endblock %}
+
+{% block coord_heading %}{% if form.instance.pk %}Dados da aula{% else %}Nova aula{% endif %}{% endblock %}
+{% block coord_subheading %}
+    {% if form.instance.pk %}
+        <p><a href="{% url 'coordenacao:aula_editor' pk=form.instance.pk %}" class="link-voltar">← roteiro</a></p>
+    {% else %}
+        <p><a href="{% url 'coordenacao:tg_index' %}" class="link-voltar">← grade</a></p>
+    {% endif %}
+{% endblock %}
+
+{% block coord_body %}
+<div class="form-coord">
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}<div class="toast error" style="position:static;box-shadow:none;margin-bottom:16px;">Corrija os erros abaixo.</div>{% endif %}
+
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<small class="error">{{ field.errors.0 }}</small>{% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                {% if form.instance.pk %}Salvar{% else %}Criar e montar roteiro{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

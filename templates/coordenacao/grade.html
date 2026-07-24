@@ -1,0 +1,74 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Y{{ year }} · {{ rotulo_unit }} — Kevin{% endblock %}
+
+{% block coord_heading %}Year {{ year }} · {{ rotulo_unit }}{% endblock %}
+{% block coord_subheading %}
+    <p><a href="{% url 'coordenacao:tg_index' %}" class="link-voltar">← todas as units</a> · {{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</p>
+{% endblock %}
+
+{% block coord_actions %}
+<button class="btn btn-outline" onclick="document.getElementById('modal-duplicar').showModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Duplicar esta Unit
+</button>
+{% endblock %}
+
+{% block coord_body %}
+
+<div class="grade-wrap">
+<table class="grade-tg">
+    <thead>
+        <tr>
+            <th class="grade-corner"></th>
+            {% for c in colunas %}<th>Class {{ c }}</th>{% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in matriz %}
+        <tr>
+            <th class="grade-semana">Week {{ linha.semana }}</th>
+            {% for celula in linha.celulas %}
+            <td class="grade-celula">
+                {% if celula %}
+                <a href="{% url 'coordenacao:aula_editor' pk=celula.pk %}" class="celula-aula tipo-{{ celula.tipo }}">
+                    <span class="celula-codigo">{{ celula.codigo }}</span>
+                    <span class="celula-tipo">{{ celula.get_tipo_display }}</span>
+                    <span class="celula-titulo">{{ celula.titulo|default:"—" }}</span>
+                    <span class="celula-blocos">{{ celula.blocos.count }} bloco{{ celula.blocos.count|pluralize:"s" }}</span>
+                </a>
+                {% else %}
+                <a href="{% url 'coordenacao:aula_create' %}?year={{ year }}&unit={{ unit }}&semana={{ linha.semana }}&numero_aula={{ forloop.counter }}"
+                   class="celula-vazia">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Criar aula</span>
+                </a>
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div class="grade-legenda">
+    {% for valor, label in tipos %}
+    <span class="legenda-item tipo-{{ valor }}">{{ label }}</span>
+    {% endfor %}
+</div>
+
+<dialog id="modal-duplicar" class="modal-coord">
+    <form method="post" action="{% url 'coordenacao:duplicar_unit' year=year unit=unit %}">
+        {% csrf_token %}
+        <h3>Duplicar {{ rotulo_unit }}</h3>
+        <p class="modal-hint">Copia todas as aulas e blocos desta Unit para outra Unit <strong>vazia</strong>, para você editar por cima. Não sobrescreve.</p>
+        <label for="unit_destino">Unit de destino</label>
+        <input type="text" name="unit_destino" id="unit_destino" placeholder="Ex: U2" maxlength="5" required autocomplete="off">
+        <div class="modal-acoes">
+            <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Duplicar</button>
+        </div>
+    </form>
+</dialog>
+
+{% endblock %}

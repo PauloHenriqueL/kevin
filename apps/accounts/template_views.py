@@ -27,9 +27,12 @@ class DashboardView(View):
         if request.user.role == 'diretor':
             return redirect(reverse('gestao:dashboard'))
 
-        # Coordenador Bebelingue: até a área /coordenacao/ existir (Demanda 7),
-        # ele trabalha pelo Django admin.
-        if request.user.role in ('admin', 'coordenador'):
+        # Coordenador Bebelingue: área própria /coordenacao/ (D23). O Django
+        # admin fica só para o admin técnico.
+        if request.user.role == 'coordenador':
+            return redirect(reverse('coordenacao:dashboard'))
+
+        if request.user.role == 'admin':
             return redirect('/admin/')
 
         return redirect('login')

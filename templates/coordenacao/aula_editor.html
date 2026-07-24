@@ -1,0 +1,71 @@
+{% extends "coordenacao/base_coord.html" %}
+{% load static %}
+{% block title %}{{ aula.codigo }} — roteiro — Kevin{% endblock %}
+
+{% block coord_heading %}{{ aula.codigo }}{% endblock %}
+{% block coord_subheading %}
+    <p><a href="{% url 'coordenacao:grade' year=aula.year unit=aula.unit %}" class="link-voltar">← grade Y{{ aula.year }} {{ aula.unit }}</a> · {{ aula.get_tipo_display }}</p>
+{% endblock %}
+
+{% block coord_actions %}
+<a href="{% url 'coordenacao:aula_edit' pk=aula.pk %}" class="btn btn-outline">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Dados da aula
+</a>
+{% endblock %}
+
+{% block coord_body %}
+
+<div class="editor-cabecalho">
+    <h3>{{ aula.titulo|default:"(sem título)" }}</h3>
+    {% if aula.observacao %}<p class="editor-obs">📌 {{ aula.observacao }}</p>{% endif %}
+</div>
+
+<p class="editor-ajuda">Arraste os blocos para reordenar ou mover entre fases. Tudo salva sozinho.</p>
+
+<div class="editor-fases" id="editor" data-aula="{{ aula.pk }}">
+    {% for fase in fases %}
+    <section class="fase-coluna" data-fase="{{ fase.valor }}">
+        <header class="fase-header">{{ fase.label }}</header>
+        <div class="fase-blocos" data-fase="{{ fase.valor }}">
+            {% for bloco in fase.blocos %}
+            <article class="bloco-card" draggable="true" data-id="{{ bloco.id }}">
+                <div class="bloco-arrasta" aria-hidden="true">⠿</div>
+                <div class="bloco-corpo">
+                    {% if bloco.atividade_id %}
+                        <span class="bloco-atividade">{{ bloco.atividade.nome }}</span>
+                        <span class="bloco-tipo">{{ bloco.atividade.get_tipo_display }}</span>
+                    {% else %}
+                        <span class="bloco-titulo-livre">{{ bloco.titulo }}</span>
+                    {% endif %}
+                    {% if bloco.referencia %}<span class="bloco-ref">{{ bloco.referencia }}</span>{% endif %}
+                </div>
+                <button class="bloco-remover" data-id="{{ bloco.id }}" title="Remover" aria-label="Remover bloco">×</button>
+            </article>
+            {% endfor %}
+        </div>
+        <button class="fase-add" data-fase="{{ fase.valor }}">+ adicionar</button>
+    </section>
+    {% endfor %}
+</div>
+
+<dialog id="modal-add" class="modal-coord">
+    <h3>Adicionar bloco</h3>
+    <input type="hidden" id="add-fase">
+    <label for="busca-atividade">Buscar atividade do catálogo</label>
+    <input type="text" id="busca-atividade" placeholder="Digite: Simon Says, Bingo…" autocomplete="off">
+    <ul id="resultados-atividade" class="autocomplete-lista"></ul>
+    <div class="modal-sep">ou</div>
+    <label for="titulo-livre">Título livre (sem atividade do catálogo)</label>
+    <input type="text" id="titulo-livre" placeholder="Ex: Correção do homework" autocomplete="off">
+    <div class="modal-acoes">
+        <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="add-titulo-livre">Adicionar título</button>
+    </div>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/coordenacao_editor.js' %}?v=1"></script>
+{% endblock %}

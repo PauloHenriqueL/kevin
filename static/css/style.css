@@ -3639,7 +3639,25 @@ table.data tbody tr:hover {
   align-items: stretch;
   justify-content: center;
 }
-.call-stage .kevin-puppet-host { width: 100%; height: 100%; }
+/* O host do personagem NÃO ocupa a tela toda: reserva uma faixa inferior
+   (--controls-safe) para os .call-controls. O motor alinha o Kevin na base do
+   host (align-items:end), então limitar a altura do host faz o Kevin terminar
+   ACIMA dos controles, aparecendo inteiro. O background continua full-screen
+   porque é pintado pelo próprio .kevin-stage interno (inset:0 dentro do host…
+   por isso o host mantém width:100% e só encolhe a altura pela base). */
+.call-stage {
+  --controls-safe: 210px;   /* altura ocupada pelos controles + respiro */
+}
+.call-stage .kevin-puppet-host {
+  width: 100%;
+  height: 100%;
+}
+/* Empurra a área de desenho do personagem para cima dos controles.
+   O .kevin-puppet-mount é criado pelo motor dentro do host. */
+.call-stage .kevin-puppet-host :where(.kevin-puppet-mount) {
+  bottom: var(--controls-safe);
+  padding-bottom: 0;
+}
 
 /* Status pill (reaproveitada) — camada acima do palco, abaixo da topbar */
 .aula-call .kevin-status-pill { z-index: 6; top: 78px; }
@@ -3741,16 +3759,81 @@ table.data tbody tr:hover {
 /* ---------- FAB do chat (canto inferior direito) ---------- */
 .chat-fab {
   position: absolute; right: 24px; bottom: 38px; z-index: 9;
-  width: 64px; height: 64px; border-radius: 22px;
+  height: 60px; padding: 0 22px 0 20px; border-radius: 30px;
   border: none; cursor: pointer;
-  background: white; color: var(--azul);
-  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #2B7DE9 0%, #4C6FFF 100%);
+  color: white;
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem;
   box-shadow:
-    0 12px 30px rgba(43,125,233,0.28),
-    0 0 0 1.5px rgba(43,125,233,0.16),
-    0 1px 0 rgba(255,255,255,0.9) inset;
+    0 14px 34px rgba(43,125,233,0.40),
+    0 1px 0 rgba(255,255,255,0.25) inset;
   transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s, opacity 0.2s;
 }
+.chat-fab svg { width: 26px; height: 26px; flex-shrink: 0; }
+.chat-fab-label { white-space: nowrap; }
+.chat-fab:hover { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(43,125,233,0.5); }
+.chat-fab:active { transform: scale(0.95); }
+
+/* ---------- Rede de segurança: esqueleto do rig nunca visível ----------
+   O motor esconde os bones via JS (buildRigState), mas só os que estão DENTRO
+   dos grupos Bones_*. No export_2 o `Pulso_bone1` ficou fora (dentro de
+   `Mão_Ukulele`) — o motor cobre esse caso com um hardcode por nome literal
+   em initDefaultVisibility, então hoje ele NÃO vaza.
+
+   Esta regra é uma segunda camada: protege se o hardcode sumir num export
+   futuro, ou se outro bone cair fora do grupo. Redundante hoje, barata, e
+   evita o esqueleto aparecer na frente de uma turma.
+
+   Isto é uma proteção temporária do NOSSO lado: o certo é o export vir com
+   os bones nos grupos corretos (ver docs/animador.md, Regra 1, e o
+   validador em scripts/validar_export.py). Manter até o animador corrigir
+   na origem — não custa nada e evita o esqueleto vazar na frente do cliente.
+
+   ⚠️ NÃO esconder os grupos Bones_* inteiros: o motor MOVE o mesh do braço
+   para dentro deles (setupArmDrivers) — esconder o grupo apaga o braço.
+   Testado: com `[id^="Bones_"]` os braços somem da tela.
+
+   Por isso o seletor mira APENAS os bones soltos que o motor não alcança —
+   hoje, só o Pulso_bone1 (dentro de Mão_Ukulele). */
+#kevin-rig-mount #Pulso_bone1 {
+  display: none !important;
+}
+
+/* ---------- Modal de conclusão (Demanda 11) ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15,23,42,0.55); backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-card {
+  position: relative;
+  background: white; border-radius: 24px;
+  padding: 32px 30px 26px; width: 100%; max-width: 440px;
+  box-shadow: 0 24px 60px rgba(15,23,42,0.30);
+  animation: modal-pop 0.22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modal-pop { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: none; } }
+.modal-card h2 { margin: 0 0 4px; font-size: 1.4rem; color: var(--azul-escuro); }
+.modal-sub { margin: 0 0 20px; color: var(--texto-sec); font-size: 0.9rem; font-weight: 600; }
+.modal-close {
+  position: absolute; top: 16px; right: 18px;
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: var(--cinza-fundo); color: var(--texto-sec);
+  font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.modal-close:hover { background: #e6ebf2; }
+.modal-field { display: block; margin-bottom: 16px; }
+.modal-field > span { display: block; font-weight: 800; font-size: 0.9rem; margin-bottom: 6px; color: var(--azul-escuro); }
+.modal-field input, .modal-field textarea {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1.5px solid rgba(43,125,233,0.20); font-family: 'Nunito', sans-serif;
+  font-size: 1rem; resize: vertical;
+}
+.modal-field input:focus, .modal-field textarea:focus { outline: none; border-color: var(--azul); }
+.modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 22px; }
 .chat-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(43,125,233,0.4); }
 .chat-fab:active { transform: scale(0.94); }
 .chat-fab:focus-visible { outline: 3px solid rgba(43,125,233,0.45); outline-offset: 3px; }
@@ -3867,6 +3950,8 @@ table.data tbody tr:hover {
 
 /* ---------- Responsivo ---------- */
 @media (max-width: 640px) {
+  /* controles menores no mobile → faixa segura menor para o Kevin */
+  .call-stage { --controls-safe: 175px; }
   .call-controls { gap: 24px; padding: 15px 22px; bottom: 22px; }
   .call-controls .btn-mic,
   .call-controls .btn-mic-live { width: 72px; height: 72px; border-radius: 24px; }

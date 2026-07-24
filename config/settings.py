@@ -12,6 +12,25 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-me')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 
+# Domínios confiáveis para POST (formulários, admin). SEM isto, com DEBUG=False,
+# todo POST em produção falha com 403 CSRF. Preencher com a URL de produção:
+# CSRF_TRUSTED_ORIGINS=https://kevin.onrender.com
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+
+# ── Endurecimento de produção ──
+# Só liga com DEBUG=False para não atrapalhar o dev local (que roda em HTTP).
+# Pressupõe que a plataforma (Render/Railway) termina TLS e serve por HTTPS.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    # A plataforma põe o app atrás de um proxy que sinaliza HTTPS neste header.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
 # ──────────────────────────────────────────────
 # Apps
 # ──────────────────────────────────────────────
@@ -89,16 +108,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ──────────────────────────────────────────────
 # Banco de Dados
 # ──────────────────────────────────────────────
-DATABASES = {
-    'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': config('DB_NAME', default='') or str(BASE_DIR / 'db.sqlite3'),
-        'USER': config('DB_USER', default=''),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default=''),
-        'PORT': config('DB_PORT', default=''),
+# Render/Railway injetam um único DATABASE_URL. Se ele existir, tem prioridade;
+# senão, cai nas variáveis DB_* (o padrão do dev com Docker Compose).
+DATABASE_URL = config('DATABASE_URL', default='')
+
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+            'NAME': config('DB_NAME', default='') or str(BASE_DIR / 'db.sqlite3'),
+            'USER': config('DB_USER', default=''),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default=''),
+            'PORT': config('DB_PORT', default=''),
+        }
+    }
 
 # ──────────────────────────────────────────────
 # Auth

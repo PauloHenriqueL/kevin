@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Coordenação — Kevin{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/coordenacao.css' %}?v=1">{% endblock %}
+
+{% block content %}
+<div class="coord-page">
+<main class="page-content fade-in">
+    <div class="page-header">
+        <div>
+            <h2>{% block coord_heading %}Coordenação{% endblock %}</h2>
+            {% block coord_subheading %}<p>Bebelingue — currículo e catálogo</p>{% endblock %}
+        </div>
+        <div>{% block coord_actions %}{% endblock %}</div>
+    </div>
+
+    {% block coord_body %}{% endblock %}
+</main>
+</div>
+{% endblock %}

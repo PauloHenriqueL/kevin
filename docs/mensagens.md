@@ -1,12 +1,13 @@
 # Mensagens
 
-Rascunhos de comunicação do projeto Kevin. Copiar e colar.
+Rascunhos de comunicação com o **cliente** e o **Arthur**.
+
+> Tudo referente ao **animador (Vitor)** está em [mensagem.md](mensagem.md).
 
 | # | Para | Assunto | Status |
 |---|---|---|---|
 | [1](#1-whatsapp--perguntas-bloqueantes-antes-da-reunião) | Bebelingue (cliente) | 5 perguntas que bloqueiam a remodelagem do banco | ⬜ não enviada |
 | [2](#2-alinhamento-com-o-arthur--contexto-novo-do-projeto) | Arthur (dev) | Contexto novo, prompt e roteiro | ⬜ rascunho |
-| [3](#3-vitor-tostes-animador--peso-do-svg-do-puppet) | Vitor Tostes (animador) | Peso do `kevin-rigged.svg` | ⬜ não enviada |
 
 ---
 
@@ -177,66 +178,3 @@ E se quiser entender pra onde o produto vai, o `demandas.md` tem o desenho compl
 Valeu!
 
 ---
-
-## 3. Vitor Tostes (animador) — peso do SVG do puppet
-
-**Data:** 23/07/2026
-**Canal:** WhatsApp
-**Contexto:** ele perguntou "o projeto SVG você diz? do puppet". Resposta à dúvida
-dele sobre qual arquivo está pesado e por quê.
-**Objetivo:** reexportar mais leve na origem, sem quebrar os IDs que o motor usa
-**Status:** ⬜ não enviada
-
-> ⚠️ **O ponto inegociável da mensagem:** o motor identifica as partes do Kevin
-> pelos `id` dos elementos (`Mão_Ukulele`, `Cabeça_`, `Prop_`). Qualquer
-> otimização que renomeie ou remova IDs quebra o motor inteiro. Isso precisa
-> ficar claro pra ele — e para nós, se rodarmos SVGO aqui (`cleanupIds: false`).
-
----
-
-Isso, o `kevin-rigged.svg` do puppet.
-
-O ponto é o seguinte: ele saiu do Illustrator com *6,6 MB*. A versão anterior tinha 2,7 MB, então dobrou. Como o SVG é texto, ele comprime mal — chega no navegador com uns 5 MB.
-
-O problema não é o disco, é que o Kevin *só aparece na tela depois de baixar o arquivo inteiro*. Como ele é o elemento principal da tela, numa escola com internet ruim o professor clica em "Iniciar aula" e fica olhando pra tela vazia.
-
-O peso não vem de imagem embutida — é geometria mesmo. Duas causas prováveis:
-
-*1) Precisão decimal.* O Illustrator exporta coordenadas tipo `123.456789012` quando `123.46` renderiza igual. Em milhares de pontos, isso sozinho costuma ser metade do arquivo.
-
-*2) Metadata do Illustrator.* O export vem com namespaces e dados de edição que o navegador ignora.
-
-Na hora de salvar como SVG, tem umas opções que resolvem boa parte:
-
-- *Decimal places: 2* (costuma vir em 3 ou mais)
-- *Styling: Presentation Attributes* ou Internal CSS
-- *Desmarcar "Preserve Illustrator Editing Capabilities"* — isso engorda bastante
-- *Responsive: desmarcado*
-
-⚠️ *Uma coisa importante:* o motor identifica as partes do Kevin *pelos IDs* dos elementos — `Mão_Ukulele`, `Cabeça_`, `Prop_`, etc. Se qualquer otimização renomear ou remover esses IDs, o motor quebra inteiro. Então: *manter os nomes das camadas exatamente como estão*.
-
-Se der pra reexportar com essas opções e ver quanto fica, ótimo. Se ainda ficar pesado, a gente roda um otimizador aqui do nosso lado (SVGO, com a proteção dos IDs ligada) — mas é melhor resolver na origem do que ter um passo extra toda vez que você mandar uma versão nova.
-
-Sobre os backgrounds: os PNGs novos estão com ~2 MB cada, e dá pra ficarem em ~300 KB convertendo pra WebP. Esse a gente resolve aqui, não precisa mexer no seu processo.
-
-Sem pressa — não tá bloqueando nada, o que você mandou já dá pra implementar. É só pra não acumular peso nas próximas versões.
-
----
-
-### Dados de apoio (não enviar — referência interna)
-
-| Arquivo | Tamanho | Observação |
-|---|---|---|
-| `kevin-rigged.svg` (novo) | 6,6 MB | gzip → 5,1 MB (compressão de só 23%) |
-| `kevin-rigged.svg` (atual em prod) | 2,7 MB | dobrou de tamanho |
-| `kevin-puppet.js` | 104 KB | era 60 KB — crescimento esperado, 3 modos novos |
-| Backgrounds novos (cada) | ~2 MB | 1672×941, PNG sem otimizar |
-| `floresta.png` (antigo) | 708 KB | 4000×2250 — **5× mais pixels, 3× menos bytes** |
-| Vídeo de transição | 3,8 MB | `.webm`, carrega uma vez |
-
-**Alvo pós-otimização:** SVG ~1,5–2,5 MB · backgrounds ~300 KB (WebP) →
-de ~8,6 MB para ~2 MB por aula no primeiro carregamento.
-
-**Decisão tomada:** implementar com os assets como estão. O animador já foi
-alinhado para que as próximas entregas venham mais leves. O peso atual entra
-como risco declarado na demanda de animações.
