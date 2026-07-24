@@ -3775,6 +3775,27 @@ table.data tbody tr:hover {
 .chat-fab:hover { transform: translateY(-3px); box-shadow: 0 18px 42px rgba(43,125,233,0.5); }
 .chat-fab:active { transform: scale(0.95); }
 
+/* ---------- Rede de segurança: esqueleto do rig nunca visível ----------
+   O motor já esconde os bones via JS (buildRigState), mas só os que estão
+   DENTRO dos grupos Bones_*. No export_2 o `Pulso_bone1` ficou dentro de
+   `Mão_Ukulele`, fora do alcance — e reaparece quando a mão do ukulele é
+   exibida no modo música.
+
+   Isto é uma proteção temporária do NOSSO lado: o certo é o export vir com
+   os bones nos grupos corretos (ver docs/animador.md, Regra 1, e o
+   validador em scripts/validar_export.py). Manter até o animador corrigir
+   na origem — não custa nada e evita o esqueleto vazar na frente do cliente.
+
+   ⚠️ NÃO esconder os grupos Bones_* inteiros: o motor MOVE o mesh do braço
+   para dentro deles (setupArmDrivers) — esconder o grupo apaga o braço.
+   Testado: com `[id^="Bones_"]` os braços somem da tela.
+
+   Por isso o seletor mira APENAS os bones soltos que o motor não alcança —
+   hoje, só o Pulso_bone1 (dentro de Mão_Ukulele). */
+#kevin-rig-mount #Pulso_bone1 {
+  display: none !important;
+}
+
 /* ---------- Modal de conclusão (Demanda 11) ---------- */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 50;

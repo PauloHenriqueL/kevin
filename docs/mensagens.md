@@ -7,6 +7,7 @@ Rascunhos de comunicação do projeto Kevin. Copiar e colar.
 | [1](#1-whatsapp--perguntas-bloqueantes-antes-da-reunião) | Bebelingue (cliente) | 5 perguntas que bloqueiam a remodelagem do banco | ⬜ não enviada |
 | [2](#2-alinhamento-com-o-arthur--contexto-novo-do-projeto) | Arthur (dev) | Contexto novo, prompt e roteiro | ⬜ rascunho |
 | [3](#3-vitor-tostes-animador--peso-do-svg-do-puppet) | Vitor Tostes (animador) | Peso do `kevin-rigged.svg` | ⬜ não enviada |
+| [4](#4-vitor-animador--regras-para-o-claudemd-dele) | Vitor (animador) | **Regras para o CLAUDE.md dele** + validador | ⬜ não enviada |
 
 ---
 
@@ -240,3 +241,192 @@ de ~8,6 MB para ~2 MB por aula no primeiro carregamento.
 **Decisão tomada:** implementar com os assets como estão. O animador já foi
 alinhado para que as próximas entregas venham mais leves. O peso atual entra
 como risco declarado na demanda de animações.
+
+---
+
+## 4. Vitor (animador) — regras para o CLAUDE.md dele
+
+**Data:** 24/07/2026
+**Contexto:** o Vitor tem um `CLAUDE.md` e um script que gera o export. As
+regras abaixo devem entrar no `CLAUDE.md` dele para que a IA gere o export já
+correto, e o validador rodar no fim do script dele.
+**Status:** ⬜ não enviada
+
+---
+
+### Mensagem de acompanhamento (WhatsApp/e-mail)
+
+Vitor, valeu pela análise — foi muito útil e você estava certo em vários pontos.
+
+Confirmei no código: o motor **realmente** neutraliza os bones via JS
+(`skeletonVisualNodes` → `setDisplay(false)`), então minha hipótese do
+`.st36 { stroke:#000 }` estava errada. Obrigado por corrigir.
+
+Seguindo a sua pista de que o problema seria **estrutural**, rodei uma análise da
+árvore do SVG do `export_2` e achei exatamente o que você previu:
+
+```
+Bones DENTRO dos grupos Bones_* : 34   ✅ (o motor esconde todos)
+Bones FORA dos grupos           :  1   ❌
+   └─ Pulso_bone1  →  está dentro de "Mão_Ukulele", não de "Bones_Left_Arm"
+```
+
+**É um elemento só.** E como ele está dentro da mão do ukulele, ele reaparece
+justamente quando o modo Música ativa aquela mão — que é onde a gente via o
+esqueleto. Sua hipótese estava certa.
+
+Achei outra coisa que você também tinha previsto: **não existe o grupo com
+`id="Mosca"`** no export (só o `Corpo_mosca`). Sem o grupo pai, o fallback do
+motor não casa, `rig.extras.mosca` fica `null`, e a mosca não é escondida no
+boot.
+
+Fiz duas coisas do nosso lado:
+
+1. **Um validador automático** (`scripts/validar_export.py`, Python puro, sem
+   dependência). Rodei no `export_2` e ele pegou sozinho os 5 problemas —
+   inclusive esses dois. **Sugiro rodar no fim do seu script de export**: se
+   falhar, você corrige aí, sem precisar esperar eu testar e reclamar.
+
+2. **Um CSS defensivo** escondendo só o `Pulso_bone1` — rede de segurança
+   temporária até o export vir corrigido. (Testei esconder os grupos `Bones_*`
+   inteiros e **não funciona**: o motor move o mesh do braço para dentro deles,
+   então o braço some junto. Fica o registro caso você tente algo parecido.)
+
+Mando abaixo um bloco pronto para colar no seu `CLAUDE.md`, com as regras que a
+IA precisa seguir ao gerar o export.
+
+---
+
+### Bloco para o CLAUDE.md do Vitor (copiar daqui para baixo)
+
+```markdown
+## Contrato de export do Kevin — regras obrigatórias
+
+> O export gerado aqui é consumido pelo sistema da Bebelingue. O motor
+> (`kevin-puppet.js`) anima o SVG em tempo real e localiza cada parte **pelo
+> `id`**. As regras abaixo não são estilo — são o contrato. Quebrar qualquer uma
+> faz o Kevin aparecer defeituoso na frente de um professor em sala de aula.
+
+### Regra 0 — Rodar o validador antes de entregar
+
+O script de export **deve terminar** chamando:
+
+```bash
+python3 validar_export.py <pasta-do-export>/
+```
+
+Se ele sair com código 1, **o export não pode ser entregue** — corrija os itens
+apontados. O validador checa as regras 1 a 5 automaticamente.
+
+### Regra 1 — Todo elemento de bone dentro do grupo `Bones_*` correto
+
+O motor esconde o esqueleto varrendo os grupos `Bones_Body`, `Bones_Left_Arm`,
+`Bones_Right_Arm`, `Bones_Right_leg`, `Bones_Right_leg1` e aplicando
+`display:none` em **todos os descendentes**.
+
+**Qualquer bone fora desses grupos NUNCA é escondido** e aparece na tela.
+
+- ❌ Errado: `Pulso_bone1` dentro de `Mão_Ukulele`
+- ✅ Certo: `Pulso_bone1` dentro de `Bones_Left_Arm`
+
+Ao criar um bone novo, confirme no XML que o **pai direto** (ou ancestral) é um
+grupo `Bones_*`.
+
+> Não adianta esconder por CSS/classe: o motor sobrescreve com `style.display`
+> inline. O que importa é a **posição na árvore**.
+
+### Regra 2 — Variantes de mão com o prefixo exato `Mão_` / `Mao_`
+
+O motor esconde automaticamente `[id^="Mão_"], [id^="Mao_"]`. Uma variante fora
+desse prefixo fica **sempre visível** → "mão a mais" na tela.
+
+- ✅ `Mão_Ukulele`, `Mão_tchau`, `Mão_fechada`
+- ❌ `MaoUkulele`, `mao-ukulele`, `Hand_Ukulele`
+
+A mão neutra é `Mão` / `mão` (sem underscore) — não renomeie.
+
+### Regra 3 — A mosca precisa do grupo pai com `id="Mosca"`
+
+O motor busca `getNodeById("Mosca")` e, como fallback,
+`getNodeById("Corpo_mosca")?.parentElement`. Se nenhum casar,
+`rig.extras.mosca` fica `null`, o `setAttribute("display","none")` não roda, e a
+mosca **aparece ao abrir a aula**.
+
+- ✅ Um grupo `id="Mosca"` contendo `Corpo_mosca` + frames de asa/língua
+
+### Regra 4 — Cenários: mesma resolução e chão no terço inferior
+
+O Kevin é ancorado na **base** da imagem de fundo (`align-items: end`). Portanto:
+
+- **Mesma resolução em todos os cenários** (ex.: 1920×1080). Tamanhos diferentes
+  deslocam onde ele pisa.
+- O **chão onde ele pisa deve estar no terço inferior**, livre de móveis.
+  - ❌ No cenário `quarto`, o Kevin apareceu **em cima da cama**.
+  - ✅ Deixe piso visível na frente dos móveis.
+
+### Regra 5 — Peso
+
+- `kevin-rigged.svg`: **≤ 2,5 MB** (o export_2 veio com 6,6 MB)
+  - Casas decimais: **2**
+  - Desmarcar "Preserve Illustrator Editing Capabilities"
+  - Styling: Presentation Attributes ou Internal CSS
+- Cenários: **≤ 500 KB** cada (WebP ou PNG otimizado)
+
+### Regra 6 — NUNCA renomear IDs
+
+O motor localiza tudo por `getNodeById`. Se rodar SVGO ou similar, use
+**`cleanupIds: false`**. IDs que o motor exige:
+
+```
+Body, Head, Left_Arm, Right_Arm, Left_Leg, Right_Leg,
+Perna_direita, Perna_esquerda, Pé_direito, Pé_Esquerdo,
+Pelvis, Pelvis_Core, Tail, Sombra, Lingua,
+Mão, mão, Mão_Ukulele, Mão_tchau, Mão_fechada,
+Bones_Body, Bones_Left_Arm, Bones_Right_Arm, Bones_Right_leg,
+Deform_Left_Elbow, Deform_Right_Elbow, Joelho_core,
+Mosca, Corpo_mosca
+```
+
+### Regra 7 — Testar no demo.html antes de entregar
+
+```bash
+cd <export>
+python3 -m http.server 8000
+# http://localhost:8000/demo.html
+```
+
+Passar por **todos** os modos (Off, Standby, Pensando, Falando, Dormindo,
+Música, Tchau) e **todos** os cenários. Conferir:
+
+- [ ] Nenhuma linha/círculo de junta sobre o corpo
+- [ ] Exatamente duas mãos em qualquer modo
+- [ ] Mosca não aparece sozinha ao abrir
+- [ ] Kevin pisa no chão em todos os cenários (não sobre móveis)
+```
+
+---
+
+### Dados de apoio (não enviar — referência interna)
+
+Saída real do validador no `export_2`:
+
+```
+▸ SVG do personagem
+  ❌ Peso: 6.5 MB — acima do limite de 2.5 MB
+  ✅ IDs obrigatórios presentes (11 checados)
+  ❌ 1 elemento(s) de bone FORA dos grupos Bones_*
+       · Pulso_bone1  (dentro de: Mão_Ukulele > Left_Arm)
+  ❌ Existe "Corpo_mosca" mas NÃO existe o grupo pai id="Mosca"
+  ✅ Variantes de mão com prefixo correto
+
+▸ Cenários
+  ❌ 7 cenário(s) acima de 500 KB
+  ❌ Cenários com resoluções diferentes (2 tamanhos)
+       · 1672×941: banheiro, escola-ext, escola-int...
+       · 4000×2250: floresta
+```
+
+**Aprendizado que vale guardar:** esconder os grupos `Bones_*` inteiros por CSS
+**quebra os braços** — o motor move o mesh do braço para dentro desses grupos
+(`setupArmDrivers`). Testado e confirmado visualmente. Só dá para esconder bones
+soltos individualmente.
