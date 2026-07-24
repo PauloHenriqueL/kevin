@@ -9,10 +9,104 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/demandas.md` | **Fonte de verdade do escopo.** Todas as demandas, decisões (D1–D22), modelo de dados alvo, migração. Leia antes de mexer no domínio |
 | `docs/PERGUNTAS_REUNIAO_CLIENTE.md` | Pauta de validação com a Bebelingue; o que já foi respondido e o que falta |
 | `docs/mensagens.md` | Rascunhos de comunicação (cliente, animador, dev) |
+| `docs/animador.md` | Guia para o ANIMADOR: como exportar o Kevin certo (regras + bugs conhecidos) |
 | `docs/PRODUTO_KEVIN.md` | Visão de produto (parcialmente pré-Demanda 1) |
 | `docs/MOTOR_KEVIN.md` | Como o motor de animação do Kevin funciona (para estendê-lo) |
 | `docs/KEVIN_ANIMATION_SETUP.md` | Setup do sistema de animação |
 | `exemplo/` | Protótipo/sandbox — **não é produção** (ver aviso do prompt abaixo) |
+
+## 🔄 Como trabalhamos (workflow)
+
+### Quem é quem
+
+| Pessoa | Papel | Entrega |
+|---|---|---|
+| **Paulo** | PO / dev | Decide escopo, prioriza, testa e valida com o cliente |
+| **Claude** (aqui) | dev | Implementa, testa, documenta. Não decide escopo sozinho |
+| **Arthur** | dev | Frontend/telão. Trabalha no mesmo repo — ver `docs/mensagens.md` §2 |
+| **Vitor** | animador | Entrega `export_N.zip` (Kevin + motor). Contrato em `docs/mensagens.md` §4 |
+| **Bebelingue** | cliente | Metodologia, TG, decisões pedagógicas |
+
+### O ciclo de uma demanda
+
+```
+1. Paulo traz a demanda (ou o cliente reporta um bug)
+        ↓
+2. Claude INVESTIGA antes de propor  ← não assumir a causa; medir
+        ↓
+3. Registra em docs/demandas.md      ← escopo, decisão, critério de aceite
+        ↓
+4. Implementa em branch              ← nunca commitar direto no master
+        ↓
+5. VALIDA de verdade                 ← testes + browser (Playwright) quando é visual
+        ↓
+6. Commit temático + push            ← o PR atualiza sozinho
+```
+
+**Regras deste ciclo:**
+
+- **Investigar antes de consertar.** Já aconteceu duas vezes de a causa presumida
+  estar errada (o esqueleto não era o `.st36`; o "motor quebrado" era
+  enquadramento). Medir custa minutos e evita retrabalho.
+- **Nada de código sem autorização explícita** quando o Paulo pediu só análise ou
+  planejamento. Ele diz quando implementar.
+- **Uma demanda = um commit temático.** Mensagem em português, explicando o
+  *porquê*, com `Co-Authored-By`.
+- **Toda decisão de escopo vira registro** em `docs/demandas.md` (tabela de
+  decisões D1…DN). Se contradiz uma decisão anterior, dizer isso.
+
+### Validação — o que conta como "pronto"
+
+| Tipo de mudança | Como validar |
+|---|---|
+| Modelo/lógica | `docker compose exec web python manage.py test` (30 testes) |
+| Tela/fluxo | Playwright: login → navegar → screenshot. **Olhar o screenshot** |
+| Animação | Screenshot no modo específico. Comparar com o `demo.html` do animador |
+| Qualquer coisa | `manage.py check` limpo antes de commitar |
+
+Não dizer "funciona" sem ter rodado. Se algo falhou, dizer o que falhou.
+
+### Comandos do dia a dia
+
+```bash
+docker compose up -d                                    # sobe tudo
+docker compose restart web                              # após mudar código Python
+docker compose exec web python manage.py test           # a suíte
+docker compose exec web python manage.py seed_demo      # dados de apresentação
+docker compose exec web python manage.py flush --no-input   # zera o banco
+python3 scripts/validar_export.py <pasta-export>/       # valida entrega do animador
+```
+
+> Mudou só CSS/JS? Não precisa reiniciar — **Ctrl+Shift+R** no navegador.
+
+### Fluxo com o animador (Vitor)
+
+```
+Vitor gera export  →  roda validar_export.py  →  passa?  →  envia export_N.zip
+                                                    ↓ não
+                                            corrige no lado dele
+```
+
+Ao receber um export novo: **rodar o validador primeiro**, antes de integrar. Se
+falhar, devolver para ele em vez de contornar aqui. Correção temporária do nosso
+lado (ex.: CSS defensivo) é aceitável para não travar, mas **registrar como
+dívida** e cobrar a correção na origem.
+
+### Fluxo com o cliente (Bebelingue)
+
+- Perguntas ficam em `docs/PERGUNTAS_REUNIAO_CLIENTE.md`, com o que já foi
+  respondido marcado ✅
+- Mensagens prontas em `docs/mensagens.md`
+- Apresentação: `docs/ROTEIRO_APRESENTACAO.md` + `manage.py seed_demo`
+
+### Git
+
+- Branch por frente de trabalho (`feat/remodelagem-curriculo`)
+- PR no template do Paulo: Descrição / Como Testar / Observações
+- **Nunca** commitar: `export_*.zip`, backgrounds, vídeos, `documento_escola/`
+  (todos no `.gitignore`)
+- O `CLAUDE.md` **é versionado** — o time todo lê. Mantenha-o atualizado quando
+  uma decisão mudar; é a fonte de contexto de quem chega no projeto
 
 ## Project Overview
 
@@ -422,8 +516,39 @@ See `.env.example`. Key variables:
 2. Task runs in Celery worker (separate process)
 
 **Test API endpoint:**
-- Use `pytest` or `manage.py shell` to test views/models
-- No test suite yet, but follow Django conventions (TestCase, Client)
+- Use `manage.py shell` to test views/models
+- **Suíte de testes (Demanda 14):** `docker compose exec web python manage.py test`
+  — 30 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
+  commitar mudanças no domínio.
+
+## ⚠️ Exports de animação do animador — como lidar
+
+> O animador (Vitor) entrega o Kevin como um `export_N.zip` (SVG + motor JS +
+> CSS + backgrounds). Ele **testa no ambiente dele e vê funcionar**, mas os
+> exports chegam com defeitos que a exportação do Illustrator introduz. Guia
+> completo para ele em `docs/animador.md`.
+
+**Padrão de bug: "funciona no ambiente dele, quebra aqui".** A causa quase sempre
+é a **exportação** perdendo uma configuração, não a arte. Investigue o SVG/CSS
+exportado antes de suspeitar da integração.
+
+**Bugs conhecidos do `export_2` e a causa raiz:**
+
+| Sintoma | Causa | Correção do nosso lado |
+|---|---|---|
+| **Esqueleto visível** (linhas/círculos de junta) | A classe dos bones sai `.st36 { stroke:#000 }` (visível) em vez de `display:none`. Os bones **precisam existir** (o motor os usa no rig), mas não podem ser desenhados | CSS: `#kevin-rig-mount .st36, [id^="Bones_"] { display:none !important }` |
+| **Mãos duplicadas** | Variante de mão (`Mão_Ukulele`) aparece sem esconder a mão base (`Mão`/`mão`) do mesmo braço | Esconder a mão base quando a variante entra (JS ou CSS) |
+| **Mosca ("vilão") ao abrir** | `Corpo_mosca` não nasce oculto | Forçar `display:none` inicial |
+| **Kevin sobre a cama** (cenário quarto) | O motor alinha o Kevin à base do container; se o "chão" do background está alto, ele pousa sobre móveis | É problema do **background** — o chão deve estar no terço inferior. Pedir ao animador |
+| **SVG pesado (6,6 MB)** | Export sem otimização (casas decimais, metadata Illustrator) | WhiteNoise comprime; pedir export leve ao animador |
+
+**Regra de ouro:** prefira corrigir na **origem** (pedir export certo, ver
+`docs/animador.md`) a tapar com CSS no nosso lado — senão cada entrega nova traz
+o bug de volta. Correção CSS temporária é aceitável para não travar, mas registre
+como dívida e cobre o animador.
+
+**Nunca renomeie os IDs do SVG** — o motor encontra cada parte por `id`. Se rodar
+SVGO, use `cleanupIds: false`.
 
 ## Kevin Animation System
 
@@ -462,10 +587,27 @@ window.KEVIN_CHAT_CONFIG = { ... };
 
 **CSS:** `static/css/kevin-chat-animation.css` includes animations and stage styling
 
-## Areas Ready for Enhancement
+## Estado atual e próximos passos
 
-- [ ] Plug in real IA keys and test Kevin chat end-to-end
-- [ ] Kevin response with TTS (listen button on chat message)
-- [ ] Production deploy (HTTPS, domain, S3/R2 for media)
-- [ ] UI polish based on feedback
-- [ ] More pose variety (3/4, side profile) based on emotion/context
+> Atualizado em 24/07/2026. Status detalhado de cada demanda em
+> `docs/demandas.md` (tabela "Panorama das demandas").
+
+**Feito e validado:** remodelagem do currículo (D1), papéis (D2), prompt do
+Kevin (D3), busca no catálogo (D6), motor de animação novo (D9A),
+enquadramento (D10 parcial), ajustes do telão (D11), background por aula (D12),
+seed oficial (D13), 30 testes automatizados (D14).
+
+**Bloqueado esperando o cliente:**
+- Métricas de professor (D4) — falta o **Yearly Plan Review** e o modelo de RMP
+- Class Feedback (D5) — falta reunião de definição
+- Popular o catálogo real — falta o **TG completo** (Games Bank + BeBooklet)
+
+**Bloqueado esperando o animador:**
+- SVG leve, `Pulso_bone1` no grupo certo, grupo `Mosca`, chão dos cenários
+  (ver `docs/mensagens.md` seção 4 — bloco para o CLAUDE.md dele)
+
+**Livre para fazer a qualquer momento:**
+- Área da coordenação `/coordenacao/` (D7)
+- Ajuste de piso por cenário (contorna o "Kevin na cama" sem depender do animador)
+- Converter backgrounds para WebP (~2 MB → ~300 KB cada)
+- Subir para produção (código pronto; falta bucket R2 e escolher plataforma)
