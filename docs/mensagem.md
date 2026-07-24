@@ -12,7 +12,7 @@
 |---|---|---|
 | [A — Guia da animação](#parte-a--guia-para-o-animador-e-a-ia-dele) | Explica o projeto, o contrato técnico e as regras de export | Colar no sistema de IA dele |
 | [B — Bloco do CLAUDE.md](#parte-b--bloco-para-o-claudemd-do-vitor) | Instrução operacional: estrutura do export + validador | Colar no fim do `CLAUDE.md` dele |
-| [C — Mensagens trocadas](#parte-c--mensagens-trocadas) | Histórico: o que foi pedido e respondido | Referência |
+| [C — Mensagens trocadas](#parte-c--mensagens-trocadas) | Histórico: o que foi pedido e respondido (C.4 = a mais recente) | Referência |
 
 **Arquivo do validador:** `scripts/validar_export.py` (enviar como anexo).
 
@@ -594,3 +594,91 @@ Quando o `export_3` chegar com a estrutura corrigida, eu removo.
 
 Sem pressa nos três — o sistema está rodando. O que mais destrava pra gente é o
 **1º (backgrounds)**, porque é o que o cliente vê.
+
+---
+
+## C.4 — Export aprovado + 3 pedidos (24/07)
+
+**Contexto:** o `export_2` corrigido passou em todas as regras do validador.
+Estudamos o projeto dele (`kevin_animador.zip`) e achamos o `entrada-kevin.webm`
+pronto mas não ligado ao motor.
+**Enviar junto:** `validar_export.py` atualizado (3 checagens novas, limite de
+cenário 500 → 600 KB).
+**Status:** ⬜ não enviada
+
+---
+
+Vitor, o export passou em tudo. 🎉
+
+```
+✅ SVG: 6,5 MB → 0,2 MB          ✅ Bones todos dentro dos grupos
+✅ Grupo "Mosca" criado           ✅ Cenários 13 MB → 3,4 MB, resolução uniforme
+```
+
+Conferi que a redução do SVG **não perdeu nada** — 633 elementos antes e depois.
+Foi só a otimização. Já instalei e testei no nosso sistema: Kevin renderiza
+limpo, sem esqueleto, duas mãos, sem mosca ao abrir.
+
+Sua descoberta do `<i:aipgf>` (o backup binário do Illustrator sendo >95% do
+peso) foi mais precisa que a minha hipótese inicial — e explica por que o mesmo
+arquivo funcionava aí e chegava quebrado aqui. Anotei no nosso lado.
+
+Vi também que você documentou o pipeline no `RESUMO.txt` e automatizou as
+correções em scripts. Ficou muito bom.
+
+**Três pedidos, em ordem de impacto:**
+
+**1) Ligar a animação de entrada** ⭐
+
+Achei o `assets/videos/entrada-kevin.webm` no seu projeto — 2 MB, pronto. Mas
+ele **não está no export** e o motor não o usa (procurei referência no
+`kevin-puppet.js`, não há).
+
+Era justamente o que faltava: quando o professor clica em "Iniciar aula", a ideia
+é o cenário "abrir" revelando o Kevin, em vez de ele simplesmente aparecer. Você
+já tem o vídeo e o motor já tem a mecânica de overlay de vídeo (usa no
+`setBackground` para a transição de cenário).
+
+Seria possível expor algo como `kevin.playEntrada()` — tocando o vídeo por cima
+e revelando o Kevin ao fim? E incluir o `entrada-kevin.webm` no `assets/videos/`
+do export.
+
+**2) O chão do cenário `quarto`**
+
+Esse é o último defeito visual que sobrou. O Kevin aparece **em cima da cama** —
+como ele é ancorado na base da imagem, e nesse cenário a cama ocupa a faixa
+inferior, ele pousa sobre o móvel.
+
+Se der para reposicionar o enquadramento do quarto deixando piso livre na frente
+da cama, resolve. (Mando um print se ajudar.)
+
+**3) Changelog no README do export**
+
+Regra pequena que passou batido: o `README.md` do export continua sendo a
+documentação técnica do motor, sem dizer **o que mudou nesta versão**. Duas ou
+três linhas no topo bastam:
+
+```markdown
+## Mudanças nesta versão
+- SVG otimizado (6,5 MB → 0,2 MB): removido metadata do Illustrator
+- Pulso_bone1 movido para Bones_Left_Arm
+- Grupo id="Mosca" criado
+- Cenários recomprimidos e padronizados em 1672×941
+```
+
+É o que nos diz se precisamos ajustar algo aqui (ex.: cenário renomeado exige
+mudança no banco).
+
+---
+
+**Mando o `validar_export.py` atualizado.** Mudanças:
+
+- Checa se o README tem seção de mudanças
+- Avisa sobre arquivos soltos na raiz (pegou o `background-forest.png`, que
+  duplica o `assets/backgrounds/floresta.png` — pode remover)
+- Checa o `mudanca-cenario.webm` e avisa se algum `.mov` viajar no zip
+- **Limite de cenário: 500 → 600 KB.** Vi que seus arquivos ficaram em 492–499
+  KB, espremidos contra o teto. Como só um cenário carrega por aula, 600 KB
+  mantém o carregamento rápido e te dá folga para a qualidade da arte.
+
+Sem pressa nos três. O sistema está rodando com o export atual.
