@@ -182,9 +182,12 @@ class Command(BaseCommand):
     # ── TG de Março inteiro ──
     def _aula(self, semana, num, tipo, unit, lesson, titulo, freq=3, bg='floresta',
               blocos=None, hw=None, obs='', kickoff=''):
+        # O seed de demonstração cobre a Unit 1 (que cai em março). A `unit`
+        # posicional é numérica por herança; aqui vira a sigla do TG.
+        sigla_unit = f'U{unit}' if isinstance(unit, int) else unit
         aula, created = Aula.objects.get_or_create(
-            year=5, mes=3, semana=semana, numero_aula=num,
-            defaults={'tipo': tipo, 'unit': unit, 'lesson': lesson, 'titulo': titulo,
+            year=5, unit=sigla_unit, semana=semana, numero_aula=num,
+            defaults={'tipo': tipo, 'mes': 3, 'lesson': lesson, 'titulo': titulo,
                       'frequencia_minima': freq, 'background': bg, 'observacao': obs,
                       'kickoff': kickoff},
         )

@@ -11,20 +11,33 @@ from .models import Atividade, Aula, AulaTurma, BlocoAula, montar_codigo_aula
 
 
 class CodigoAulaTest(TestCase):
-    """O código da aula segue o formato do TG (Y5-MAR-W1C1)."""
+    """O código da aula segue o formato do TG (Y5-U1W1C1) — chave é a Unit (D27)."""
 
     def test_montar_codigo(self):
-        self.assertEqual(montar_codigo_aula(5, 3, 1, 1), 'Y5-MAR-W1C1')
-        self.assertEqual(montar_codigo_aula(1, 12, 5, 3), 'Y1-DEC-W5C3')
+        self.assertEqual(montar_codigo_aula(5, 'U1', 1, 1), 'Y5-U1W1C1')
+        self.assertEqual(montar_codigo_aula(1, 'WU', 5, 3), 'Y1-WUW5C3')
+        # A sigla é normalizada para maiúscula.
+        self.assertEqual(montar_codigo_aula(5, 'ju', 2, 3), 'Y5-JUW2C3')
 
     def test_codigo_gerado_no_save(self):
-        aula = Aula.objects.create(year=5, mes=3, semana=2, numero_aula=1, titulo='X')
-        self.assertEqual(aula.codigo, 'Y5-MAR-W2C1')
+        aula = Aula.objects.create(year=5, unit='U2', semana=2, numero_aula=1, titulo='X')
+        self.assertEqual(aula.codigo, 'Y5-U2W2C1')
+
+    def test_ordem_unit_calculada_no_save(self):
+        """A Welcome Unit abre o ano; a June fecha; U3 fica no meio."""
+        wu = Aula.objects.create(year=5, unit='WU', semana=1, numero_aula=1, titulo='W')
+        u3 = Aula.objects.create(year=5, unit='U3', semana=1, numero_aula=1, titulo='C')
+        ju = Aula.objects.create(year=5, unit='JU', semana=1, numero_aula=1, titulo='J')
+        self.assertEqual((wu.ordem_unit, u3.ordem_unit, ju.ordem_unit), (0, 3, 9))
+        # O ordering do queryset segue a ordem do ano letivo.
+        self.assertEqual(
+            [a.unit for a in Aula.objects.all()], ['WU', 'U3', 'JU']
+        )
 
     def test_unicidade_por_endereco(self):
-        Aula.objects.create(year=5, mes=3, semana=1, numero_aula=1, titulo='A')
+        Aula.objects.create(year=5, unit='U1', semana=1, numero_aula=1, titulo='A')
         with self.assertRaises(Exception):
-            Aula.objects.create(year=5, mes=3, semana=1, numero_aula=1, titulo='B')
+            Aula.objects.create(year=5, unit='U1', semana=1, numero_aula=1, titulo='B')
 
 
 class AtividadeTest(TestCase):
@@ -67,7 +80,7 @@ class ContextoKevinTest(TestCase):
         ctx = self.aula.get_contexto_completo()
         self.assertIn('Simon Says', ctx)
         self.assertIn('Simon says', ctx)  # o como_conduzir
-        self.assertIn('Y5-MAR-W1C1', ctx)
+        self.assertIn('Y5-U1W1C1', ctx)
 
     def test_kickoff_por_tipo(self):
         self.assertIn('começar', self.aula.get_kickoff().lower())

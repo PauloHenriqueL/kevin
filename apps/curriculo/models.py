@@ -25,14 +25,34 @@ BACKGROUND_CHOICES = [
 ]
 
 
-def montar_codigo_aula(year, mes, semana, numero_aula):
-    """Gera o código da aula no formato Y5-MAR-W1C1.
+# Unidades não numeradas do TG. O material usa a sigla, não um número:
+# a Welcome Unit é "WU" e a de junho é "JU" — nunca "U0" ou "U9".
+UNIT_WELCOME = 'WU'
+UNIT_JUNE = 'JU'
 
-    Espelha o endereçamento do TG em papel (ver demandas.md, D2): o eixo de
-    navegação é o MÊS, não a Unit.
+# Ordem de cada unidade no ano letivo, para o `ordering` do queryset.
+# A Welcome Unit abre o ano (fevereiro) e a June Unit fecha o semestre.
+ORDEM_UNITS = {UNIT_WELCOME: 0, UNIT_JUNE: 9}
+
+
+def ordem_da_unit(unit):
+    """Posição da unit no ano letivo — "U3" → 3, "WU" → 0, "JU" → 9."""
+    unit = (unit or '').strip().upper()
+    if unit in ORDEM_UNITS:
+        return ORDEM_UNITS[unit]
+    digitos = ''.join(c for c in unit if c.isdigit())
+    return int(digitos) if digitos else 99
+
+
+def montar_codigo_aula(year, unit, semana, numero_aula):
+    """Gera o código da aula no formato Y5-U1W1C1.
+
+    Espelha o endereçamento impresso no TG (ver demandas.md, D27): o eixo é a
+    UNIT, e o código que o coordenador lê na apostila é exatamente `U1W1C1`.
+    O mês é contexto de calendário, não chave — ver `Aula.mes`.
     """
-    sigla = MESES_SIGLA.get(mes, '???')
-    return f'Y{year}-{sigla}-W{semana}C{numero_aula}'
+    unit = (unit or '').strip().upper()
+    return f'Y{year}-{unit}W{semana}C{numero_aula}'
 
 
 class Atividade(models.Model):
@@ -160,6 +180,10 @@ class Aula(models.Model):
         CONTENT = 'content', 'Content Class'
         COMMUNICATION = 'communication', 'Communication Class'
         CULTURE = 'culture', 'Culture Class'
+        # CLIL (Content and Language Integrated Learning) é a natureza de aula
+        # em que a língua entra a serviço de outra disciplina. Aparece em ~30
+        # das 128 aulas do Y5 3x — não é variação de Content (ver D28).
+        CLIL = 'clil', 'CLIL Class'
         EXTRA = 'extra', 'Extra Class / Festival'
 
     class Fase(models.TextChoices):
@@ -172,22 +196,32 @@ class Aula(models.Model):
         max_length=30,
         unique=True,
         editable=False,
-        help_text='Gerado automaticamente. Ex: Y5-MAR-W1C1',
+        help_text='Gerado automaticamente. Ex: Y5-U1W1C1',
     )
 
     # ── Endereçamento (a chave) ──
+    # É o código impresso no TG: Unit + Week + Class. Ver D27.
     year = models.PositiveIntegerField(help_text='Year do currículo: 1 a 5.')
-    mes = models.PositiveIntegerField(
-        choices=MES_CHOICES,
-        help_text='Mês do TG. O TG é organizado por mês, não por Unit.',
+    unit = models.CharField(
+        max_length=5,
+        default='U1',
+        help_text=(
+            'Unit como aparece no TG: U1, U2… WU para a Welcome Unit e JU '
+            'para a de junho. Digite exatamente a sigla da apostila.'
+        ),
     )
     semana = models.PositiveIntegerField(
         default=1,
-        help_text='Semana dentro do mês: 1 a 5.',
+        help_text='Semana dentro da unit: 1 a 5 (WEEK 1, WEEK 2… no TG).',
     )
     numero_aula = models.PositiveIntegerField(
         default=1,
         help_text='Qual aula da semana: 1, 2, 3… (CLASS 1, CLASS 2 no TG)',
+    )
+    ordem_unit = models.PositiveIntegerField(
+        default=1,
+        editable=False,
+        help_text='Posição da unit no ano. Calculado a partir da sigla.',
     )
 
     # ── Classificação ──
@@ -207,10 +241,14 @@ class Aula(models.Model):
     )
 
     # ── Descritivo (não é chave) ──
-    unit = models.PositiveIntegerField(
+    # O mês continua no modelo porque o TG o exibe na faixa lateral da grade
+    # ("FEBRUARY", "Festivals: Carnival") e o professor precisa da noção de
+    # calendário. Mas não endereça a aula — a unit atravessa o mês (D27).
+    mes = models.PositiveIntegerField(
+        choices=MES_CHOICES,
         null=True,
         blank=True,
-        help_text='Unit do material. Agrupa avaliação — NÃO é o eixo de navegação.',
+        help_text='Mês em que esta unit costuma cair. Só contexto — não é a chave.',
     )
     lesson = models.CharField(
         max_length=50,
@@ -243,15 +281,17 @@ class Aula(models.Model):
     class Meta:
         verbose_name = 'Aula (TG)'
         verbose_name_plural = 'Aulas (TG)'
-        unique_together = [('year', 'mes', 'semana', 'numero_aula')]
-        ordering = ['year', 'mes', 'semana', 'numero_aula']
+        unique_together = [('year', 'unit', 'semana', 'numero_aula')]
+        ordering = ['year', 'ordem_unit', 'semana', 'numero_aula']
 
     def __str__(self):
         return f'[{self.codigo}] {self.titulo}'
 
     def save(self, *args, **kwargs):
+        self.unit = (self.unit or '').strip().upper()
+        self.ordem_unit = ordem_da_unit(self.unit)
         self.codigo = montar_codigo_aula(
-            self.year, self.mes, self.semana, self.numero_aula
+            self.year, self.unit, self.semana, self.numero_aula
         )
         super().save(*args, **kwargs)
 
@@ -269,6 +309,7 @@ class Aula(models.Model):
             self.Tipo.CONTENT: 'Olá Kevin, vamos começar a aula de hoje. Por onde começamos?',
             self.Tipo.COMMUNICATION: 'Olá Kevin, hoje é dia de praticar falando. Qual é a primeira atividade?',
             self.Tipo.CULTURE: 'Olá Kevin, hoje vamos falar sobre um tema novo. Como começamos?',
+            self.Tipo.CLIL: 'Olá Kevin, hoje vamos aprender sobre outro assunto em inglês. Por onde começamos?',
         }
         return padroes.get(
             self.tipo, 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?'
@@ -286,13 +327,14 @@ class Aula(models.Model):
         """
         linhas = [
             f'=== AULA {self.codigo} ===',
-            f'Year {self.year} | {self.get_mes_display()} | '
+            f'Year {self.year} | Unit {self.unit} | '
             f'Semana {self.semana} | Aula {self.numero_aula}',
             f'Tipo: {self.get_tipo_display()}',
         ]
-        if self.unit:
-            extra = f' | Lesson: {self.lesson}' if self.lesson else ''
-            linhas.append(f'Unit: {self.unit}{extra}')
+        if self.mes:
+            linhas.insert(2, f'Época do ano: {self.get_mes_display()}')
+        if self.lesson:
+            linhas.append(f'Lesson: {self.lesson}')
         linhas.append(f'Título: {self.titulo}')
         if self.observacao.strip():
             linhas.append(f'Observação: {self.observacao.strip()}')

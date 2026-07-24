@@ -24,24 +24,28 @@ class HomeworkInline(admin.StackedInline):
 @admin.register(Aula)
 class AulaAdmin(admin.ModelAdmin):
     list_display = (
-        'codigo', 'titulo', 'year', 'mes', 'semana', 'numero_aula',
+        'codigo', 'titulo', 'year', 'unit', 'semana', 'numero_aula',
         'tipo', 'frequencia_minima',
     )
-    list_filter = ('year', 'mes', 'tipo', 'frequencia_minima', 'unit')
+    list_filter = ('year', 'unit', 'tipo', 'frequencia_minima', 'mes')
     search_fields = ('codigo', 'titulo', 'lesson')
-    ordering = ('year', 'mes', 'semana', 'numero_aula')
+    ordering = ('year', 'ordem_unit', 'semana', 'numero_aula')
     inlines = [BlocoAulaInline, HomeworkInline]
 
     fieldsets = (
         ('Onde fica no TG', {
-            'fields': ('year', 'mes', 'semana', 'numero_aula'),
+            'fields': ('year', 'unit', 'semana', 'numero_aula'),
             'description': (
-                'O código da aula (ex: Y5-MAR-W1C1) é gerado a partir destes '
+                'O código da aula (ex: Y5-U1W1C1) é gerado a partir destes '
                 'campos. Preencha exatamente como está na grade do TG.'
             ),
         }),
         ('Que aula é esta', {
-            'fields': ('titulo', 'tipo', 'frequencia_minima', 'unit', 'lesson'),
+            'fields': ('titulo', 'tipo', 'frequencia_minima', 'mes', 'lesson'),
+            'description': (
+                'O mês é só contexto de calendário (a faixa lateral do TG). '
+                'Quem endereça a aula é a Unit.'
+            ),
         }),
         ('Extras', {
             'fields': ('observacao', 'background', 'kickoff'),
@@ -90,7 +94,7 @@ class AtividadeAdmin(admin.ModelAdmin):
 @admin.register(BlocoAula)
 class BlocoAulaAdmin(admin.ModelAdmin):
     list_display = ('aula', 'fase', 'ordem', 'rotulo')
-    list_filter = ('fase', 'aula__year', 'aula__mes')
+    list_filter = ('fase', 'aula__year', 'aula__unit')
     search_fields = ('aula__codigo', 'titulo', 'atividade__nome')
     autocomplete_fields = ('aula', 'atividade')
 

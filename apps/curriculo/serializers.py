@@ -43,8 +43,8 @@ class AulaListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aula
         fields = [
-            'id', 'codigo', 'titulo', 'year', 'mes', 'mes_display', 'semana',
-            'numero_aula', 'tipo', 'tipo_display', 'unit', 'frequencia_minima',
+            'id', 'codigo', 'titulo', 'year', 'unit', 'mes', 'mes_display',
+            'semana', 'numero_aula', 'tipo', 'tipo_display', 'frequencia_minima',
         ]
 
 
@@ -57,9 +57,9 @@ class AulaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aula
         fields = [
-            'id', 'codigo', 'year', 'mes', 'mes_display', 'semana',
+            'id', 'codigo', 'year', 'unit', 'mes', 'mes_display', 'semana',
             'numero_aula', 'tipo', 'tipo_display', 'frequencia_minima',
-            'unit', 'lesson', 'titulo', 'observacao', 'kickoff', 'background',
+            'lesson', 'titulo', 'observacao', 'kickoff', 'background',
             'blocos', 'homeworks',
         ]
         read_only_fields = ['codigo']
