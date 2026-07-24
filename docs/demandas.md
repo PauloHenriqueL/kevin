@@ -793,7 +793,9 @@ só, não faz union de quatro).
 
 ## Demanda 7 — Área da coordenação
 
-**Status:** ✅ Aprovada — **fase 2** (após a fundação)
+**Status:** ✅ Implementada (24/07/2026) — grade, editor de blocos, catálogo,
+duplicar Unit. Fora desta entrega: visão de aderência (depende da Demanda 4) e
+cadastro de escolas/diretores/professores (segue no admin por ora).
 **Objetivo:** dar ao coordenador da Bebelingue telas próprias, em vez do Django admin cru.
 
 ### 7.1 Contexto e sequenciamento
@@ -835,11 +837,13 @@ definida pelo atrito observado, não por suposição.
 
 ### 7.4 Critérios de aceite
 
-- [ ] Coordenador cadastra um mês inteiro sem abrir o Django admin
-- [ ] Grade exibe mês × semana × aula como no TG original
-- [ ] Blocos reordenáveis com persistência da ordem
-- [ ] Autocomplete de atividade no editor de blocos
-- [ ] Tela de atividade mostra as aulas que a referenciam
+- [x] Coordenador cadastra uma Unit inteira sem abrir o Django admin
+- [x] Grade exibe Unit × semana × aula como no TG original (a chave é a Unit,
+      não o mês — ver D27; o mês virou faixa de contexto)
+- [x] Blocos reordenáveis com persistência da ordem (autosave, D25)
+- [x] Autocomplete de atividade no editor de blocos
+- [x] Tela de atividade mostra as aulas que a referenciam
+- [x] Duplicar Unit para uma Unit vazia (D7.2, "duplicar mês")
 
 ---
 

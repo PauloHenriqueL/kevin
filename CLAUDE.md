@@ -61,7 +61,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Tipo de mudança | Como validar |
 |---|---|
-| Modelo/lógica | `docker compose exec web python manage.py test` (30 testes) |
+| Modelo/lógica | `docker compose exec web python manage.py test` (45 testes) |
 | Tela/fluxo | Playwright: login → navegar → screenshot. **Olhar o screenshot** |
 | Animação | Screenshot no modo específico. Comparar com o `demo.html` do animador |
 | Qualquer coisa | `manage.py check` limpo antes de commitar |
@@ -149,7 +149,7 @@ static/        → CSS (style.css), JS (kevin_chat.js), images
 
 **Key Models & Relations** (após a Demanda 1 — ver `docs/demandas.md`):
 - `Plano 1─N Escola 1─N Professor 1─N Turma` (Turma tem `qtd_alunos`, sem modelo Aluno)
-- `Aula` (TG global, código `Y5-MAR-W1C1`) `1─N BlocoAula N─1 Atividade` (catálogo)
+- `Aula` (TG global, código `Y5-U1W1C1`) `1─N BlocoAula N─1 Atividade` (catálogo)
 - `Turma N─N Aula` via `AulaTurma` (execução: data, professor, presença)
 - `Professor 1─N Conversa 0─1 Aula`; `Conversa 1─N Mensagem`
 
@@ -321,9 +321,11 @@ iniciativa de se dirigir às crianças.
 1. **O TG é global.** Toda escola que usa Year 1 recebe exatamente o mesmo TG.
    Adaptação por escola é "quase irrelevante" (palavra do cliente) — **não
    modele currículo por escola**.
-2. **A aula é endereçada por `Year + Mês + Semana + Aula`** (`Y5-MAR-W1C1`).
-   `unit` e `lesson` são atributos descritivos, **nunca chave** — a Unit
-   atravessa o mês.
+2. **A aula é endereçada por `Year + Unit + Semana + Aula`** (`Y5-U1W1C1`) —
+   é o código impresso no TG. `mes` e `lesson` são descritivos, **nunca chave**;
+   o mês é a faixa de calendário do TG. **Revoga a regra antiga (por mês)** —
+   ver D27, tomada com o TG completo do Y5 em mãos. A `unit` guarda a sigla do
+   TG: `U1`…`U8`, mais `WU` (Welcome) e `JU` (June), que não são numeradas.
 3. **Frequência 3x/4x/5x não gera TGs diferentes.** O de 4x é o de 3x mais uma
    Communication Class. Modelado como `Aula.frequencia_minima`; a turma filtra
    por `aulas_por_semana >= frequencia_minima`.
@@ -520,7 +522,7 @@ See `.env.example`. Key variables:
 **Test API endpoint:**
 - Use `manage.py shell` to test views/models
 - **Suíte de testes (Demanda 14):** `docker compose exec web python manage.py test`
-  — 30 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
+  — 45 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
   commitar mudanças no domínio.
 
 ## ⚠️ Exports de animação do animador — como lidar
@@ -591,22 +593,25 @@ window.KEVIN_CHAT_CONFIG = { ... };
 
 ## ✅ Estado atual e TODO
 
-> Atualizado em **24/07/2026**. Branch `feat/remodelagem-curriculo`, 23 commits,
-> PR aberto (draft). Status por demanda em `docs/demandas.md`.
+> Atualizado em **24/07/2026**. Branch `feat/coordenacao`. Status por demanda
+> em `docs/demandas.md`.
 
 ### Feito e validado
 
 | # | Demanda | O que entregou |
 |---|---|---|
-| 1 | Remodelagem do banco | `Aula` (Y5-MAR-W1C1) + `Atividade` + `BlocoAula` + `AulaTurma`. `Aluno`/`Conteudo` removidos |
+| 1 | Remodelagem do banco | `Aula` (Y5-U1W1C1) + `Atividade` + `BlocoAula` + `AulaTurma`. `Aluno`/`Conteudo` removidos |
 | 2 | Papéis | `escola`→`diretor`, novo `coordenador`, admin sem loop |
 | 3 | Prompt do Kevin | Reescrito em blocos; Instant Translation isolada; ~411 tokens |
 | 6 | Busca no catálogo | Filtros de tipo/origem, badge "usado em N aulas" |
+| 7 | Área `/coordenacao/` | Grade Unit × semana × aula, editor de blocos (arrastar + autocomplete + autosave), catálogo com "usado em N aulas", duplicar Unit |
 | 9 + 10 | Animação | Motor novo (7 modos, mosca), enquadramento corrigido, export do animador validado |
 | 11 | Telão | Modal de conclusão com presença, FAB do chat, botão de música condicional |
-| 12 | Background por aula | Cada aula mostra seu cenário |
+| 12 | Background por aula | Cada aula mostra seu cenário (agora em WebP, 71% menor) |
 | 13 | Seed | Catálogo 100% Bebelingue |
-| 14 | Testes | 30 testes (`manage.py test`) |
+| 14 | Testes | 45 testes (`manage.py test`) |
+| — | Chave por Unit | `Y5-MAR-W1C1` → `Y5-U1W1C1` (D27); `CLIL` vira tipo (D28) |
+| — | Catálogo importado | Games Bank do TG: 91 jogos + técnicas via `importar_catalogo_tg` (D30) |
 | — | Deploy | whitenoise + collectstatic prontos (não subiu ainda) |
 
 ---
@@ -614,11 +619,6 @@ window.KEVIN_CHAT_CONFIG = { ... };
 ## 🔜 TODO — o que falta
 
 ### A. Livre para fazer agora (sem depender de ninguém)
-
-- [ ] **Demanda 7 — área `/coordenacao/`**
-      Telas próprias para o coordenador cadastrar o TG (hoje ele usa o Django
-      admin). A mais importante é a **grade do mês** (semana × aula) espelhando o
-      TG em papel, com editor de blocos arrastáveis. Escopo em `docs/demandas.md`.
 
 - [ ] **Subir para produção**
       Código pronto (whitenoise, collectstatic, Dockerfile). Falta: escolher
@@ -629,13 +629,12 @@ window.KEVIN_CHAT_CONFIG = { ... };
       https://github.com/PauloHenriqueL/kevin/pull/1 — está em draft. 14 demandas
       prontas; o Arthur precisa ver a remodelagem.
 
-- [ ] **Converter backgrounds para WebP** (opcional)
-      Hoje ~500 KB cada em PNG; em WebP ficariam ~150 KB. Ganho de carregamento.
-
 ### B. Esperando o cliente (Bebelingue)
 
-- [ ] **TG completo** com **Games Bank** (regras dos ~27 jogos) e **BeBooklet**
-      (técnicas) → sem isso o catálogo do Kevin fica vazio. **É o mais crítico.**
+- [x] ~~**TG completo** com **Games Bank**~~ — chegou em 24/07/2026 (Y5 3x e 5x).
+      O catálogo já foi importado (91 jogos + técnicas). **Faltam os TGs dos
+      outros Years** (1–4) e a confirmação de D29 (3x e 5x parecem TGs distintos,
+      não um derivado do outro — ver `docs/demandas.md`).
 - [ ] **Yearly Plan Review** e modelo de **RMP** → destravam a Demanda 4 (métricas)
 - [ ] **Reunião do Class Feedback** (Demanda 5) → definir quem vê o quê
 - [ ] **Cenários**: quem mapeia vocabulário → cenário de fundo (§10 da pauta)
@@ -664,6 +663,14 @@ window.KEVIN_CHAT_CONFIG = { ... };
 
 ### Onde retomar
 
-O caminho de menor atrito é a **Demanda 7** (área da coordenação) — é a única
-frente grande que não depende de terceiros. Se o objetivo for mostrar ao cliente,
-priorize **subir para produção** e marcar o PR como pronto.
+Com a Demanda 7 entregue, as frentes livres são **subir para produção**
+(código pronto; falta plataforma + bucket R2 + env vars) e **marcar o PR como
+ready**. Do lado do domínio, o próximo passo natural é **cadastrar os TGs dos
+outros Years** pela grade nova, e **confirmar a D29** com o cliente (3x vs 5x)
+antes de assumir o modelo de frequência.
+
+Para popular o catálogo a partir de um TG novo:
+```bash
+docker compose exec web python manage.py importar_catalogo_tg "<pdf>" --dry-run
+docker compose exec web python manage.py importar_catalogo_tg "<pdf>" --sobrescrever
+```
