@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validador de export do Kevin — roda ANTES de entregar o export.
 
-Checa as regras do contrato entre a animação e o sistema (ver docs/animador.md).
+Checa as regras do contrato entre a animação e o sistema Kevin (Bebelingue).
 Python 3 puro, sem dependências — roda em qualquer máquina.
 
 USO:
@@ -25,9 +25,14 @@ from pathlib import Path
 
 SVG_NS = 'http://www.w3.org/2000/svg'
 
-# Limites (ver docs/animador.md, Regra 5)
+# Limites do contrato (Regra 5)
+#
+# BG_MAX_KB: só UM cenário carrega por aula, então o custo real por aula é
+# ~1 background. Com 600 KB o primeiro carregamento fica em ~800 KB (SVG + 1
+# cenário) — rápido mesmo em internet ruim de escola. Folga suficiente para o
+# animador não precisar espremer a qualidade da arte contra o teto.
 SVG_MAX_MB = 2.5
-BG_MAX_KB = 500
+BG_MAX_KB = 600
 
 # Grupos que o motor varre para esconder o esqueleto (buildRigState)
 GRUPOS_BONES = {
@@ -226,6 +231,36 @@ def validar_backgrounds(pasta: Path, r: Resultado):
           'conferir olhando — teste no demo.html.\033[0m')
 
 
+def validar_videos(pasta: Path, r: Resultado):
+    """O motor busca assets/videos/mudanca-cenario.webm por padrão.
+
+    Sem ele, setBackground() troca o cenário sem a animação de transição.
+    """
+    print('\n\033[1m▸ Vídeos\033[0m')
+    vid_dir = pasta / 'assets' / 'videos'
+    transicao = vid_dir / 'mudanca-cenario.webm'
+
+    if transicao.exists():
+        mb = transicao.stat().st_size / 1024 / 1024
+        r.ok(f'mudanca-cenario.webm presente ({mb:.1f} MB)')
+    else:
+        r.erro(
+            'assets/videos/mudanca-cenario.webm ausente',
+            'O motor procura este arquivo por padrão para animar a troca de '
+            'cenário. Sem ele, o fundo troca sem transição.',
+        )
+
+    # .mov não deve viajar no export (é o master, pesado)
+    if vid_dir.exists():
+        movs = [p.name for p in vid_dir.iterdir() if p.suffix.lower() == '.mov']
+        if movs:
+            r.aviso(
+                f'{len(movs)} arquivo(s) .mov no export',
+                'Os .mov são os masters (dezenas de MB). Entregue só os .webm:\n'
+                + '\n'.join(f'       · {m}' for m in movs[:5]),
+            )
+
+
 def _dimensoes_png(p: Path):
     """Lê largura/altura de PNG sem dependência externa."""
     try:
@@ -253,6 +288,62 @@ def validar_estrutura(pasta: Path, r: Resultado):
     else:
         r.aviso('demo.html ausente — sem ele não dá para testar o export isolado')
 
+    # Arquivos soltos na raiz: só os esperados devem estar lá. Sobras (ex.:
+    # background-forest.png duplicando assets/backgrounds/floresta.png) confundem
+    # qual é o arquivo válido e viajam no zip à toa.
+    permitidos = set(esperados) | {'demo.html', 'README.md'}
+    soltos = sorted(
+        p.name for p in pasta.iterdir()
+        if p.is_file() and p.name not in permitidos and not p.name.startswith('.')
+    )
+    if not soltos:
+        r.ok('Raiz limpa (só os arquivos previstos)')
+    else:
+        r.aviso(
+            f'{len(soltos)} arquivo(s) solto(s) na raiz do export',
+            'Mova para assets/ ou remova — a raiz deve ter só '
+            'kevin-rigged.svg, kevin-puppet.js/.css, demo.html e README.md:\n'
+            + '\n'.join(f'       · {n}' for n in soltos[:8]),
+        )
+
+
+def validar_readme(pasta: Path, r: Resultado):
+    """O README do export deve dizer O QUE MUDOU nesta versão.
+
+    Sem isso, quem recebe não sabe se precisa ajustar algo do lado do sistema
+    (ex.: cenário renomeado exige mudança no banco).
+    """
+    print('\n\033[1m▸ Changelog (README.md)\033[0m')
+    readme = pasta / 'README.md'
+    if not readme.exists():
+        r.erro(
+            'README.md ausente',
+            'Inclua um README.md com a seção "## Mudanças nesta versão"',
+        )
+        return
+
+    try:
+        txt = readme.read_text(encoding='utf-8', errors='ignore')
+    except Exception as e:
+        r.aviso(f'Não consegui ler o README.md: {e}')
+        return
+
+    # Procura um cabeçalho de changelog em pt/en
+    padrao = re.compile(
+        r'^#{1,4}\s*.*(mudan[çc]a|altera[çc]|changelog|novidade|what.?s new|'
+        r'nesta vers[ãa]o|vers[ãa]o \d)',
+        re.I | re.M,
+    )
+    if padrao.search(txt):
+        r.ok('README tem seção de mudanças')
+    else:
+        r.erro(
+            'README.md não tem seção de mudanças desta versão',
+            'Adicione no topo:  "## Mudanças nesta versão"  com 2-3 linhas do que '
+            'foi alterado (correções, modos novos, cenários novos). É como sabemos '
+            'se precisamos ajustar algo do nosso lado.',
+        )
+
 
 def main():
     if len(sys.argv) < 2:
@@ -268,14 +359,16 @@ def main():
     r = Resultado()
 
     validar_estrutura(pasta, r)
+    validar_readme(pasta, r)
     validar_svg(pasta / 'kevin-rigged.svg', r)
     validar_backgrounds(pasta, r)
+    validar_videos(pasta, r)
 
     print('\n' + '═' * 60)
     if r.erros:
         print(f'\033[31m\033[1m✗ {len(r.erros)} problema(s) — NÃO entregue este '
               f'export ainda.\033[0m')
-        print('  Corrija os itens ❌ acima. Detalhes em docs/animador.md.')
+        print('  Corrija os itens ❌ acima — cada um traz a orientação em amarelo.')
         sys.exit(1)
 
     if r.avisos:

@@ -51,6 +51,10 @@ package-lock.json
 # Os .zip nunca entram no repo. Extraia e mova só os arquivos usados.
 export_*.zip
 export_*/
+# Projeto do animador (centenas de MB — masters .mov, node_modules)
+kevin_animador.zip
+kevin_animador/
+*.mov
 
 # ── Mídia pesada do puppet ──
 # Backgrounds e vídeo de transição vão para storage externo (S3/R2), não Git.

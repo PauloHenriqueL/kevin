@@ -311,7 +311,7 @@ export/
 ├── demo.html                     harness de teste (obrigatório)
 ├── README.md                     changelog desta versão
 └── assets/
-    ├── backgrounds/              cenários (≤ 500 KB cada, mesma resolução)
+    ├── backgrounds/              cenários (≤ 600 KB cada, mesma resolução)
     │   ├── floresta.png
     │   ├── quarto.png
     │   ├── banheiro.png
@@ -366,7 +366,7 @@ Se o script de export for automatizado, chame o validador como último passo del
 | `Variante de mão com nome fora do padrão` | Renomeie para o prefixo exato `Mão_` ou `Mao_` (ex.: `Mão_Ukulele`). O motor esconde automaticamente `[id^="Mão_"]`; fora desse prefixo a mão fica sempre visível e aparece uma "mão a mais". A mão neutra é `Mão`/`mão`, sem underscore. |
 | `IDs faltando` | Restaure os nomes de camada exatos. O motor localiza tudo por `getNodeById` — renomear quebra. Se usar SVGO, ligue `cleanupIds: false`. |
 | `SVG acima de 2,5 MB` | Exporte com **2 casas decimais**, desmarque "Preserve Illustrator Editing Capabilities", styling em Presentation Attributes. |
-| `Cenários acima de 500 KB` | Exporte em WebP ou PNG otimizado. |
+| `Cenários acima de 600 KB` | Exporte em WebP ou PNG otimizado. |
 | `Cenários com resoluções diferentes` | Padronize a resolução de todos (ex.: 1920×1080). O Kevin é ancorado na **base** da imagem — resoluções diferentes mudam onde ele pisa. |
 
 ### Regra que o validador NÃO consegue checar (conferir a olho)
@@ -559,7 +559,7 @@ problemas de uma vez — peso **e** o "Kevin em cima da cama", porque ele é
 ancorado na base da imagem e resoluções diferentes deslocam onde ele pisa.
 
 - Todos na mesma resolução (sugiro **1920×1080**)
-- WebP ou PNG otimizado, ≤ 500 KB cada
+- WebP ou PNG otimizado, ≤ 600 KB cada
 - No `quarto`, se der, deixe piso visível na frente da cama — hoje o Kevin
   aparece sobre o móvel
 
