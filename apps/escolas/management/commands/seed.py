@@ -91,10 +91,17 @@ class Command(BaseCommand):
             user=prof_user, defaults={'escola': escola}
         )
 
-        # ── Turma (Year 5, 3x por semana) ──
+        # ── TG, Série e Turma (Year 5, 3x) — D31/D32 ──
+        from apps.curriculo.models import TG
+        from apps.escolas.models import Serie
+        tg, _ = TG.objects.get_or_create(
+            year=5, frequencia=3, defaults={'nome': 'TG 3x — Year 5'})
+        self.tg = tg
+        serie, _ = Serie.objects.get_or_create(
+            escola=escola, nome='Fundamental', defaults={'year': 5, 'tg': tg})
         turma, _ = Turma.objects.get_or_create(
             escola=escola, year=5, nome='A',
-            defaults={'professor': maria, 'qtd_alunos': 20, 'aulas_por_semana': 3},
+            defaults={'professor': maria, 'qtd_alunos': 20, 'serie': serie},
         )
         self.stdout.write(f'  Turma: {turma}')
 
@@ -133,11 +140,11 @@ class Command(BaseCommand):
             atividades[nome] = a
         self.stdout.write(f'  Catálogo: {len(atividades)} atividades oficiais')
 
-        # ── Aula real do TG (Y5-MAR-W1C1, Content Class) ──
+        # ── Aula real do TG (Y5-U1W1C1, Content Class) ──
         aula, _ = Aula.objects.get_or_create(
-            year=5, mes=3, semana=1, numero_aula=1,
+            tg=tg, unit='U1', semana=1, numero_aula=1,
             defaults={
-                'tipo': 'content', 'frequencia_minima': 3, 'unit': 1, 'lesson': 'U1L1',
+                'tipo': 'content', 'mes': 3, 'lesson': 'U1L1',
                 'titulo': 'Share It! — Daily Routines',
                 'background': 'quarto',
             },

@@ -187,42 +187,22 @@ class RelatorioProgressoView(DiretorMixin, TemplateView):
 
 
 class RelatorioProfessoresView(DiretorMixin, TemplateView):
-    """Relatório de professores: turmas, alunos e progresso."""
+    """Relatório orientado ao professor (Demanda 16, D33) — versão do diretor,
+    restrita à escola dele. Reusa o mesmo helper da coordenação."""
     template_name = 'gestao/relatorio_professores.html'
 
     def get_context_data(self, **kwargs):
+        from .relatorios import montar_relatorio_professores, PERIODOS
         ctx = super().get_context_data(**kwargs)
-        escola = self.get_escola()
 
-        professores = Professor.objects.filter(
-            escola=escola,
-        ).select_related('user').prefetch_related('turmas')
+        periodo = self.request.GET.get('periodo', 'mes_atual')
+        if periodo not in dict(PERIODOS):
+            periodo = 'mes_atual'
 
-        prof_data = []
-        for prof in professores:
-            turmas = prof.turmas.all()
-            total_alunos = sum(t.qtd_alunos for t in turmas)
-
-            total_aulas = 0
-            total_concluidas = 0
-            for turma in turmas:
-                aulas_turma = turma.aulas_do_curriculo().count()
-                concl = AulaTurma.objects.filter(
-                    turma=turma, status='concluida',
-                ).count()
-                total_aulas += aulas_turma
-                total_concluidas += concl
-
-            pct = round((total_concluidas / total_aulas) * 100) if total_aulas else 0
-
-            prof_data.append({
-                'professor': prof,
-                'total_turmas': turmas.count(),
-                'total_alunos': total_alunos,
-                'total_aulas': total_aulas,
-                'total_concluidas': total_concluidas,
-                'pct': pct,
-            })
-
-        ctx['prof_data'] = prof_data
+        professores = (
+            Professor.objects.filter(escola=self.get_escola(), ativo=True)
+            .select_related('user', 'escola')
+            .prefetch_related('turmas__serie__tg')
+        )
+        ctx.update(montar_relatorio_professores(professores, periodo=periodo))
         return ctx

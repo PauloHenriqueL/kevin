@@ -1,65 +1,64 @@
 {% extends "gestao/base_gestao.html" %}
-{% block title %}Professores — Relatório{% endblock %}
+{% load static %}
+{% block title %}Relatório do professor — Gestão{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/coordenacao.css' %}?v=2">{% endblock %}
 
 {% block gestao_heading %}
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-Desempenho dos professores
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+Relatório do professor
 {% endblock %}
-{% block gestao_subheading %}<p>Total de turmas, alunos e aulas concluídas por professor.</p>{% endblock %}
+{% block gestao_subheading %}<p>Onde cada professor da escola está no plano</p>{% endblock %}
 
 {% block gestao_body %}
-<div class="table-wrap">
-    <table class="data">
-        <thead>
-            <tr>
-                <th>Professor</th>
-                <th>Turmas</th>
-                <th>Alunos</th>
-                <th>Aulas concluídas</th>
-                <th>Progresso</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in prof_data %}
-                <tr>
-                    <td>
-                        <div style="display:flex; align-items:center; gap: 12px;">
-                            <div class="list-row-avatar" style="width: 36px; height: 36px; border-radius: 10px; font-size: 0.85rem;">
-                                {{ item.professor.user.first_name|make_list|first|default:item.professor.user.username|make_list|first|upper }}
-                            </div>
-                            <div>
-                                <strong>{{ item.professor.user.get_full_name|default:item.professor.user.username }}</strong>
-                                <div style="color: var(--texto-sec); font-size: 0.8rem; font-weight: 600;">{{ item.professor.user.email|default:"—" }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><strong>{{ item.total_turmas }}</strong></td>
-                    <td><strong>{{ item.total_alunos }}</strong></td>
-                    <td><strong>{{ item.total_concluidas }}/{{ item.total_aulas }}</strong></td>
-                    <td style="min-width: 220px;">
-                        <div style="display:flex; align-items:center; gap: 10px;">
-                            <div class="mini-progress">
-                                <div class="{% if item.pct >= 70 %}fill-g{% elif item.pct >= 30 %}fill-y{% else %}fill-r{% endif %}" style="width: {{ item.pct }}%;"></div>
-                            </div>
-                            <span style="font-weight: 900; font-size: 0.9rem; color: {% if item.pct >= 70 %}var(--verde-escuro){% elif item.pct >= 30 %}var(--amarelo-escuro){% else %}var(--vermelho){% endif %}; min-width: 44px; text-align: right;">
-                                {{ item.pct }}%
-                            </span>
-                        </div>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                            </div>
-                            <h3>Nenhum professor cadastrado</h3>
-                        </div>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+<div class="rel-filtro">
+    <span>Período:</span>
+    {% for valor, label in periodos %}
+    <a href="?periodo={{ valor }}" class="chip {% if periodo == valor %}ativo{% endif %}">{{ label }}</a>
+    {% endfor %}
+    <span class="rel-ate">posição acumulada até {{ ate|date:"d/m/Y" }}</span>
 </div>
+
+<div class="rel-lista">
+    {% for p in professores %}
+    <div class="rel-prof">
+        <div class="rel-prof-head">
+            <div class="rel-prof-nome">
+                <div class="list-row-avatar">{{ p.professor.user.first_name|make_list|first|default:"?"|upper }}</div>
+                <div>
+                    <strong>{{ p.professor.user.get_full_name|default:p.professor.user.username }}</strong>
+                    <span class="rel-prof-escola">{{ p.professor.escola.nome }}</span>
+                </div>
+            </div>
+            <span class="badge {% if p.pct_medio >= 60 %}badge-green{% elif p.pct_medio >= 30 %}badge-blue{% else %}badge-muted{% endif %}">
+                {{ p.pct_medio }}% médio
+            </span>
+        </div>
+
+        {% for t in p.turmas %}
+        <div class="rel-turma">
+            <div class="rel-turma-topo">
+                <strong>Turma {{ t.turma.year }}{{ t.turma.nome }}</strong>
+                {% if t.turma.serie %}<span class="rel-serie">{{ t.turma.serie.nome }} · {{ t.tg.nome }}</span>{% endif %}
+            </div>
+            <div class="rel-pos">
+                {% if t.posicao %}
+                    posição: <strong>{{ t.posicao.codigo }}</strong> — {{ t.posicao.titulo|truncatechars:40 }}
+                {% else %}
+                    <em>nenhuma aula concluída no período</em>
+                {% endif %}
+            </div>
+            <div class="rel-barra"><div class="rel-barra-fill" style="width: {{ t.pct }}%;"></div></div>
+            <div class="rel-num">{{ t.concluidas }} de {{ t.total }} aulas do TG · {{ t.pct }}%</div>
+        </div>
+        {% empty %}
+        <div class="rel-turma"><em class="rel-vazio">Sem turmas.</em></div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="empty-state" style="padding:48px 20px;"><p>Nenhum professor cadastrado.</p></div>
+    {% endfor %}
+</div>
+
 {% endblock %}

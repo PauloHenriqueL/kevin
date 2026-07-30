@@ -1385,7 +1385,10 @@ docker compose exec web python manage.py test apps.escolas.tests.ConclusaoAulaTe
 
 ## Demanda 15 — Série e TG como entidades (remodelagem do vínculo escola↔currículo)
 
-**Status:** 🔴 A implementar (prioridade máxima — destrava o MVP)
+**Status:** ✅ Implementada (30/07/2026) — entidades `TG` e `Serie`, migração do
+Y5, grade da coordenação por TG, admin, seeds. Campos depreciados
+(`frequencia_minima`, `aulas_por_semana`) removidos; form de turma passa a pedir
+a Série. Confirmado com o cliente: escola tem N séries, cada série tem 1 TG.
 **Origem:** reunião 30/07/2026. Decisões D31, D32, D36.
 **Objetivo:** modelar como a escola escolhe qual cronograma cada segmento segue,
 substituindo o vínculo frágil de hoje (`Turma.year` + `Turma.aulas_por_semana`).
@@ -1461,7 +1464,10 @@ vêm depois.
 
 ## Demanda 16 — Relatório orientado ao professor
 
-**Status:** 🔴 A implementar
+**Status:** ✅ Implementada (30/07/2026) — em `/coordenacao/relatorio/` (todas as
+escolas) e `/gestao/relatorios/professores/` (a do diretor). Filtro mês atual /
+mês passado / ano; posição acumulada no TG. O "previsto" (Early Plan) fica para
+quando o cliente enviar o modelo.
 **Origem:** reunião 30/07/2026. Decisão D33. Substitui o foco da Demanda 4.
 **Objetivo:** inverter o relatório — a métrica principal é do **professor**, não
 da turma, com filtro temporal.
@@ -1506,29 +1512,14 @@ previsto pode ser um campo manual por turma, ou ficar em branco.
 
 ---
 
-## Demanda 17 — June ordenada entre a Unit 4 e a Unit 5
+## Demanda 17 — Posição da June Unit
 
-**Status:** 🔴 A implementar (rápida)
-**Origem:** reunião 30/07/2026. Decisão D34.
-**Objetivo:** posicionar a June Unit no lugar certo do ano letivo.
+**Status:** ✅ Resolvida por decisão (D34) — **nada a implementar**.
 
-### 17.1 O problema
-
-Hoje `ORDEM_UNITS = {UNIT_WELCOME: 0, UNIT_JUNE: 9}` — a June cai no fim do ano.
-A Mila esclareceu que **as aulas de June vêm logo depois da Unit 4** e são
-**tarefas** (não vão para a sala de aula).
-
-### 17.2 O que muda
-
-- `ordem_da_unit('JU')` passa a devolver **4.5** (entre U4 e U5), não 9.
-- A grade da coordenação e a navegação do professor mostram June após a U4.
-- (Opcional) marcar as aulas de June como "tarefa" para o professor saber que
-  não é aula de sala — avaliar se cabe no MVP ou fica registrado.
-
-### 17.3 Critérios de aceite
-
-- [ ] June aparece entre Unit 4 e Unit 5 na ordenação
-- [ ] O ano letivo começa em fevereiro; julho é férias (contexto, não bloqueia)
+A reunião cogitou June entre U4 e U5, mas a decisão final (D34, 30/07) é
+**manter June no fim do ano**. O modelo já faz isso (`ORDEM_UNITS['JU'] = 9`).
+As aulas de June são tarefas, não aula de sala — ordená-las no fim é o mais
+simples e não quebra a ordenação de `ordem_unit`.
 
 ---
 
@@ -1572,7 +1563,7 @@ uma tem consequência em cascata sobre as demais.
 | **D31** | **`TG` vira entidade** (global da Bebelingue, nomeada, ex: "TG 3x Year 5"), dona da frequência. `Aula` pertence a um TG | `Aula` global por `year`+`frequencia_minima` | Reunião 30/07: a Mila esclareceu que 3x/4x/5x são cronogramas diferentes por segmento. Modelar cada um como um TG nomeado resolve a D29 sem `frequencia_minima` na Aula, e permite (futuro) TGs específicos por escola. O currículo segue **global** (D1): o TG é da Bebelingue, a escola só escolhe qual usar |
 | **D32** | **`Serie` vira entidade da escola** (nome livre, ex: "Fundamental"), aponta para um TG. `Turma` pertence a uma `Serie` | `Turma` com `year`+`aulas_por_semana` soltos | Reunião 30/07: cada escola dá o **próprio nome** aos segmentos ("não é sempre fundamental"). A série guarda esse nome e o vínculo com o TG. A turma herda o TG da série — é o que ela executa |
 | **D33** | **Relatório é do professor**, com a turma aninhada e a posição dela no plano; filtro **mês / mês passado / ano** | Relatório centrado na turma (como está hoje) | Reunião 30/07: "a métrica que importa é a do professor, não a da turma". O relatório atual foca na turma — tem que inverter: Professor João → turma 5B → onde está no plano. O previsto vem do **Early Plan** (o "Yearly Plan Review") |
-| **D34** | **June ordena entre a Unit 4 e a Unit 5** (`ordem_unit` da JU = 4.5) | JU no fim do ano (ordem 9) | Reunião 30/07: as aulas de June vêm **depois da Unit 4** e são **tarefas**, não aula de sala. Corrige a `ORDEM_UNITS` (JU deixa de ser 9) |
+| **D34** | **June fica no fim do ano** (`ordem_unit` da JU = 9, como já está) | JU entre U4 e U5 | Reunião 30/07 sugeriu June depois da U4; revisto em 30/07 (Paulo): **fica no fim**. As aulas de June são tarefas, não aula de sala, e ordená-las no fim é mais simples (não quebra a ordenação inteira de `ordem_unit`). **Nada a implementar** — o modelo atual já faz isso |
 | **D35** | **Listening = caixa de som + ondas sonoras** no personagem, sem lip-sync | Lip-sync do listening | Reunião 30/07: o Vitor propôs (e o time aceitou) representar o listening com ícone de caixa de som e ondas pulsantes, mais crível que sincronizar a fala para várias vozes. **Confirma a implementação já feita** (botão de listening só toca o áudio); falta o Vitor entregar as ondas sonoras |
 | **D36** | **MVP: uma turma de Year 5.** Modelar Série+TG por completo, mas popular e testar só Y5 | Cobrir todas as séries no MVP | Reunião 30/07: o primeiro experimento é uma classe Y5. Não é para travar o MVP nas outras séries (Infantil, Fundamental, Adolescente) — a estrutura é modelada, mas os dados que a Mila sobe primeiro são só do Y5 |
 

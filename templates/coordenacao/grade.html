@@ -1,7 +1,7 @@
 {% extends "coordenacao/base_coord.html" %}
-{% block title %}Y{{ year }} · {{ rotulo_unit }} — Kevin{% endblock %}
+{% block title %}{{ tg.nome }} · {{ rotulo_unit }} — Kevin{% endblock %}
 
-{% block coord_heading %}Year {{ year }} · {{ rotulo_unit }}{% endblock %}
+{% block coord_heading %}{{ tg.nome }} · {{ rotulo_unit }}{% endblock %}
 {% block coord_subheading %}
     <p><a href="{% url 'coordenacao:tg_index' %}" class="link-voltar">← todas as units</a> · {{ total_aulas }} aula{{ total_aulas|pluralize:"s" }}</p>
 {% endblock %}
@@ -37,7 +37,7 @@
                     <span class="celula-blocos">{{ celula.blocos.count }} bloco{{ celula.blocos.count|pluralize:"s" }}</span>
                 </a>
                 {% else %}
-                <a href="{% url 'coordenacao:aula_create' %}?year={{ year }}&unit={{ unit }}&semana={{ linha.semana }}&numero_aula={{ forloop.counter }}"
+                <a href="{% url 'coordenacao:aula_create' %}?tg={{ tg.id }}&unit={{ unit }}&semana={{ linha.semana }}&numero_aula={{ forloop.counter }}"
                    class="celula-vazia">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span>Criar aula</span>
@@ -58,7 +58,7 @@
 </div>
 
 <dialog id="modal-duplicar" class="modal-coord">
-    <form method="post" action="{% url 'coordenacao:duplicar_unit' year=year unit=unit %}">
+    <form method="post" action="{% url 'coordenacao:duplicar_unit' tg_id=tg.id unit=unit %}">
         {% csrf_token %}
         <h3>Duplicar {{ rotulo_unit }}</h3>
         <p class="modal-hint">Copia todas as aulas e blocos desta Unit para outra Unit <strong>vazia</strong>, para você editar por cima. Não sobrescreve.</p>

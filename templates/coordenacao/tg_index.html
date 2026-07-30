@@ -2,21 +2,22 @@
 {% block title %}Grade do TG — Kevin{% endblock %}
 
 {% block coord_heading %}Grade do TG{% endblock %}
-{% block coord_subheading %}<p>Escolha o Year e a Unit para montar ou editar</p>{% endblock %}
+{% block coord_subheading %}<p>Escolha o cronograma (TG) e a Unit para montar ou editar</p>{% endblock %}
 
 {% block coord_body %}
 
+{% if painel_por_tg %}
 <div class="year-tabs" role="tablist">
-    {% for painel in painel_por_year %}
-    <button class="year-tab {% if forloop.first %}active{% endif %}" data-year="{{ painel.year }}">Year {{ painel.year }}</button>
+    {% for painel in painel_por_tg %}
+    <button class="year-tab {% if forloop.first %}active{% endif %}" data-tg="{{ painel.tg.id }}">{{ painel.tg.nome }}</button>
     {% endfor %}
 </div>
 
-{% for painel in painel_por_year %}
-<div class="unit-panel" data-year="{{ painel.year }}" {% if not forloop.first %}hidden{% endif %}>
+{% for painel in painel_por_tg %}
+<div class="unit-panel" data-tg="{{ painel.tg.id }}" {% if not forloop.first %}hidden{% endif %}>
     <div class="unit-grid">
         {% for u in painel.units %}
-        <a href="{% url 'coordenacao:grade' year=painel.year unit=u.sigla %}"
+        <a href="{% url 'coordenacao:grade' tg_id=painel.tg.id unit=u.sigla %}"
            class="unit-card {% if u.n %}preenchida{% else %}vazia{% endif %}">
             <span class="unit-sigla">{{ u.sigla }}</span>
             <span class="unit-rotulo">{{ u.rotulo }}</span>
@@ -30,20 +31,26 @@
     </div>
 </div>
 {% endfor %}
+{% else %}
+<div class="empty-state" style="padding:48px 20px;">
+    <p>Nenhum cronograma (TG) cadastrado ainda. Crie um no Django admin
+    (Currículo → TGs) para começar a montar as aulas.</p>
+</div>
+{% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // Troca de aba de Year — mostra só o painel de units do year selecionado.
+  // Troca de aba de TG — mostra só o painel de units do TG selecionado.
   document.querySelectorAll('.year-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      var year = tab.dataset.year;
+      var tg = tab.dataset.tg;
       document.querySelectorAll('.year-tab').forEach(function (t) {
         t.classList.toggle('active', t === tab);
       });
       document.querySelectorAll('.unit-panel').forEach(function (p) {
-        p.hidden = p.dataset.year !== year;
+        p.hidden = p.dataset.tg !== tg;
       });
     });
   });

@@ -91,19 +91,30 @@ class ProfessorForm(forms.ModelForm):
 class TurmaForm(forms.ModelForm):
     class Meta:
         model = Turma
-        fields = ('year', 'nome', 'professor', 'qtd_alunos', 'aulas_por_semana')
+        # A turma pertence a uma Série (que carrega o year e o TG). O diretor
+        # escolhe a série; a turma herda year e currículo dela (D32).
+        fields = ('serie', 'nome', 'professor', 'qtd_alunos')
 
     def __init__(self, *args, escola=None, **kwargs):
         self.escola = escola
         super().__init__(*args, **kwargs)
         if escola:
             self.fields['professor'].queryset = Professor.objects.filter(escola=escola)
+            # Só as séries desta escola.
+            self.fields['serie'].queryset = escola.series.all()
+        self.fields['serie'].help_text = (
+            'A série define o Year e o cronograma (TG) que a turma segue. '
+            'Cadastre as séries no painel da Bebelingue.'
+        )
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
 
     def save(self, commit=True):
         turma = super().save(commit=False)
         turma.escola = self.escola
+        # O year vem da série (fonte única).
+        if turma.serie_id:
+            turma.year = turma.serie.year
         if commit:
             turma.save()
         return turma

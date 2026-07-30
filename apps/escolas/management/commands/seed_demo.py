@@ -109,17 +109,30 @@ class Command(BaseCommand):
             user=joao_u, defaults={'escola': self.bernoulli})
         self.stdout.write('  ✓ admin, coord, diretor, 2 professores')
 
-    # ── Turmas (frequências diferentes) ──
+    # ── TG, Série e Turmas (D31/D32) ──
     def _turmas(self):
+        from apps.curriculo.models import TG
+        from apps.escolas.models import Serie
+
+        # O cronograma da Bebelingue (global). MVP: um TG 3x para o Year 5.
+        self.tg, _ = TG.objects.get_or_create(
+            year=5, frequencia=3, defaults={'nome': 'TG 3x — Year 5'})
+
+        # A escola cria a série "Fundamental" e a coordenação a vincula ao TG.
+        self.serie, _ = Serie.objects.get_or_create(
+            escola=self.bernoulli, nome='Fundamental',
+            defaults={'year': 5, 'tg': self.tg})
+
+        # Ambas as turmas seguem essa série (MVP é Y5 3x).
         self.turma5a, _ = Turma.objects.get_or_create(
             escola=self.bernoulli, year=5, nome='A',
-            defaults={'professor': self.maria, 'qtd_alunos': 22, 'aulas_por_semana': 3},
+            defaults={'professor': self.maria, 'qtd_alunos': 22, 'serie': self.serie},
         )
         self.turma5b, _ = Turma.objects.get_or_create(
             escola=self.bernoulli, year=5, nome='B',
-            defaults={'professor': self.joao, 'qtd_alunos': 19, 'aulas_por_semana': 4},
+            defaults={'professor': self.joao, 'qtd_alunos': 19, 'serie': self.serie},
         )
-        self.stdout.write('  ✓ Turma 5A (3x, Maria) e 5B (4x, João)')
+        self.stdout.write('  ✓ TG 3x Year 5, série Fundamental, turmas 5A e 5B')
 
     # ── Catálogo de atividades ──
     def _catalogo(self):
@@ -195,17 +208,15 @@ class Command(BaseCommand):
         # Catálogo é 100% oficial da Bebelingue (Demanda 13). Escola não cria aula.
         self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} atividades oficiais (Bebelingue)')
 
-    # ── TG de Março inteiro ──
-    def _aula(self, semana, num, tipo, unit, lesson, titulo, freq=3, bg='floresta',
+    # ── Aulas do TG (ligadas ao TG 3x Year 5) ──
+    def _aula(self, semana, num, tipo, unit, lesson, titulo, bg='floresta',
               blocos=None, hw=None, obs='', kickoff=''):
-        # O seed de demonstração cobre a Unit 1 (que cai em março). A `unit`
-        # posicional é numérica por herança; aqui vira a sigla do TG.
+        # A `unit` posicional é numérica por herança; aqui vira a sigla do TG.
         sigla_unit = f'U{unit}' if isinstance(unit, int) else unit
         aula, created = Aula.objects.get_or_create(
-            year=5, unit=sigla_unit, semana=semana, numero_aula=num,
+            tg=self.tg, unit=sigla_unit, semana=semana, numero_aula=num,
             defaults={'tipo': tipo, 'mes': 3, 'lesson': lesson, 'titulo': titulo,
-                      'frequencia_minima': freq, 'background': bg, 'observacao': obs,
-                      'kickoff': kickoff},
+                      'background': bg, 'observacao': obs, 'kickoff': kickoff},
         )
         if created and blocos:
             for fase, ordem, ativ, instr, ref in blocos:

@@ -1,6 +1,19 @@
 from django.contrib import admin
 
-from .models import Atividade, Aula, AulaTurma, BlocoAula, Homework
+from .models import Atividade, Aula, AulaTurma, BlocoAula, Homework, TG
+
+
+@admin.register(TG)
+class TGAdmin(admin.ModelAdmin):
+    """Cronogramas (TGs) da Bebelingue — 3x/4x/5x por Year (D31)."""
+    list_display = ('nome', 'year', 'frequencia', 'qtd_aulas')
+    list_filter = ('year', 'frequencia')
+    search_fields = ('nome',)
+    ordering = ('year', 'frequencia')
+
+    @admin.display(description='Aulas')
+    def qtd_aulas(self, obj):
+        return obj.aulas.count()
 
 
 class BlocoAulaInline(admin.StackedInline):
@@ -24,24 +37,24 @@ class HomeworkInline(admin.StackedInline):
 @admin.register(Aula)
 class AulaAdmin(admin.ModelAdmin):
     list_display = (
-        'codigo', 'titulo', 'year', 'unit', 'semana', 'numero_aula',
-        'tipo', 'frequencia_minima',
+        'codigo', 'titulo', 'tg', 'unit', 'semana', 'numero_aula', 'tipo',
     )
-    list_filter = ('year', 'unit', 'tipo', 'frequencia_minima', 'mes')
+    list_filter = ('tg', 'unit', 'tipo', 'mes')
     search_fields = ('codigo', 'titulo', 'lesson')
     ordering = ('year', 'ordem_unit', 'semana', 'numero_aula')
+    autocomplete_fields = ('tg',)
     inlines = [BlocoAulaInline, HomeworkInline]
 
     fieldsets = (
         ('Onde fica no TG', {
-            'fields': ('year', 'unit', 'semana', 'numero_aula'),
+            'fields': ('tg', 'unit', 'semana', 'numero_aula'),
             'description': (
-                'O código da aula (ex: Y5-U1W1C1) é gerado a partir destes '
-                'campos. Preencha exatamente como está na grade do TG.'
+                'A aula pertence a um TG (o cronograma 3x/4x/5x). O código '
+                '(ex: Y5-U1W1C1) é gerado a partir da Unit/Semana/Aula.'
             ),
         }),
         ('Que aula é esta', {
-            'fields': ('titulo', 'tipo', 'frequencia_minima', 'mes', 'lesson'),
+            'fields': ('titulo', 'tipo', 'mes', 'lesson'),
             'description': (
                 'O mês é só contexto de calendário (a faixa lateral do TG). '
                 'Quem endereça a aula é a Unit.'

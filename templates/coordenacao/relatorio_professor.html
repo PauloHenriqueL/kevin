@@ -1,0 +1,60 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Relatório do professor — Kevin{% endblock %}
+
+{% block coord_heading %}Relatório do professor{% endblock %}
+{% block coord_subheading %}<p>Onde cada professor está no plano — a métrica que importa</p>{% endblock %}
+
+{% block coord_body %}
+
+<div class="rel-filtro">
+    <span>Período:</span>
+    {% for valor, label in periodos %}
+    <a href="?periodo={{ valor }}" class="chip {% if periodo == valor %}ativo{% endif %}">{{ label }}</a>
+    {% endfor %}
+    <span class="rel-ate">posição acumulada até {{ ate|date:"d/m/Y" }}</span>
+</div>
+
+<div class="rel-lista">
+    {% for p in professores %}
+    <div class="rel-prof">
+        <div class="rel-prof-head">
+            <div class="rel-prof-nome">
+                <div class="list-row-avatar">{{ p.professor.user.first_name|make_list|first|default:"?"|upper }}</div>
+                <div>
+                    <strong>{{ p.professor.user.get_full_name|default:p.professor.user.username }}</strong>
+                    <span class="rel-prof-escola">{{ p.professor.escola.nome }}</span>
+                </div>
+            </div>
+            <span class="badge {% if p.pct_medio >= 60 %}badge-green{% elif p.pct_medio >= 30 %}badge-blue{% else %}badge-muted{% endif %}">
+                {{ p.pct_medio }}% médio
+            </span>
+        </div>
+
+        {% for t in p.turmas %}
+        <div class="rel-turma">
+            <div class="rel-turma-topo">
+                <strong>Turma {{ t.turma.year }}{{ t.turma.nome }}</strong>
+                {% if t.turma.serie %}<span class="rel-serie">{{ t.turma.serie.nome }} · {{ t.tg.nome }}</span>{% endif %}
+            </div>
+            <div class="rel-pos">
+                {% if t.posicao %}
+                    posição: <strong>{{ t.posicao.codigo }}</strong> — {{ t.posicao.titulo|truncatechars:40 }}
+                {% else %}
+                    <em>nenhuma aula concluída no período</em>
+                {% endif %}
+            </div>
+            <div class="rel-barra">
+                <div class="rel-barra-fill" style="width: {{ t.pct }}%;"></div>
+            </div>
+            <div class="rel-num">{{ t.concluidas }} de {{ t.total }} aulas do TG · {{ t.pct }}%</div>
+        </div>
+        {% empty %}
+        <div class="rel-turma"><em class="rel-vazio">Sem turmas.</em></div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="empty-state" style="padding:48px 20px;"><p>Nenhum professor cadastrado.</p></div>
+    {% endfor %}
+</div>
+
+{% endblock %}
