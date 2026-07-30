@@ -321,3 +321,28 @@ class CoordenacaoTest(TestCase):
         nomes = [a['nome'] for a in r.json()['resultados']]
         self.assertIn('Simon Says', nomes)
         self.assertNotIn('Local Secreto', nomes)
+
+
+class MusicaAulaTest(TestCase):
+    """Botão de música do telão: só aparece com atividade de música (D11)."""
+
+    def setUp(self):
+        self.aula = Aula.objects.create(
+            year=5, unit='U1', semana=1, numero_aula=1, titulo='X')
+
+    def test_sem_musica_botao_nao_aparece(self):
+        self.assertFalse(self.aula.tem_musica)
+        self.assertEqual(self.aula.musica_url, '')
+
+    def test_atividade_com_tag_musica_ativa_botao(self):
+        song = Atividade.objects.create(
+            tipo='rotina', nome='Songs Collection', tags='musica, rotina',
+            arquivo_url='https://exemplo.com/faixa.mp3')
+        BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=song)
+        self.assertTrue(self.aula.tem_musica)
+        self.assertEqual(self.aula.musica_url, 'https://exemplo.com/faixa.mp3')
+
+    def test_detecta_musica_pelo_nome_song(self):
+        song = Atividade.objects.create(tipo='rotina', nome='Hello Song')
+        BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=song)
+        self.assertTrue(self.aula.tem_musica)

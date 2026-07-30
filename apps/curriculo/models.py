@@ -357,16 +357,32 @@ class Aula(models.Model):
 
         return '\n'.join(linhas)
 
-    @property
-    def tem_musica(self):
-        """True se a aula tem um bloco de música — controla o botão de música no
-        telão (Demanda 11). Detecta pela tag 'musica' ou pelo nome da atividade."""
+    def _atividade_musica(self):
+        """A primeira atividade de música da aula, ou None.
+
+        Detecta pela tag 'musica' ou pelo nome (song/música). É o que liga o
+        botão de música do telão ao conteúdo da aula (Demanda 11)."""
         for bloco in self.blocos.select_related('atividade').all():
             a = bloco.atividade
             if a and ('musica' in a.tags.lower() or 'song' in a.nome.lower()
                       or 'música' in a.nome.lower()):
-                return True
-        return False
+                return a
+        return None
+
+    @property
+    def tem_musica(self):
+        """True se a aula tem um bloco de música — controla se o botão de música
+        aparece no telão."""
+        return self._atividade_musica() is not None
+
+    @property
+    def musica_url(self):
+        """URL do áudio que toca quando o professor clica no botão de música.
+
+        Vem do `arquivo_url` da atividade de música da aula. Sem áudio, o botão
+        só anima o Kevin (pega o ukulele) sem tocar som."""
+        atividade = self._atividade_musica()
+        return atividade.arquivo_url if atividade else ''
 
 
 class BlocoAula(models.Model):

@@ -285,6 +285,10 @@ window.KEVIN_RIG_CONFIG = {
     backgroundUrl:    window.KEVIN_BACKGROUNDS["{{ aula.background }}"] || window.KEVIN_BACKGROUNDS["floresta"],
     rigMountSelector: "#kevin-rig-mount",
 };
+// Áudio de música desta aula. Vem do arquivo_url da atividade de música
+// (ex: faixa no R2 em produção); se vazio, usa a faixa estática padrão. É esta
+// URL que o botão de música toca quando o Kevin pega o ukulele.
+window.KEVIN_MUSICA_URL = "{{ aula.musica_url|default:''|escapejs }}" || "{% static 'audio/musica-y5u1.mp3' %}";
 // Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
 window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
 // Modo demo: respostas locais para testar animações (desativar em produção)
