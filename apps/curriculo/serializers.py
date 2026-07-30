@@ -44,7 +44,7 @@ class AulaListSerializer(serializers.ModelSerializer):
         model = Aula
         fields = [
             'id', 'codigo', 'titulo', 'year', 'unit', 'mes', 'mes_display',
-            'semana', 'numero_aula', 'tipo', 'tipo_display', 'frequencia_minima',
+            'semana', 'numero_aula', 'tipo', 'tipo_display',
         ]
 
 
@@ -58,7 +58,7 @@ class AulaSerializer(serializers.ModelSerializer):
         model = Aula
         fields = [
             'id', 'codigo', 'year', 'unit', 'mes', 'mes_display', 'semana',
-            'numero_aula', 'tipo', 'tipo_display', 'frequencia_minima',
+            'numero_aula', 'tipo', 'tipo_display',
             'lesson', 'titulo', 'observacao', 'kickoff', 'background',
             'blocos', 'homeworks',
         ]

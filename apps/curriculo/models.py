@@ -168,12 +168,54 @@ class Atividade(models.Model):
             )
 
 
-class Aula(models.Model):
-    """Uma aula do TG (Teacher's Guide) — currículo GLOBAL da Bebelingue.
+class TG(models.Model):
+    """Teacher's Guide — um cronograma completo da Bebelingue (D31).
 
-    Confirmado com o cliente (23/07/2026): toda escola que usa o Year 1 recebe
-    o mesmo TG. A aula NÃO pertence a escola nem a turma — a execução por turma
-    fica em AulaTurma. O professor não edita: só executa e marca progresso.
+    É a entidade que a reunião de 30/07 tornou explícita: 3x, 4x e 5x são
+    cronogramas DIFERENTES, não variações de um só. Cada um é um TG nomeado,
+    dono da frequência e das suas aulas.
+
+    O TG é GLOBAL da Bebelingue (currículo global, D1): a escola não cria TG,
+    só escolhe qual usar para cada série (via Serie.tg). Futuramente pode haver
+    TG específico por escola, mas hoje todos são oficiais.
+    """
+
+    class Frequencia(models.IntegerChoices):
+        TRES = 3, '3x por semana'
+        QUATRO = 4, '4x por semana'
+        CINCO = 5, '5x por semana'
+
+    nome = models.CharField(
+        max_length=100,
+        help_text='Nome que o coordenador lê ao escolher. Ex: "TG 3x — Year 5".',
+    )
+    year = models.PositiveIntegerField(help_text='Year a que este TG se aplica: 1 a 9.')
+    frequencia = models.IntegerField(
+        choices=Frequencia.choices,
+        default=Frequencia.TRES,
+        help_text='Aulas por semana deste cronograma (3, 4 ou 5).',
+    )
+    descricao = models.TextField(
+        blank=True, default='',
+        help_text='Anotação opcional sobre este TG.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'TG (cronograma)'
+        verbose_name_plural = 'TGs (cronogramas)'
+        ordering = ['year', 'frequencia']
+        unique_together = [('year', 'frequencia')]
+
+    def __str__(self):
+        return self.nome or f'TG {self.frequencia}x — Year {self.year}'
+
+
+class Aula(models.Model):
+    """Uma aula de um TG (Teacher's Guide) — currículo GLOBAL da Bebelingue.
+
+    A aula pertence a um TG (D31), não a escola nem a turma — a execução por
+    turma fica em AulaTurma. O professor não edita: só executa e marca progresso.
     """
 
     class Tipo(models.TextChoices):
@@ -194,14 +236,24 @@ class Aula(models.Model):
 
     codigo = models.CharField(
         max_length=30,
-        unique=True,
         editable=False,
+        # NÃO é unique: a mesma U1W1C1 existe no TG 3x e no 5x com o mesmo
+        # código legível. A unicidade real é (tg, unit, semana, numero_aula).
         help_text='Gerado automaticamente. Ex: Y5-U1W1C1',
+    )
+
+    # ── A qual cronograma pertence (D31) ──
+    tg = models.ForeignKey(
+        TG,
+        on_delete=models.CASCADE,
+        related_name='aulas',
+        null=True,  # temporário para a migração; vira obrigatório depois
+        help_text='O cronograma (3x/4x/5x) a que esta aula pertence.',
     )
 
     # ── Endereçamento (a chave) ──
     # É o código impresso no TG: Unit + Week + Class. Ver D27.
-    year = models.PositiveIntegerField(help_text='Year do currículo: 1 a 5.')
+    year = models.PositiveIntegerField(help_text='Year do currículo: 1 a 9.')
     unit = models.CharField(
         max_length=5,
         default='U1',
@@ -231,13 +283,11 @@ class Aula(models.Model):
         default=Tipo.CONTENT,
         help_text='Define o formato do roteiro e o que o Kevin espera da aula.',
     )
+    # DEPRECIADO (D31): a frequência agora vem do TG (Aula.tg.frequencia). Mantido
+    # temporariamente para não quebrar código legado; será removido. Não usar.
     frequencia_minima = models.PositiveIntegerField(
         default=3,
-        help_text=(
-            'Aparece para turmas com esta frequência semanal OU MAIOR. '
-            'Use 3 para as aulas do TG base; 4 ou 5 para as Communication '
-            'Classes extras dos TGs de 4x e 5x.'
-        ),
+        help_text='Depreciado — a frequência vem do TG. Não usar.',
     )
 
     # ── Descritivo (não é chave) ──
@@ -281,7 +331,9 @@ class Aula(models.Model):
     class Meta:
         verbose_name = 'Aula (TG)'
         verbose_name_plural = 'Aulas (TG)'
-        unique_together = [('year', 'unit', 'semana', 'numero_aula')]
+        # A mesma U1W1C1 existe em TGs diferentes (3x e 5x) — a unicidade é por
+        # TG, não global. O código carrega a frequência para não colidir.
+        unique_together = [('tg', 'unit', 'semana', 'numero_aula')]
         ordering = ['year', 'ordem_unit', 'semana', 'numero_aula']
 
     def __str__(self):
@@ -290,6 +342,9 @@ class Aula(models.Model):
     def save(self, *args, **kwargs):
         self.unit = (self.unit or '').strip().upper()
         self.ordem_unit = ordem_da_unit(self.unit)
+        # O year da aula acompanha o do TG (fonte única).
+        if self.tg_id:
+            self.year = self.tg.year
         self.codigo = montar_codigo_aula(
             self.year, self.unit, self.semana, self.numero_aula
         )

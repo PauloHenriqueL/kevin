@@ -1,6 +1,18 @@
 from django.contrib import admin
 
-from .models import Diretor, Escola, Plano, Professor, Turma
+from .models import Diretor, Escola, Plano, Professor, Serie, Turma
+
+
+@admin.register(Serie)
+class SerieAdmin(admin.ModelAdmin):
+    """Séries da escola — o vínculo com um TG (D32).
+
+    É aqui que o coordenador escolhe qual cronograma cada segmento da escola
+    segue: abre a série e seleciona o TG."""
+    list_display = ('nome', 'escola', 'year', 'tg')
+    list_filter = ('escola', 'year')
+    search_fields = ('nome', 'escola__nome')
+    autocomplete_fields = ('tg',)
 
 
 @admin.register(Plano)
@@ -36,14 +48,15 @@ class DiretorAdmin(admin.ModelAdmin):
 class ProfessorAdmin(admin.ModelAdmin):
     list_display = ('user', 'escola', 'ativo')
     list_filter = ('ativo', 'escola')
+    search_fields = ('user__first_name', 'user__last_name', 'user__username')
     inlines = [TurmaInline]
 
 
 @admin.register(Turma)
 class TurmaAdmin(admin.ModelAdmin):
     list_display = (
-        '__str__', 'escola', 'year', 'nome', 'professor',
-        'qtd_alunos', 'aulas_por_semana',
+        '__str__', 'escola', 'serie', 'nome', 'professor', 'qtd_alunos',
     )
-    list_filter = ('escola', 'year', 'aulas_por_semana')
+    list_filter = ('escola', 'serie')
     search_fields = ('nome', 'escola__nome')
+    autocomplete_fields = ('serie', 'professor')

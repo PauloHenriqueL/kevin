@@ -34,10 +34,18 @@ class CodigoAulaTest(TestCase):
             [a.unit for a in Aula.objects.all()], ['WU', 'U3', 'JU']
         )
 
-    def test_unicidade_por_endereco(self):
-        Aula.objects.create(year=5, unit='U1', semana=1, numero_aula=1, titulo='A')
+    def test_unicidade_por_endereco_dentro_do_tg(self):
+        # A unicidade agora é por TG (D31): a mesma U1W1C1 não repete no MESMO
+        # TG, mas pode existir em TGs diferentes (3x e 5x).
+        from .models import TG
+        tg3 = TG.objects.create(nome='TG 3x Y5', year=5, frequencia=3)
+        tg5 = TG.objects.create(nome='TG 5x Y5', year=5, frequencia=5)
+        Aula.objects.create(tg=tg3, unit='U1', semana=1, numero_aula=1, titulo='A')
+        # mesmo endereço, outro TG: permitido
+        Aula.objects.create(tg=tg5, unit='U1', semana=1, numero_aula=1, titulo='B')
+        # mesmo endereço, mesmo TG: proibido
         with self.assertRaises(Exception):
-            Aula.objects.create(year=5, unit='U1', semana=1, numero_aula=1, titulo='B')
+            Aula.objects.create(tg=tg3, unit='U1', semana=1, numero_aula=1, titulo='C')
 
 
 class AtividadeTest(TestCase):
@@ -114,25 +122,41 @@ class BlocoAulaTest(TestCase):
         b.clean()  # não levanta
 
 
-class FrequenciaTest(TestCase):
-    """Turma vê só aulas da sua frequência ou menor (D19)."""
+class SerieTGTest(TestCase):
+    """Turma segue o TG da sua série (D31/D32)."""
 
     def setUp(self):
+        from .models import TG
+        from apps.escolas.models import Serie
         plano = Plano.objects.create(nome='P', valor_mensal=1)
         self.escola = Escola.objects.create(nome='E', slug='e', plano=plano)
+
+        # Dois cronogramas distintos, cada um com seu próprio conteúdo.
+        self.tg3 = TG.objects.create(nome='TG 3x Y5', year=5, frequencia=3)
+        self.tg5 = TG.objects.create(nome='TG 5x Y5', year=5, frequencia=5)
         for i in range(1, 4):
-            Aula.objects.create(year=5, mes=3, semana=1, numero_aula=i,
-                                titulo=f'A{i}', frequencia_minima=3)
-        Aula.objects.create(year=5, mes=3, semana=2, numero_aula=4,
-                            titulo='Extra', frequencia_minima=4)
+            Aula.objects.create(tg=self.tg3, unit='U1', semana=1, numero_aula=i, titulo=f'3x-{i}')
+        for i in range(1, 6):
+            Aula.objects.create(tg=self.tg5, unit='U1', semana=1, numero_aula=i, titulo=f'5x-{i}')
 
-    def test_turma_3x_nao_ve_extra(self):
-        t = Turma.objects.create(year=5, nome='A', escola=self.escola, aulas_por_semana=3)
-        self.assertEqual(t.aulas_do_curriculo().count(), 3)
+        self.serie3 = Serie.objects.create(escola=self.escola, nome='Fund', year=5, tg=self.tg3)
 
-    def test_turma_4x_ve_extra(self):
-        t = Turma.objects.create(year=5, nome='B', escola=self.escola, aulas_por_semana=4)
-        self.assertEqual(t.aulas_do_curriculo().count(), 4)
+    def test_turma_segue_o_tg_da_serie(self):
+        t = Turma.objects.create(year=5, nome='A', escola=self.escola, serie=self.serie3)
+        self.assertEqual(t.tg, self.tg3)
+        self.assertEqual(t.aulas_do_curriculo().count(), 3)  # só as do TG 3x
+
+    def test_serie_5x_ve_o_tg_5x(self):
+        from apps.escolas.models import Serie
+        serie5 = Serie.objects.create(escola=self.escola, nome='Adol', year=5, tg=self.tg5)
+        t = Turma.objects.create(year=5, nome='B', escola=self.escola, serie=serie5)
+        self.assertEqual(t.aulas_do_curriculo().count(), 5)  # só as do TG 5x
+
+    def test_turma_sem_tg_nao_tem_curriculo(self):
+        from apps.escolas.models import Serie
+        serie_vazia = Serie.objects.create(escola=self.escola, nome='X', year=5, tg=None)
+        t = Turma.objects.create(year=5, nome='C', escola=self.escola, serie=serie_vazia)
+        self.assertEqual(t.aulas_do_curriculo().count(), 0)
 
 
 class AulaTurmaTest(TestCase):

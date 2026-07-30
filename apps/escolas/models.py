@@ -141,6 +141,51 @@ class Professor(models.Model):
         return self.user.get_full_name() or self.user.username
 
 
+class Serie(models.Model):
+    """Um segmento da escola cliente — o vínculo entre a escola e um TG (D32).
+
+    A reunião de 30/07 mostrou que cada escola organiza os alunos em segmentos
+    com NOME PRÓPRIO ("não é sempre Fundamental") e escolhe, para cada um, qual
+    cronograma (TG) usar. Ex: Bernoulli cria a série "Fundamental" (Year 5) e o
+    coordenador aponta ela para o "TG 3x — Year 5".
+
+    A turma pertence a uma série e herda o TG dela.
+    """
+
+    escola = models.ForeignKey(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='series',
+    )
+    nome = models.CharField(
+        max_length=60,
+        help_text='Nome que a escola dá ao segmento. Ex: "Fundamental", "K2".',
+    )
+    year = models.PositiveIntegerField(
+        help_text='Year do currículo (1 a 9) que esta série cursa.',
+    )
+    tg = models.ForeignKey(
+        'curriculo.TG',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='series',
+        help_text=(
+            'Cronograma que esta série segue. O coordenador Bebelingue escolhe. '
+            'Vazio = ainda não vinculado (as turmas não têm currículo até então).'
+        ),
+    )
+
+    class Meta:
+        verbose_name = 'Série'
+        verbose_name_plural = 'Séries'
+        unique_together = [('escola', 'nome')]
+        ordering = ['escola', 'year', 'nome']
+
+    def __str__(self):
+        return f'{self.escola.nome} — {self.nome} (Year {self.year})'
+
+
 class Turma(models.Model):
     """Uma turma da escola cliente.
 
@@ -148,7 +193,14 @@ class Turma(models.Model):
     demandas.md, D8). Só o headcount e, por aula, a presença em AulaTurma.
     """
 
-    year = models.IntegerField(help_text='Year do currículo (1 a 5). Define qual TG a turma segue.')
+    serie = models.ForeignKey(
+        Serie,
+        on_delete=models.CASCADE,
+        related_name='turmas',
+        null=True,  # temporário para a migração; vira obrigatório depois
+        help_text='A série a que esta turma pertence — define o TG que ela segue.',
+    )
+    year = models.IntegerField(help_text='Year do currículo (1 a 9). Herda o da série.')
     nome = models.CharField(max_length=20, help_text='Ex: A, B, "Tarde"')
     escola = models.ForeignKey(
         Escola,
@@ -166,13 +218,11 @@ class Turma(models.Model):
         default=0,
         help_text='Quantos alunos a turma tem. Substitui o cadastro individual.',
     )
+    # DEPRECIADO (D31/D32): a frequência agora vem do TG da série
+    # (serie.tg.frequencia). Mantido temporariamente; será removido.
     aulas_por_semana = models.PositiveIntegerField(
         default=3,
-        choices=[(3, '3x por semana'), (4, '4x por semana'), (5, '5x por semana')],
-        help_text=(
-            'Frequência contratada pela escola. O TG de 4x é o de 3x mais uma '
-            'Communication Class; o de 5x, mais outra.'
-        ),
+        help_text='Depreciado — a frequência vem do TG da série.',
     )
 
     class Meta:
@@ -183,15 +233,18 @@ class Turma(models.Model):
     def __str__(self):
         return f'{self.escola.nome} — Turma {self.year}{self.nome}'
 
-    def aulas_do_curriculo(self):
-        """Aulas do TG que esta turma deve dar, na ordem.
+    @property
+    def tg(self):
+        """O cronograma que esta turma segue, vindo da série (D32)."""
+        return self.serie.tg if self.serie_id else None
 
-        Filtra pela frequência: uma turma 3x não vê as Communication Classes
-        extras cadastradas para 4x e 5x (ver D19).
-        """
+    def aulas_do_curriculo(self):
+        """Aulas do TG que esta turma deve dar, na ordem (D31/D32).
+
+        Vêm do TG da série. Sem série ou sem TG vinculado, a turma ainda não
+        tem currículo — retorna vazio."""
         from apps.curriculo.models import Aula
 
-        return Aula.objects.filter(
-            year=self.year,
-            frequencia_minima__lte=self.aulas_por_semana,
-        )
+        if not self.tg:
+            return Aula.objects.none()
+        return self.tg.aulas.all()

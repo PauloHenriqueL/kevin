@@ -198,13 +198,13 @@ class AulaCreateView(CoordBase, CreateView):
     """Cria uma aula a partir de uma célula vazia da grade."""
     model = Aula
     template_name = 'coordenacao/aula_form.html'
-    fields = ['year', 'unit', 'semana', 'numero_aula', 'tipo', 'titulo',
-              'mes', 'lesson', 'frequencia_minima', 'background', 'observacao']
+    fields = ['tg', 'unit', 'semana', 'numero_aula', 'tipo', 'titulo',
+              'mes', 'lesson', 'background', 'observacao']
 
     def get_initial(self):
-        # A grade manda year/unit/semana/numero por querystring ao criar.
+        # A grade manda tg/unit/semana/numero por querystring ao criar.
         return {k: self.request.GET.get(k)
-                for k in ('year', 'unit', 'semana', 'numero_aula')
+                for k in ('tg', 'unit', 'semana', 'numero_aula')
                 if self.request.GET.get(k)}
 
     def form_valid(self, form):
@@ -217,7 +217,7 @@ class AulaUpdateView(CoordBase, UpdateView):
     """Edita os dados da aula (não o roteiro — isso é o editor de blocos)."""
     model = Aula
     template_name = 'coordenacao/aula_form.html'
-    fields = ['tipo', 'titulo', 'mes', 'lesson', 'frequencia_minima',
+    fields = ['tipo', 'titulo', 'mes', 'lesson',
               'background', 'observacao', 'kickoff']
 
     def get_success_url(self):
