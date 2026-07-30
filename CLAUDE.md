@@ -61,7 +61,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Tipo de mudança | Como validar |
 |---|---|
-| Modelo/lógica | `docker compose exec web python manage.py test` (45 testes) |
+| Modelo/lógica | `docker compose exec web python manage.py test` (51 testes) |
 | Tela/fluxo | Playwright: login → navegar → screenshot. **Olhar o screenshot** |
 | Animação | Screenshot no modo específico. Comparar com o `demo.html` do animador |
 | Qualquer coisa | `manage.py check` limpo antes de commitar |
@@ -522,7 +522,7 @@ See `.env.example`. Key variables:
 **Test API endpoint:**
 - Use `manage.py shell` to test views/models
 - **Suíte de testes (Demanda 14):** `docker compose exec web python manage.py test`
-  — 45 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
+  — 51 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
   commitar mudanças no domínio.
 
 ## ⚠️ Exports de animação do animador — como lidar
@@ -606,13 +606,14 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | 6 | Busca no catálogo | Filtros de tipo/origem, badge "usado em N aulas" |
 | 7 | Área `/coordenacao/` | Grade Unit × semana × aula, editor de blocos (arrastar + autocomplete + autosave), catálogo com "usado em N aulas", duplicar Unit |
 | 9 + 10 | Animação | Motor novo (7 modos, mosca), enquadramento corrigido, export do animador validado |
-| 11 | Telão | Modal de conclusão com presença, FAB do chat, botão de música condicional |
+| 11 | Telão | Modal de conclusão com presença, FAB do chat, botão de **música** (Kevin toca ukulele + áudio) e de **listening** (só toca áudio), ambos condicionais ao conteúdo da aula |
 | 12 | Background por aula | Cada aula mostra seu cenário (agora em WebP, 71% menor) |
-| 13 | Seed | Catálogo 100% Bebelingue |
-| 14 | Testes | 45 testes (`manage.py test`) |
+| 13 | Seed | `seed_demo` enxuta: 4 aulas de vitrine (música / listening / bg quarto / bg hospital) |
+| 14 | Testes | 51 testes (`manage.py test`) |
 | — | Chave por Unit | `Y5-MAR-W1C1` → `Y5-U1W1C1` (D27); `CLIL` vira tipo (D28) |
 | — | Catálogo importado | Games Bank do TG: 91 jogos + técnicas via `importar_catalogo_tg` (D30) |
-| — | Deploy | whitenoise + collectstatic prontos (não subiu ainda) |
+| — | Áudio de aula | Música e listening por atividade: o botão só aparece se a aula tem o conteúdo. Faixa em `static/audio/`; `arquivo_url` da atividade aponta ao R2 em produção |
+| — | Deploy | whitenoise + collectstatic + render.yaml + hardening prontos (não subiu ainda) |
 
 ---
 
