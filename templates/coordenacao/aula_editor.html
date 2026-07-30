@@ -4,7 +4,7 @@
 
 {% block coord_heading %}{{ aula.codigo }}{% endblock %}
 {% block coord_subheading %}
-    <p><a href="{% url 'coordenacao:grade' year=aula.year unit=aula.unit %}" class="link-voltar">← grade Y{{ aula.year }} {{ aula.unit }}</a> · {{ aula.get_tipo_display }}</p>
+    <p><a href="{% url 'coordenacao:grade' tg_id=aula.tg_id unit=aula.unit %}" class="link-voltar">← grade {{ aula.tg.nome }} {{ aula.unit }}</a> · {{ aula.get_tipo_display }}</p>
 {% endblock %}
 
 {% block coord_actions %}

@@ -273,8 +273,10 @@ class CoordenacaoTest(TestCase):
         self.client_coord = Client()
         self.client_coord.login(username='coord', password='x')
 
+        from .models import TG
+        self.tg = TG.objects.create(nome='TG 3x — Year 5', year=5, frequencia=3)
         self.aula = Aula.objects.create(
-            year=5, unit='U1', semana=1, numero_aula=1, titulo='Aula 1')
+            tg=self.tg, unit='U1', semana=1, numero_aula=1, titulo='Aula 1')
         self.atividade = Atividade.objects.create(
             tipo='jogo', nome='Simon Says', como_conduzir='Dê comandos.')
 
@@ -289,7 +291,7 @@ class CoordenacaoTest(TestCase):
         self.assertEqual(r.status_code, 200)
 
     def test_grade_lista_aulas_da_unit(self):
-        r = self.client_coord.get('/coordenacao/tg/y5/U1/')
+        r = self.client_coord.get(f'/coordenacao/tg/{self.tg.id}/U1/')
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'Y5-U1W1C1')
 
@@ -307,7 +309,7 @@ class CoordenacaoTest(TestCase):
     def test_reordenar_nao_mexe_em_bloco_de_outra_aula(self):
         """Segurança: reordenar só afeta blocos da própria aula."""
         import json
-        outra = Aula.objects.create(year=5, unit='U1', semana=9, numero_aula=1, titulo='X')
+        outra = Aula.objects.create(tg=self.tg, unit='U1', semana=9, numero_aula=1, titulo='X')
         bloco_outra = BlocoAula.objects.create(
             aula=outra, fase='warm_up', ordem=1, titulo='intruso')
         self.client_coord.post(
@@ -323,18 +325,18 @@ class CoordenacaoTest(TestCase):
         BlocoAula.objects.create(
             aula=self.aula, fase='warm_up', ordem=1, atividade=self.atividade)
         r = self.client_coord.post(
-            '/coordenacao/tg/y5/U1/duplicar/', data={'unit_destino': 'U2'})
+            f'/coordenacao/tg/{self.tg.id}/U1/duplicar/', data={'unit_destino': 'U2'})
         self.assertEqual(r.status_code, 302)
-        nova = Aula.objects.get(year=5, unit='U2', semana=1, numero_aula=1)
+        nova = Aula.objects.get(tg=self.tg, unit='U2', semana=1, numero_aula=1)
         self.assertEqual(nova.codigo, 'Y5-U2W1C1')
         self.assertEqual(nova.blocos.count(), 1)
 
     def test_duplicar_nao_sobrescreve_unit_com_aulas(self):
-        Aula.objects.create(year=5, unit='U3', semana=1, numero_aula=1, titulo='Já existe')
+        Aula.objects.create(tg=self.tg, unit='U3', semana=1, numero_aula=1, titulo='Já existe')
         self.client_coord.post(
-            '/coordenacao/tg/y5/U1/duplicar/', data={'unit_destino': 'U3'})
+            f'/coordenacao/tg/{self.tg.id}/U1/duplicar/', data={'unit_destino': 'U3'})
         # Continua só a aula original em U3 — a duplicação foi recusada.
-        self.assertEqual(Aula.objects.filter(year=5, unit='U3').count(), 1)
+        self.assertEqual(Aula.objects.filter(tg=self.tg, unit='U3').count(), 1)
 
     def test_buscar_atividades_so_retorna_oficiais(self):
         from apps.escolas.models import Escola, Plano

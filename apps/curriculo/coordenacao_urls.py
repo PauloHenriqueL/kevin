@@ -15,8 +15,8 @@ urlpatterns = [
 
     # ── Grade do TG (a tela central) ──
     path('tg/', v.SelecionarUnitView.as_view(), name='tg_index'),
-    path('tg/y<int:year>/<str:unit>/', v.GradeView.as_view(), name='grade'),
-    path('tg/y<int:year>/<str:unit>/duplicar/', v.DuplicarUnitView.as_view(),
+    path('tg/<int:tg_id>/<str:unit>/', v.GradeView.as_view(), name='grade'),
+    path('tg/<int:tg_id>/<str:unit>/duplicar/', v.DuplicarUnitView.as_view(),
          name='duplicar_unit'),
 
     # ── Aula: criar na grade, editar o roteiro ──

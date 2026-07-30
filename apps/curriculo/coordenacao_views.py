@@ -70,49 +70,48 @@ class DashboardView(CoordBase, TemplateView):
 # ──────────────────────────────────────────────
 
 class SelecionarUnitView(CoordBase, TemplateView):
-    """Escolha de Year + Unit antes de abrir a grade."""
+    """Escolha de TG e Unit antes de abrir a grade.
+
+    Lista os TGs existentes (cronogramas da Bebelingue) e, para o TG escolhido,
+    as unidades. Assim a grade opera sobre um TG específico — 3x e 5x não se
+    misturam (D31)."""
     template_name = 'coordenacao/tg_index.html'
     active_nav = 'tg'
 
     def get_context_data(self, **kwargs):
+        from .models import TG
         ctx = super().get_context_data(**kwargs)
-        # Quais (year, unit) já têm aula cadastrada — para marcar na tela.
-        existentes = (
-            Aula.objects.values('year', 'unit')
-            .annotate(n=Count('id'))
-        )
-        mapa = {(e['year'], e['unit']): e['n'] for e in existentes}
-        # Uma lista de units por year, já com a contagem — evita filtro custom
-        # no template (o Django não deixa indexar dict por chave dinâmica).
-        ctx['painel_por_year'] = [
+
+        # Contagem de aulas por (tg, unit), para marcar as unidades preenchidas.
+        existentes = Aula.objects.values('tg_id', 'unit').annotate(n=Count('id'))
+        mapa = {(e['tg_id'], e['unit']): e['n'] for e in existentes}
+
+        ctx['painel_por_tg'] = [
             {
-                'year': y,
+                'tg': tg,
                 'units': [
-                    {
-                        'sigla': u,
-                        'rotulo': rotulo_unit(u),
-                        'n': mapa.get((y, u), 0),
-                    }
+                    {'sigla': u, 'rotulo': rotulo_unit(u), 'n': mapa.get((tg.id, u), 0)}
                     for u in UNITS_PADRAO
                 ],
             }
-            for y in YEARS
+            for tg in TG.objects.all()
         ]
         return ctx
 
 
 class GradeView(CoordBase, TemplateView):
-    """A grade semana × aula de uma Unit — a tela mais importante da demanda."""
+    """A grade semana × aula de uma Unit de um TG — a tela mais importante."""
     template_name = 'coordenacao/grade.html'
     active_nav = 'tg'
 
     def get_context_data(self, **kwargs):
+        from .models import TG
         ctx = super().get_context_data(**kwargs)
-        year = self.kwargs['year']
+        tg = get_object_or_404(TG, pk=self.kwargs['tg_id'])
         unit = self.kwargs['unit'].upper()
 
         aulas = list(
-            Aula.objects.filter(year=year, unit=unit)
+            Aula.objects.filter(tg=tg, unit=unit)
             .prefetch_related('blocos')
             .order_by('semana', 'numero_aula')
         )
@@ -129,7 +128,7 @@ class GradeView(CoordBase, TemplateView):
             matriz.setdefault(aula.semana, {})[aula.numero_aula] = aula
 
         ctx.update({
-            'year': year,
+            'tg': tg,
             'unit': unit,
             'rotulo_unit': rotulo_unit(unit),
             'semanas': semanas,
@@ -145,32 +144,33 @@ class GradeView(CoordBase, TemplateView):
 
 
 class DuplicarUnitView(CoordBase, View):
-    """Copia toda a estrutura de uma Unit para outra (D7.2 — "duplicar mês").
+    """Copia a estrutura de uma Unit para outra, dentro do mesmo TG (D7.2).
 
-    Copia a aula e seus blocos, para o coordenador editar por cima em vez de
-    montar do zero. A Unit de destino tem que estar vazia — nunca sobrescreve.
-    """
+    Copia a aula e seus blocos, para o coordenador editar por cima. A Unit de
+    destino tem que estar vazia — nunca sobrescreve."""
 
-    def post(self, request, year, unit):
+    def post(self, request, tg_id, unit):
+        from .models import TG
+        tg = get_object_or_404(TG, pk=tg_id)
         unit = unit.upper()
         destino = request.POST.get('unit_destino', '').strip().upper()
 
         if not destino:
             messages.error(request, 'Escolha a Unit de destino.')
-            return redirect('coordenacao:grade', year=year, unit=unit)
+            return redirect('coordenacao:grade', tg_id=tg.id, unit=unit)
 
-        if Aula.objects.filter(year=year, unit=destino).exists():
+        if Aula.objects.filter(tg=tg, unit=destino).exists():
             messages.error(
                 request,
-                f'A {rotulo_unit(destino)} já tem aulas. '
+                f'A {rotulo_unit(destino)} já tem aulas neste TG. '
                 'Duplicar só funciona para uma Unit vazia.'
             )
-            return redirect('coordenacao:grade', year=year, unit=unit)
+            return redirect('coordenacao:grade', tg_id=tg.id, unit=unit)
 
-        origem = Aula.objects.filter(year=year, unit=unit).prefetch_related('blocos')
+        origem = Aula.objects.filter(tg=tg, unit=unit).prefetch_related('blocos')
         if not origem.exists():
             messages.error(request, 'A Unit de origem está vazia.')
-            return redirect('coordenacao:grade', year=year, unit=unit)
+            return redirect('coordenacao:grade', tg_id=tg.id, unit=unit)
 
         with transaction.atomic():
             for aula in origem:
@@ -188,7 +188,7 @@ class DuplicarUnitView(CoordBase, View):
             f'{rotulo_unit(unit)} duplicada para {rotulo_unit(destino)}. '
             'Revise as aulas antes de publicar.'
         )
-        return redirect('coordenacao:grade', year=year, unit=destino)
+        return redirect('coordenacao:grade', tg_id=tg.id, unit=destino)
 
 
 # ──────────────────────────────────────────────
