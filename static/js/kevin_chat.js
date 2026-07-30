@@ -760,5 +760,22 @@
     });
   }
 
+  // ── Botão de listening (atividade de escuta) ──
+  // Toggle simples: toca/para o áudio de listening. Sem ukulele, sem lipsync —
+  // é a turma escutando um áudio de compreensão.
+  const btnListening = document.getElementById('btn-listening');
+  if (btnListening && kevinChat) {
+    btnListening.addEventListener('click', async () => {
+      const tocando = btnListening.dataset.playing === 'true';
+      if (tocando) {
+        if (kevinChat.stopListening) kevinChat.stopListening();
+        btnListening.dataset.playing = 'false';
+      } else {
+        if (kevinChat.playListening) await kevinChat.playListening(window.KEVIN_LISTENING_URL);
+        btnListening.dataset.playing = 'true';
+      }
+    });
+  }
+
   chatBody.scrollTop = chatBody.scrollHeight;
 })();

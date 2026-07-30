@@ -389,12 +389,52 @@ class KevinPuppetIntegration {
     this._startIdleLoop();
   }
 
+  // ── Listening (atividade de escuta) ──────────────────────────────────────
+  // Diferente da música: só toca o áudio, sem o Kevin pegar o ukulele nem
+  // fazer lipsync. É a turma escutando um áudio de compreensão. Usa um <audio>
+  // próprio para não interferir no elemento de lipsync da fala/música.
+
+  /** Toca o áudio de listening. @param {string} audioUrl URL do áudio. */
+  async playListening(audioUrl) {
+    if (!this._initialized || !audioUrl) return false;
+    this._kickActivity();
+    if (!this._listeningEl) {
+      this._listeningEl = document.createElement('audio');
+      this._listeningEl.preload = 'auto';
+      this._listeningEl.style.display = 'none';
+      document.body.appendChild(this._listeningEl);
+      // Ao acabar, volta o status para ocioso.
+      this._listeningEl.addEventListener('ended', () => {
+        this.setStatus('idle', 'Pronto pra conversar');
+      });
+    }
+    try {
+      this._listeningEl.src = audioUrl;
+      await this._listeningEl.play();
+      this.setStatus('speaking', 'Ouvindo 🎧');
+      return true;
+    } catch (e) {
+      return false;  // autoplay bloqueado sem gesto; o clique real resolve
+    }
+  }
+
+  /** Para o áudio de listening. */
+  stopListening() {
+    if (this._listeningEl && !this._listeningEl.paused) {
+      try { this._listeningEl.pause(); this._listeningEl.currentTime = 0; } catch (e) { /* ignore */ }
+    }
+    this.setStatus('idle', 'Pronto pra conversar');
+  }
+
   destroy() {
     this._stopIdleLoop();
     clearTimeout(this._statusTimer);
     if (this.kevin) this.kevin.destroy();
     if (this.audioEl && this.audioEl.parentNode) {
       this.audioEl.parentNode.removeChild(this.audioEl);
+    }
+    if (this._listeningEl && this._listeningEl.parentNode) {
+      this._listeningEl.parentNode.removeChild(this._listeningEl);
     }
     this._initialized = false;
   }

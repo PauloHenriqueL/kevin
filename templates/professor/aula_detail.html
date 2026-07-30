@@ -97,6 +97,16 @@
             <span class="call-btn-label">Música</span>
         </div>
         {% endif %}
+        {% if aula.tem_listening %}
+        <div class="call-btn-wrap">
+            <button class="btn-listening" id="btn-listening" type="button" aria-label="Tocar áudio de listening" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Listening</span>
+        </div>
+        {% endif %}
     </div>
 
     <!-- FAB do chat (canto inferior direito) -->
@@ -285,10 +295,13 @@ window.KEVIN_RIG_CONFIG = {
     backgroundUrl:    window.KEVIN_BACKGROUNDS["{{ aula.background }}"] || window.KEVIN_BACKGROUNDS["floresta"],
     rigMountSelector: "#kevin-rig-mount",
 };
-// Áudio de música desta aula. Vem do arquivo_url da atividade de música
-// (ex: faixa no R2 em produção); se vazio, usa a faixa estática padrão. É esta
-// URL que o botão de música toca quando o Kevin pega o ukulele.
-window.KEVIN_MUSICA_URL = "{{ aula.musica_url|default:''|escapejs }}" || "{% static 'audio/musica-y5u1.mp3' %}";
+// Áudio de música desta aula: vem do arquivo_url da atividade de música (ex:
+// faixa no R2). Vazio = o botão só anima o ukulele, sem tocar som. Sem fallback
+// global de propósito: cada aula toca só o áudio que ela tem cadastrado.
+window.KEVIN_MUSICA_URL = "{{ aula.musica_url|default:''|escapejs }}";
+// Áudio de listening (atividade de escuta). O botão de listening só toca este
+// áudio — o Kevin não pega o ukulele nem faz lipsync.
+window.KEVIN_LISTENING_URL = "{{ aula.listening_url|default:''|escapejs }}";
 // Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
 window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
 // Modo demo: respostas locais para testar animações (desativar em produção)

@@ -346,3 +346,32 @@ class MusicaAulaTest(TestCase):
         song = Atividade.objects.create(tipo='rotina', nome='Hello Song')
         BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=song)
         self.assertTrue(self.aula.tem_musica)
+
+
+class ListeningAulaTest(TestCase):
+    """Botão de listening do telão: só aparece com atividade de listening,
+    e é independente da música (são conteúdos diferentes)."""
+
+    def setUp(self):
+        self.aula = Aula.objects.create(
+            year=5, unit='U1', semana=1, numero_aula=1, titulo='X')
+
+    def test_sem_listening_botao_nao_aparece(self):
+        self.assertFalse(self.aula.tem_listening)
+        self.assertEqual(self.aula.listening_url, '')
+
+    def test_atividade_com_tag_listening_ativa_botao(self):
+        atv = Atividade.objects.create(
+            tipo='recurso', nome='Listening Practice U1', tags='listening, escuta',
+            arquivo_url='https://exemplo.com/listening.mp3')
+        BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=atv)
+        self.assertTrue(self.aula.tem_listening)
+        self.assertEqual(self.aula.listening_url, 'https://exemplo.com/listening.mp3')
+
+    def test_musica_e_listening_sao_independentes(self):
+        """Uma aula de música não ativa o botão de listening, e vice-versa."""
+        song = Atividade.objects.create(
+            tipo='rotina', nome='Songs Collection', tags='musica')
+        BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=song)
+        self.assertTrue(self.aula.tem_musica)
+        self.assertFalse(self.aula.tem_listening)

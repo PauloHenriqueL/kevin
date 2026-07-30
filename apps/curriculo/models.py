@@ -357,31 +357,57 @@ class Aula(models.Model):
 
         return '\n'.join(linhas)
 
-    def _atividade_musica(self):
-        """A primeira atividade de música da aula, ou None.
+    def _atividade_por_marcadores(self, tags, nomes):
+        """A primeira atividade da aula que casa com uma das tags ou nomes.
 
-        Detecta pela tag 'musica' ou pelo nome (song/música). É o que liga o
-        botão de música do telão ao conteúdo da aula (Demanda 11)."""
+        Base dos botões do telão (música, listening): cada um só aparece se a
+        aula tiver a atividade correspondente (Demanda 11)."""
         for bloco in self.blocos.select_related('atividade').all():
             a = bloco.atividade
-            if a and ('musica' in a.tags.lower() or 'song' in a.nome.lower()
-                      or 'música' in a.nome.lower()):
+            if not a:
+                continue
+            tags_lower = a.tags.lower()
+            nome_lower = a.nome.lower()
+            if any(t in tags_lower for t in tags) or any(n in nome_lower for n in nomes):
                 return a
         return None
 
+    def _atividade_musica(self):
+        """Atividade de música da aula (o Kevin canta com o ukulele), ou None."""
+        return self._atividade_por_marcadores(
+            tags=('musica', 'música'), nomes=('song', 'música'))
+
+    def _atividade_listening(self):
+        """Atividade de listening da aula (áudio de escuta), ou None.
+
+        Listening é distinto de música: é a turma escutando um áudio para
+        praticar compreensão, não o Kevin cantando. Não é rotina de toda aula."""
+        return self._atividade_por_marcadores(
+            tags=('listening',), nomes=('listening',))
+
     @property
     def tem_musica(self):
-        """True se a aula tem um bloco de música — controla se o botão de música
-        aparece no telão."""
+        """True se a aula tem música — controla se o botão de música aparece."""
         return self._atividade_musica() is not None
 
     @property
     def musica_url(self):
-        """URL do áudio que toca quando o professor clica no botão de música.
-
-        Vem do `arquivo_url` da atividade de música da aula. Sem áudio, o botão
-        só anima o Kevin (pega o ukulele) sem tocar som."""
+        """URL do áudio de música (do `arquivo_url` da atividade). Vazio = o
+        botão só anima o Kevin pegando o ukulele, sem tocar som."""
         atividade = self._atividade_musica()
+        return atividade.arquivo_url if atividade else ''
+
+    @property
+    def tem_listening(self):
+        """True se a aula tem listening — controla se o botão de listening
+        aparece no telão. Mesma regra da música, para outro conteúdo."""
+        return self._atividade_listening() is not None
+
+    @property
+    def listening_url(self):
+        """URL do áudio de listening (do `arquivo_url` da atividade). Ao clicar,
+        o botão só toca este áudio — o Kevin não faz animação especial."""
+        atividade = self._atividade_listening()
         return atividade.arquivo_url if atividade else ''
 
 

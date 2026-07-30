@@ -1,11 +1,12 @@
 """Seed de APRESENTAÇÃO — dados ricos para demonstrar o sistema ao cliente.
 
-Diferente do `seed` (mínimo, para testar), este popula:
-- o TG de Março/Year 5 inteiro (12 aulas tipadas, como no TG real da Bebelingue)
-- catálogo de atividades cheio (jogos, técnicas, rotinas, recursos)
-- uma atividade LOCAL de escola (demonstra o isolamento entre clientes)
-- 2 escolas, 2 turmas com frequências diferentes (3x e 4x)
-- progresso variado (turma adiantada vs. atrasada) para os relatórios
+Seed enxuta para a APRESENTAÇÃO: 4 aulas de vitrine, cada uma mostrando uma
+capacidade do sistema, em vez de reproduzir o TG inteiro:
+- Aula 1: botão de MÚSICA (Kevin canta com o ukulele) — bg floresta
+- Aula 2: botão de LISTENING (atividade de escuta) — bg escola
+- Aula 3: background QUARTO (sem áudio)
+- Aula 4: background HOSPITAL (sem áudio)
+Mais: catálogo cheio, 2 escolas, 2 turmas (3x e 4x) e progresso variado.
 
 Rode: docker compose exec web python manage.py seed_demo
 Segue o roteiro em docs/ROTEIRO_APRESENTACAO.md.
@@ -130,6 +131,9 @@ class Command(BaseCommand):
             ('rotina', 'Songs Collection', 'Coletânea de músicas da metodologia.',
              'Toque uma música da coletânea e cante junto com a turma.',
              'Engajamento e ritmo', '', 'musica, rotina'),
+            ('recurso', 'Listening Practice U1', 'Áudio de escuta da Unit 1.',
+             'Toque o áudio e peça que a turma escute e responda às perguntas.',
+             'Compreensão auditiva', '', 'listening, escuta, unit1'),
             ('rotina', 'I Can Routine', 'Ritual de fim de atividade.',
              'Peça que marquem a caixa "I can" no rodapé e escrevam a data.',
              'Autoavaliação e registro', '', 'rotina, registro'),
@@ -165,13 +169,25 @@ class Command(BaseCommand):
             ('recurso', 'Integrated Activities - Science L1', 'Atividades integradas de Ciências.',
              '', 'CLIL — estados da água', '', 'clil, science, culture'),
         ]
+        # URL de áudio por atividade (demo). O mesmo arquivo serve para música e
+        # listening — na apresentação, você explica que é a mesma faixa. As URLs
+        # são absolutas porque arquivo_url é URLField; em produção, apontam ao R2.
+        base = 'http://localhost:8000/static/audio'
+        audio_por_atividade = {
+            'Songs Collection': f'{base}/musica-y5u1.mp3',
+            'Listening Practice U1': f'{base}/listening-y5u1.mp3',
+        }
+
         self.atv = {}
         for tipo, nome, desc, como, obj, mat, tags in oficiais:
+            arquivo_url = audio_por_atividade.get(nome, '')
+            if not arquivo_url and tipo == 'recurso':
+                arquivo_url = 'https://exemplo.com/material'
             a, _ = Atividade.objects.get_or_create(
                 nome=nome, escola=None,
                 defaults={'tipo': tipo, 'descricao': desc, 'como_conduzir': como,
                           'objetivo_pedagogico': obj, 'materiais': mat, 'tags': tags,
-                          'arquivo_url': 'https://exemplo.com/material' if tipo == 'recurso' else '',
+                          'arquivo_url': arquivo_url,
                           'criado_por': self.coord},
             )
             self.atv[nome] = a
@@ -200,19 +216,30 @@ class Command(BaseCommand):
             Homework.objects.create(aula=aula, descricao=hw)
         return aula
 
-    def _warmup_padrao(self, jogo):
-        """Warm Up padrão: BeCalendar + Songs + jogo de correção de HW."""
-        return [
-            ('warm_up', 1, 'BeCalendar', '', ''),
-            ('warm_up', 2, 'Songs Collection', '', ''),
-            ('warm_up', 3, jogo, '', 'HW Correction / Practice Game'),
-        ]
+    def _warmup(self, jogo, com_musica=False, com_listening=False):
+        """Warm Up da aula. BeCalendar + jogo sempre; música e listening só
+        quando a aula pede (é o que faz o botão correspondente aparecer)."""
+        blocos = [('warm_up', 1, 'BeCalendar', '', '')]
+        ordem = 2
+        if com_musica:
+            blocos.append(('warm_up', ordem, 'Songs Collection', '', '')); ordem += 1
+        if com_listening:
+            blocos.append(('warm_up', ordem, 'Listening Practice U1', '', '')); ordem += 1
+        blocos.append(('warm_up', ordem, jogo, '', 'HW Correction / Practice Game'))
+        return blocos
 
     def _tg_marco(self):
-        # WEEK 1
-        self._aula(1, 1, 'content', 1, 'U1L1', 'Share It! — Daily Routines', bg='quarto',
+        """Seed enxuta para apresentação: 4 aulas, cada uma mostrando uma
+        capacidade — música, listening, e dois backgrounds diferentes.
+
+        Não reproduz o TG inteiro de propósito: é uma vitrine do sistema. A
+        regra dos botões (só aparece se a aula tem o conteúdo) é a mesma de
+        produção — aqui só controlamos QUAIS aulas têm cada conteúdo."""
+
+        # AULA 1 — botão de MÚSICA (o Kevin canta com o ukulele)
+        self._aula(1, 1, 'content', 1, 'U1L1', 'Share It! — Daily Routines', bg='floresta',
                    kickoff='Olá Kevin, hoje começamos a Unit 1. Por onde vamos?',
-                   blocos=self._warmup_padrao('Go and Touch') + [
+                   blocos=self._warmup('Go and Touch', com_musica=True) + [
                        ('development', 1, "Student's Book U1L1",
                         'Explore a imagem da página.\nIntroduza o vocabulário com Repetition Techniques.',
                         "Student's Book U1L1 (P. 10-11)"),
@@ -220,127 +247,66 @@ class Command(BaseCommand):
                        ('closure', 1, 'Hangman', '', 'Review Game'),
                    ],
                    hw='Integrated Activities - Unit 1 (exercises 1 and 2)')
-        self._aula(1, 2, 'content', 1, 'U1L2', 'Grammar — Frequency Adverbs', bg='quarto',
-                   blocos=self._warmup_padrao('Hot Potato') + [
+
+        # AULA 2 — botão de LISTENING (atividade de escuta)
+        self._aula(1, 2, 'content', 1, 'U1L2', 'Listening — A Day in My Life', bg='escola-int',
+                   kickoff='Olá Kevin! Hoje vamos praticar escuta. Pronto?',
+                   blocos=self._warmup('Hot Potato', com_listening=True) + [
                        ('development', 1, "Student's Book U1L1",
-                        'Escreva a gramática no quadro. Introduza com Sandwich Technique.',
+                        'Toque o áudio de listening e faça as perguntas de compreensão.',
                         "Student's Book U1L2 (P. 12-13)"),
-                       ('development', 2, 'Repetition Techniques', 'Drills orais.', ''),
-                       ('development', 3, 'I Can Routine', '', ''),
+                       ('development', 2, 'I Can Routine', '', ''),
                        ('closure', 1, 'Simon Says', '', 'Review Game'),
-                   ],
-                   hw='Copiar o Grammar Chart da página 12 no caderno.')
-        self._aula(1, 3, 'culture', 1, 'CLIL Science L1', 'Culture — States of Water', bg='floresta',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Integrated Activities - Science L1',
-                        'Explore as imagens de água. Introduza: gas, solid, liquid.',
-                        'Integrated Activities Book - Science L1 (P. 65-66)'),
-                       ('closure', 1, 'Four Corners', '', 'Review Game'),
                    ])
-        # WEEK 2
-        self._aula(2, 1, 'content', 1, 'U1L3', 'Reading — A Day in My Life', bg='escola-int',
-                   blocos=self._warmup_padrao('Go and Touch') + [
-                       ('development', 1, "Student's Book U1L1",
-                        'Setting up context → Scanning → Skimming → While-reading → Post-reading.',
-                        "Student's Book U1L3 (P. 14-15)"),
+
+        # AULA 3 — background QUARTO (sem áudio)
+        self._aula(1, 3, 'content', 1, 'U1L3', 'Vocabulary — Daily Routines at Home', bg='quarto',
+                   blocos=self._warmup('Go and Touch') + [
+                       ('development', 1, "Student's Book U1L1", 'Vocabulário de rotina com flashcards.',
+                        "Student's Book U1L3 (P. 14)"),
                        ('development', 2, 'I Can Routine', '', ''),
                        ('closure', 1, 'Hangman', '', 'Review Game'),
                    ])
-        self._aula(2, 2, 'communication', 1, '', 'Communication — Speaking Games', bg='escola-ext',
-                   obs='Aula sem livro — prática oral por jogos.',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Simon Says', 'Pratique oralmente o vocabulário 1.', ''),
-                       ('development', 2, 'Four Corners', 'Pratique oralmente o vocabulário 1.', ''),
+
+        # AULA 4 — background HOSPITAL (sem áudio)
+        self._aula(2, 1, 'culture', 1, 'CLIL Health', 'Culture — At the Doctor', bg='hospital',
+                   obs='Cenário de hospital combina com o vocabulário de saúde.',
+                   blocos=self._warmup('Four Corners') + [
+                       ('development', 1, 'Integrated Activities - Science L1',
+                        'Vocabulário de saúde e partes do corpo.',
+                        'Integrated Activities Book (P. 65-66)'),
                        ('closure', 1, 'Pictionary', '', 'Review Game'),
                    ])
-        self._aula(2, 3, 'culture', 1, 'CLIL Science L2', 'Culture — Healthy Food', bg='floresta',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Integrated Activities - Science L1',
-                        'Discuta comidas saudáveis. Introduza grupos alimentares.',
-                        'Integrated Activities Book - Science L2 (P. 67-68)'),
-                       ('closure', 1, 'Four Corners', '', 'Review Game'),
-                   ])
-        # WEEK 3
-        self._aula(3, 1, 'content', 1, 'U1L4', 'Vocabulary — Transportation', bg='escola-ext',
-                   blocos=self._warmup_padrao('Go and Touch') + [
-                       ('development', 1, "Student's Book U1L1", 'Vocabulário com flashcards.',
-                        "Student's Book U1L4 (P. 16)"),
-                       ('development', 2, 'I Can Routine', '', ''),
-                       ('closure', 1, 'Hangman', '', 'Review Game'),
-                   ])
-        self._aula(3, 2, 'content', 1, 'U1L5', 'Grammar — How often?', bg='quarto',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Repetition Techniques', 'Drills da estrutura "How often".', ''),
-                       ('development', 2, 'I Can Routine', '', ''),
-                       ('closure', 1, 'Simon Says', '', 'Review Game'),
-                   ],
-                   hw='Copiar o Grammar Chart da página 15.')
-        self._aula(3, 3, 'culture', 1, 'St. Patrick', "Culture — St. Patrick's Day", bg='floresta',
-                   obs="Sugestão: convidar os alunos a vestir verde neste dia.",
-                   kickoff="Olá Kevin! Hoje é St. Patrick's Day. Vamos comemorar?",
-                   blocos=self._warmup_padrao('Hangman') + [
-                       ('development', 1, 'Four Corners',
-                        "Jogo: Let's Catch a Leprechaun! Esconda recortes pela sala.", ''),
-                       ('closure', 1, 'Go and Touch', '', 'Review Game'),
-                   ])
-        # WEEK 4
-        self._aula(4, 1, 'content', 1, 'U1L6-7', 'CLIL Reading — Around the World', bg='escola-int',
-                   blocos=self._warmup_padrao('Go and Touch') + [
-                       ('development', 1, "Student's Book U1L1", 'Reading com scanning e skimming.',
-                        "Student's Book U1L6 & L7 (P. 18-19)"),
-                       ('development', 2, 'I Can Routine', '', ''),
-                       ('closure', 1, 'Hangman', '', 'Review Game'),
-                   ])
-        self._aula(4, 2, 'communication', 1, 'Progress Tracker', 'Communication — Review Games', bg='escola-ext',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Pictionary', 'Pratique o vocabulário 2.', ''),
-                       ('development', 2, 'Four Corners', 'Progress Tracker (P. 21).', ''),
-                       ('closure', 1, 'Simon Says', '', 'Review Game'),
-                   ])
-        self._aula(4, 3, 'content', 1, 'Review', 'Review & Exam Practice', bg='quarto',
-                   blocos=self._warmup_padrao('Go and Touch') + [
-                       ('development', 1, "Student's Book U1L1", 'Review (P. 22) + Exam Practice (P. 23).', ''),
-                       ('closure', 1, 'Hangman', '', 'Review Game'),
-                   ],
-                   hw='Integrated Activities - Unit 1 (exercises 8 and 9 + Extra Practice)')
 
-        # aula extra de 4x (só aparece para turmas 4x/5x)
-        self._aula(2, 4, 'communication', 1, '', 'Extra Communication (4x)', freq=4, bg='escola-ext',
-                   obs='Aula extra do TG de 4x — não aparece para turmas 3x.',
-                   blocos=self._warmup_padrao('Hot Potato') + [
-                       ('development', 1, 'Pictionary', 'Prática oral extra.', ''),
-                       ('closure', 1, 'Four Corners', '', ''),
-                   ])
-        self.stdout.write('  ✓ TG de Março: 12 aulas + 1 extra (4x)')
+        self.stdout.write('  ✓ 4 aulas de demo: música (floresta), listening (escola), quarto, hospital')
 
-    # ── Progresso variado (para os relatórios) ──
     def _progresso(self):
-        aulas_5a = list(self.turma5a.aulas_do_curriculo())
-        # 5A (Maria) está adiantada: 7 aulas dadas
+        # Com a seed enxuta (4 aulas), o contraste 5A vs 5B fica: 5A adiantada
+        # (3 concluídas + 1 em andamento), 5B atrasada (1 concluída).
         base = date.today() - timedelta(days=30)
-        for i, aula in enumerate(aulas_5a[:7]):
+
+        aulas_5a = list(self.turma5a.aulas_do_curriculo())
+        for i, aula in enumerate(aulas_5a[:3]):
             AulaTurma.objects.get_or_create(
                 turma=self.turma5a, aula=aula,
                 defaults={'status': 'concluida', 'professor': self.maria,
                           'data_realizada': base + timedelta(days=i * 3),
                           'presentes': 20 + (i % 3)},
             )
-        # a 8ª em andamento
-        if len(aulas_5a) > 7:
+        if len(aulas_5a) > 3:
             AulaTurma.objects.get_or_create(
-                turma=self.turma5a, aula=aulas_5a[7],
+                turma=self.turma5a, aula=aulas_5a[3],
                 defaults={'status': 'em_andamento', 'professor': self.maria})
 
-        # 5B (João) está atrasada: só 3 aulas dadas
         aulas_5b = list(self.turma5b.aulas_do_curriculo())
-        for i, aula in enumerate(aulas_5b[:3]):
+        for i, aula in enumerate(aulas_5b[:1]):
             AulaTurma.objects.get_or_create(
                 turma=self.turma5b, aula=aula,
                 defaults={'status': 'concluida', 'professor': self.joao,
                           'data_realizada': base + timedelta(days=i * 5),
                           'presentes': 17 + (i % 2)},
             )
-        self.stdout.write('  ✓ Progresso: 5A adiantada (7 aulas), 5B atrasada (3 aulas)')
+        self.stdout.write('  ✓ Progresso: 5A adiantada (3 concluídas), 5B atrasada (1)')
 
     def _final(self):
         self.stdout.write(self.style.SUCCESS(
