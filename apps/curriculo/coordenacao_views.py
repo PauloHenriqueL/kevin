@@ -19,7 +19,8 @@ from django.views.generic import (
 )
 
 from apps.accounts.mixins import CoordenadorRequiredMixin
-from apps.escolas.models import Escola
+from apps.escolas.models import Escola, Professor
+from apps.escolas.relatorios import montar_relatorio_professores, PERIODOS
 
 from .models import Atividade, Aula, BlocoAula, ordem_da_unit
 
@@ -450,3 +451,27 @@ class AtividadeUpdateView(CoordBase, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Atividade atualizada.')
         return super().form_valid(form)
+
+
+# ──────────────────────────────────────────────
+# Relatório orientado ao professor (Demanda 16, D33)
+# ──────────────────────────────────────────────
+
+class RelatorioProfessorView(CoordBase, TemplateView):
+    """Onde cada professor (de todas as escolas) está no plano — a métrica que
+    importa para a Bebelingue (D33). Com filtro temporal mês/ano."""
+    template_name = 'coordenacao/relatorio_professor.html'
+    active_nav = 'relatorio'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        periodo = self.request.GET.get('periodo', 'mes_atual')
+        if periodo not in dict(PERIODOS):
+            periodo = 'mes_atual'
+        professores = (
+            Professor.objects.filter(ativo=True)
+            .select_related('user', 'escola')
+            .prefetch_related('turmas__serie__tg')
+        )
+        ctx.update(montar_relatorio_professores(professores, periodo=periodo))
+        return ctx

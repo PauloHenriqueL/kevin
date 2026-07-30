@@ -248,3 +248,31 @@ class Turma(models.Model):
         if not self.tg:
             return Aula.objects.none()
         return self.tg.aulas.all()
+
+    def posicao_no_plano(self, ate=None):
+        """Onde a turma chegou no TG (D33), acumulado até a data `ate`.
+
+        Retorna um dict com a última aula concluída (a "posição"), quantas
+        aulas foram concluídas e o total do TG. Se `ate` é None, considera
+        tudo. É a base do relatório do professor com filtro temporal.
+        """
+        from apps.curriculo.models import AulaTurma
+
+        total = self.aulas_do_curriculo().count()
+        execs = AulaTurma.objects.filter(turma=self, status='concluida')
+        if ate is not None:
+            execs = execs.filter(data_realizada__lte=ate)
+
+        concluidas = execs.count()
+        # A "posição" é a aula concluída mais avançada no TG (ordem_unit/semana).
+        ultima = (
+            execs.select_related('aula')
+            .order_by('-aula__ordem_unit', '-aula__semana', '-aula__numero_aula')
+            .first()
+        )
+        return {
+            'aula': ultima.aula if ultima else None,
+            'concluidas': concluidas,
+            'total': total,
+            'pct': round((concluidas / total) * 100) if total else 0,
+        }

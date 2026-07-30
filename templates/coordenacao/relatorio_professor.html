@@ -1,16 +1,10 @@
-{% extends "gestao/base_gestao.html" %}
-{% load static %}
-{% block title %}Relatório do professor — Gestão{% endblock %}
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Relatório do professor — Kevin{% endblock %}
 
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/coordenacao.css' %}?v=2">{% endblock %}
+{% block coord_heading %}Relatório do professor{% endblock %}
+{% block coord_subheading %}<p>Onde cada professor está no plano — a métrica que importa</p>{% endblock %}
 
-{% block gestao_heading %}
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-Relatório do professor
-{% endblock %}
-{% block gestao_subheading %}<p>Onde cada professor da escola está no plano</p>{% endblock %}
-
-{% block gestao_body %}
+{% block coord_body %}
 
 <div class="rel-filtro">
     <span>Período:</span>
@@ -49,7 +43,9 @@ Relatório do professor
                     <em>nenhuma aula concluída no período</em>
                 {% endif %}
             </div>
-            <div class="rel-barra"><div class="rel-barra-fill" style="width: {{ t.pct }}%;"></div></div>
+            <div class="rel-barra">
+                <div class="rel-barra-fill" style="width: {{ t.pct }}%;"></div>
+            </div>
             <div class="rel-num">{{ t.concluidas }} de {{ t.total }} aulas do TG · {{ t.pct }}%</div>
         </div>
         {% empty %}

@@ -322,3 +322,24 @@
 .usos-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .usos-card li { font-size: 0.85rem; }
 .usos-card a { color: var(--azul); font-weight: 700; }
+
+/* ── Relatório do professor (Demanda 16) ── */
+.rel-filtro { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; font-weight: 700; color: var(--texto-sec); }
+.rel-ate { font-size: 0.82rem; font-weight: 600; color: var(--texto-muted); margin-left: auto; }
+.rel-lista { display: flex; flex-direction: column; gap: 16px; }
+.rel-prof { background: var(--cinza-card); border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); }
+.rel-prof-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--cinza-borda); margin-bottom: 12px; }
+.rel-prof-nome { display: flex; align-items: center; gap: 12px; }
+.rel-prof-nome strong { font-size: 1.05rem; color: var(--azul-escuro); display: block; }
+.rel-prof-escola { font-size: 0.8rem; color: var(--texto-muted); }
+.rel-turma { padding: 10px 0; }
+.rel-turma + .rel-turma { border-top: 1px dashed var(--cinza-borda); }
+.rel-turma-topo { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rel-turma-topo strong { font-size: 0.95rem; }
+.rel-serie { font-size: 0.78rem; color: var(--texto-sec); font-weight: 700; }
+.rel-pos { font-size: 0.88rem; color: var(--texto-sec); margin: 4px 0 8px; }
+.rel-pos strong { color: var(--azul-escuro); }
+.rel-barra { height: 8px; background: var(--cinza-borda); border-radius: var(--radius-pill); overflow: hidden; }
+.rel-barra-fill { height: 100%; background: var(--grad-azul); border-radius: var(--radius-pill); transition: width 0.4s ease; }
+.rel-num { font-size: 0.78rem; color: var(--texto-muted); margin-top: 4px; }
+.rel-vazio { color: var(--texto-muted); font-size: 0.85rem; }

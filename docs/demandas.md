@@ -1461,7 +1461,10 @@ vêm depois.
 
 ## Demanda 16 — Relatório orientado ao professor
 
-**Status:** 🔴 A implementar
+**Status:** ✅ Implementada (30/07/2026) — em `/coordenacao/relatorio/` (todas as
+escolas) e `/gestao/relatorios/professores/` (a do diretor). Filtro mês atual /
+mês passado / ano; posição acumulada no TG. O "previsto" (Early Plan) fica para
+quando o cliente enviar o modelo.
 **Origem:** reunião 30/07/2026. Decisão D33. Substitui o foco da Demanda 4.
 **Objetivo:** inverter o relatório — a métrica principal é do **professor**, não
 da turma, com filtro temporal.

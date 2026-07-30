@@ -95,3 +95,59 @@ class TelaoTest(BaseProfessor):
         outra = Turma.objects.create(year=5, nome='Z', escola=self.escola_b)
         r = self.client.get(f'/professor/turma/{outra.id}/')
         self.assertEqual(r.status_code, 404)
+
+
+class RelatorioProfessorTest(TestCase):
+    """Relatório orientado ao professor (Demanda 16, D33)."""
+
+    def setUp(self):
+        from datetime import date, timedelta
+        from apps.curriculo.models import TG, Aula, AulaTurma
+        from apps.escolas.models import Serie
+        self.date = date
+        self.AulaTurma = AulaTurma
+
+        plano = Plano.objects.create(nome='P', valor_mensal=1)
+        self.escola = Escola.objects.create(nome='E', slug='e', plano=plano)
+        u = User.objects.create_user('prof', role='professor')
+        self.prof = Professor.objects.create(user=u, escola=self.escola)
+
+        self.tg = TG.objects.create(nome='TG 3x Y5', year=5, frequencia=3)
+        self.aulas = [
+            Aula.objects.create(tg=self.tg, unit='U1', semana=1, numero_aula=i, titulo=f'A{i}')
+            for i in range(1, 5)
+        ]
+        serie = Serie.objects.create(escola=self.escola, nome='Fund', year=5, tg=self.tg)
+        self.turma = Turma.objects.create(
+            year=5, nome='A', escola=self.escola, serie=serie, professor=self.prof)
+
+        hoje = date.today()
+        # 2 aulas concluídas neste mês, 1 no mês passado.
+        AulaTurma.objects.create(turma=self.turma, aula=self.aulas[0], status='concluida',
+                                 professor=self.prof, data_realizada=hoje.replace(day=1) - timedelta(days=5))
+        AulaTurma.objects.create(turma=self.turma, aula=self.aulas[1], status='concluida',
+                                 professor=self.prof, data_realizada=hoje)
+        AulaTurma.objects.create(turma=self.turma, aula=self.aulas[2], status='concluida',
+                                 professor=self.prof, data_realizada=hoje)
+
+    def test_posicao_no_plano_acumulada(self):
+        pos = self.turma.posicao_no_plano()
+        self.assertEqual(pos['concluidas'], 3)
+        self.assertEqual(pos['total'], 4)
+        self.assertEqual(pos['pct'], 75)
+        # a posição é a aula mais avançada (numero_aula=3)
+        self.assertEqual(pos['aula'].numero_aula, 3)
+
+    def test_filtro_mes_passado_conta_menos(self):
+        from datetime import date
+        hoje = date.today()
+        ate = hoje.replace(day=1) - __import__('datetime').timedelta(days=1)
+        pos = self.turma.posicao_no_plano(ate=ate)
+        # só a aula concluída no mês passado
+        self.assertEqual(pos['concluidas'], 1)
+
+    def test_helper_agrupa_por_professor(self):
+        from apps.escolas.relatorios import montar_relatorio_professores
+        dados = montar_relatorio_professores([self.prof], periodo='mes_atual')
+        self.assertEqual(len(dados['professores']), 1)
+        self.assertEqual(dados['professores'][0]['turmas'][0]['concluidas'], 3)
