@@ -1,383 +1,284 @@
 # Perguntas para a reunião — Bebelingue
 
-> **Contexto:** ao remodelar o Kevin (ver [demandas.md](demandas.md)), tivemos
-> que deduzir várias coisas dos arquivos de vocês. Este documento ficou só com o
-> que **ainda precisa de resposta** — as perguntas já respondidas viraram o
-> quadro "Já fechado" abaixo, para não repetir.
+> **Como usar este documento na reunião:** as perguntas estão em ordem de
+> prioridade (P1 → P3). Comece pela **P1**; se o tempo apertar, garanta só ela.
+> Cada pergunta tem um espaço `➡️` para anotar a resposta ali mesmo.
 >
 > **Atualizado em 24/07/2026.**
 
 ---
 
-## ✅ Já fechado (não precisa discutir de novo)
+## 🗒️ Roteiro rápido (marque conforme responde)
 
-| Tema | O que ficou decidido |
+**P1 — Trava trabalho (garanta estas):**
+- [ ] 1. 5x vs 3x — uma turma usa um TG por vez? Escola mistura turmas 3x e 5x?
+- [ ] 2. Class Feedback — professor vê? escola vê?
+- [ ] 3. Tipos de aula — a lista está completa?
+- [ ] 4. Quem cadastra escolas / diretores / professores?
+- [ ] 5. Qual escola entra primeiro, e quando?
+
+**P2 — Importante (tente cobrir):**
+- [ ] 6. "Professor em dia" — como se mede o atraso?
+- [ ] 7. Cenário de fundo — quem escolhe por aula?
+- [ ] 8. Quando começa/termina o ano letivo?
+- [ ] 9. Quantos coordenadores e prazo para popular o sistema?
+
+**P3 — Leve (se sobrar tempo):**
+- [ ] 10. Warm Up é sempre igual?
+- [ ] 11. "I Can Routine" e Homework são regra?
+- [ ] 12. Professor pode criar atividade própria?
+- [ ] 13. Presença serve pra quê? Quem vê as métricas?
+- [ ] 14. Class Feedback vira histórico? Com que frequência é a observação?
+- [ ] 15. Turma tem um professor só? Muda de Year? Como se chama?
+- [ ] 16. Provas — como funcionam?
+
+**📎 Arquivos para pedir:**
+- [ ] TGs dos **Years 1–4** (só temos o Y5)
+- [ ] Modelos de **RMP** e **Yearly Plan Review**
+
+---
+
+## ✅ Já fechado (não precisa discutir)
+
+| Tema | Decidido |
 |---|---|
-| TG por escola | Igual para todas; adaptação quase irrelevante → **currículo global** |
-| Frequência | Negociada com a escola; ela pode querer **3x ou 5x**. O **4x = 3x + 1 Communication** |
-| Games Bank | Recebido no TG e **importado** (91 jogos com regra) |
-| BeBooklet / técnicas | Recebido e **importado** (Instant Translation, Correlation, Sandwich) |
-| Endereçamento | Aula = `Year + Unit + Semana + Aula` (ex: `Y5-U1W1C1`), como na apostila |
-| Week 5 / Extra Class | Esclarecido — modelado como aula extra, sem roteiro obrigatório |
-| Aluno nominal | **Não é necessário** — só quantidade e presença. Modelo `Aluno` removido |
-| Class Feedback (fluxo) | O modelo está no arquivo `CLASS FEEDBACK - MODELO.docx` |
-
-**Arquivos ainda esperados:**
-
-- [ ] **TGs dos Years 1–4** — só temos o Y5. O catálogo importado já serve para
-      todos; faltam as **aulas** de cada Year (cadastráveis na grade nova).
-- [ ] **Modelo de RMP** e **Yearly Plan Review** — destravam as métricas de
-      professor (Demanda 4).
+| TG por escola | Igual para todas → **currículo global** |
+| Frequência | Escola escolhe **3x ou 5x**; o **4x = 3x + 1 Communication** |
+| Games Bank + técnicas | Recebidos no TG e **importados** (91 jogos) |
+| Endereçamento | `Year + Unit + Semana + Aula` (ex: `Y5-U1W1C1`) |
+| Week 5 / Extra Class | Aula extra, sem roteiro obrigatório |
+| Aluno nominal | **Não é necessário** — só quantidade e presença |
 
 ---
 
-## 🎯 As duas decisões que travam trabalho agora
+# 🔴 P1 — Perguntas que travam trabalho
 
-1. **§1 — Como o 5x entra no banco.** 3x e 5x são TGs distintos; a escola escolhe
-   um dos dois. Precisamos saber como modelar isso.
-2. **§4 — Class Feedback: quem vê o quê.** É avaliação de desempenho de pessoa;
-   queremos decidir antes de construir.
+## 1. Frequência 5x — como convive com o 3x?
 
-O resto são confirmações mais leves (§2, §3, §5).
+<details><summary><em>por que perguntamos</em></summary>
+
+3x e 5x são TGs diferentes (a Welcome Unit tem 12 aulas no 3x e 20 no 5x). O
+4x sim é o 3x + uma Communication, mas o 5x é outro TG. Precisamos saber como
+guardar os dois no banco.
+</details>
+
+**a)** Uma turma usa **um TG por vez** (ou 3x, ou 5x), do começo ao fim do ano?
+
+**b)** Uma escola pode ter, ao mesmo tempo, **turmas de 3x e turmas de 5x**?
+
+**c)** O TG de 5x é escrito **do zero**, ou parte do 3x e adapta? Existe 2x?
+
+➡️ **Resposta:**
+
+<br><br>
 
 ---
 
-## 1. Frequência 5x — como convive com o 3x? 🔴
+## 2. Class Feedback — quem vê o quê?
 
-> **Contexto:** vocês confirmaram que a escola negocia a frequência e pode querer
-> 3x ou 5x. Comparando os TGs do Y5, **3x e 5x são TGs diferentes** (a Welcome
-> Unit tem 12 aulas no 3x e 20 no 5x), com conteúdo próprio — diferente do 4x,
-> que é o 3x + uma Communication.
+<details><summary><em>por que perguntamos</em></summary>
 
-### 1.1 Uma turma usa um TG por vez, do começo ao fim do ano?
+É avaliação de desempenho de pessoa, com peso trabalhista. O formulário tem os
+BeTips (para o professor) e um resumo endereçado ao diretor da escola. A
+Demanda 5 está parada esperando esta decisão.
+</details>
 
-**O que deduzimos:** que cada turma segue **um** TG inteiro — ou o de 3x, ou o de
-5x —, nunca alternando no meio do ano.
+**a)** O **professor** vê o próprio feedback? Tudo, só os BeTips, ou nada? Como é
+entregue hoje (conversa, e-mail, impresso)?
 
-**A pergunta:** confirma? Uma escola pode ter, ao mesmo tempo, turmas de 3x e
-turmas de 5x (turmas diferentes)?
+**b)** O **diretor da escola** vê o resumo? Os BeTips detalhados? As notas das 4
+dimensões?
 
-**O que muda:** define como guardamos os dois TGs no banco. Se é um por turma,
-guardamos o 5x como um conjunto de aulas próprio e a turma puxa o TG da
-frequência dela.
+➡️ **Resposta:**
 
-📝 **Resposta:**
+<br><br>
+
+---
+
+## 3. A lista de tipos de aula está completa?
+
+<details><summary><em>por que perguntamos</em></summary>
+
+Temos Content, Communication, Culture, CLIL e Extra. O tipo define o formato do
+roteiro e o checklist de observação — errar obriga a refazer cadastro.
+</details>
+
+Existem outros tipos? "Movement Class" é o mesmo que Communication? "CLIL
+Project" e "Festival" são tipos próprios?
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+## 4. Quem cadastra escolas, diretores e professores?
+
+Deduzimos: a Bebelingue cadastra a escola e o diretor; o diretor cadastra os
+professores dele. **Confirma? Ou vocês cadastram tudo?**
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+## 5. Qual escola entra primeiro, e quando?
+
+<details><summary><em>por que perguntamos</em></summary>
+
+Define a ordem de entrega. Uma escola com um Year só permite entregar bem menos,
+bem mais rápido.
+</details>
+
+Qual é a primeira escola a usar de verdade? Quantas turmas e professores? Qual a
+data?
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+# 🟡 P2 — Importante
+
+## 6. "Professor em dia" — como se mede o atraso?
+
+<details><summary><em>por que perguntamos</em></summary>
+
+Vocês disseram que é o RMP + o Yearly Plan Review. Falta receber os dois modelos
+e entender a conta. Define o relatório da Demanda 4.
+</details>
+
+O que é "atraso aceitável" — uma aula? Duas semanas? A referência é "está na Unit
+certa para o mês" ou "deu X aulas no mês"? Alguém compara isso manualmente hoje?
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+## 7. Cenário de fundo — quem escolhe por aula?
+
+<details><summary><em>por que perguntamos</em></summary>
+
+Temos 7 cenários (floresta, quarto, banheiro, escola int/ext, hospital int/ext).
+Com um padrão claro, dá para sugerir o cenário automaticamente pelo tema.
+</details>
+
+O coordenador escolhe ao cadastrar a aula (daily routines → quarto; doctor →
+hospital)? Vocês têm um mapa vocabulário → cenário, ou é bom senso? Os 7 cobrem o
+que precisam?
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+## 8. Quando começa e termina o ano letivo?
+
+O TG cobre quais meses (fev–nov)? Tem recesso de julho? Todas as escolas seguem
+o mesmo calendário? *(Sem a data de início, não dá para calcular "a turma
+deveria estar na aula X hoje".)*
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+## 9. Quantos coordenadores, e com que prazo para popular?
+
+Quantas pessoas na Bebelingue vão cadastrar TG e catálogo? Têm divisão (uma no
+Year 1–3, outra no 4–5)? Quando a primeira turma precisa estar rodando — dá para
+começar com um Year só?
+
+➡️ **Resposta:**
+
+<br><br>
+
+---
+
+# 🟢 P3 — Leves (se sobrar tempo)
+
+## 10. O Warm Up é sempre a mesma estrutura?
+
+BeCalendar + Songs Collection fixos, variando só o jogo? Vale para todos os
+Years? *(Se fixo, pré-montamos o Warm Up ao criar a aula.)*
+
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-### 1.2 O TG de 5x é montado do zero, ou parte do 3x?
+## 11. "I Can Routine" e Homework são regra?
 
-**A pergunta:** o 5x é escrito independentemente, ou vocês começam do 3x e
-adaptam? Existe frequência 2x em algum Year?
+O "I Can Routine" aparece em toda Content Class (e em Culture)? O Homework é
+sempre atribuído numa aula e corrigido na seguinte?
 
-**O que muda:** se o 5x deriva do 3x de forma previsível, dá para gerar parte
-dele automaticamente; se é independente, cada um é cadastrado por completo.
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-### 1.3 🟡 Quando começa e termina o ano letivo?
+## 12. O professor pode criar as próprias atividades?
 
-**A pergunta:** o TG cobre quais meses? Fevereiro a novembro? Tem recesso de
-julho? Todas as escolas seguem o mesmo calendário, ou cada uma tem o seu?
+Já está implementado assim: a atividade do professor fica só na escola dele,
+nunca no catálogo oficial. **Concordam?** Vocês gostariam de ver o que eles
+criam (para promover ao oficial)?
 
-**O que muda:** sem a data de início do ano letivo de cada turma, não
-conseguimos calcular "esta turma deveria estar na aula X hoje" (ver §5.1).
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-## 2. Estrutura do TG
+## 13. A presença serve para quê, e quem vê as métricas?
 
-### 2.1 🔴 A lista de tipos de aula está completa?
+A presença por aula é para cobrança, relatório aos pais, controle interno? As
+métricas de cada professor — o diretor vê os da escola dele, o professor só os
+próprios, a Bebelingue vê todas? Um professor vê a de outro?
 
-**O que temos:** `Content`, `Communication`, `Culture`, `CLIL` e `Extra`.
-
-**A pergunta:** existem outros? "Movement Class" é o mesmo que "Communication
-Class"? "CLIL Project" e "Festival" são tipos próprios ou variações?
-
-**O que muda:** o tipo determina o formato do roteiro e o checklist de observação
-(Demanda 5). Errar aqui obriga a mexer no cadastro depois.
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-### 2.2 🟡 O Warm Up é sempre a mesma estrutura?
+## 14. Class Feedback vira histórico? Com que frequência a observação?
 
-**O que deduzimos:** BeCalendar + Songs Collection fixos, variando só o jogo de
-correção de HW.
+Faz sentido ver a evolução do professor ao longo do ano? O checklist da rotina
+vem dos blocos reais da aula ou é fixo? Cada professor é observado quantas vezes
+por semestre — agendado ou surpresa?
 
-**A pergunta:** confirma? Vale para todos os Years, ou só para alguns?
-
-**O que muda:** se for fixo, pré-montamos o Warm Up ao criar a aula (o
-coordenador só escolhe o jogo) — economiza tempo dele.
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-### 2.3 🟡 "I Can Routine" e Homework — são regra?
+## 15. Turmas — professor, virada de ano, nome
 
-**A pergunta:** o "I Can Routine" aparece em toda Content Class (e em Culture
-também)? O Homework é sempre atribuído numa aula e corrigido na seguinte?
+Existe co-docência ou divisão de turma? Substituição precisa ser registrada? Na
+virada de ano, a turma "sobe" de Year ou é criada nova? Identificam por turno
+("4º Ano Tarde")?
 
-**O que muda:** se são regra, o Kevin e o cadastro já contam com eles; se variam,
-ficam opcionais por aula.
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
 
 ---
 
-## 3. Catálogo e quem cadastra
+## 16. Provas — como funcionam?
 
-### 3.1 🟡 O professor pode criar as próprias atividades?
+Quantas por ano (uma por Unit)? Quem imprime, aplica e corrige, e a nota vai para
+onde? O Kevin deveria ajudar (gerar exercícios, preparar a turma), ou avaliação
+fica com o professor?
 
-**O que deduzimos:** que sim, mas separadas do catálogo oficial — a atividade do
-professor fica visível só na escola dele, nunca no catálogo Bebelingue nem em
-outra escola. (Já está implementado assim.)
-
-**A pergunta:** concordam? Vocês gostariam de **ver** o que os professores criam,
-para eventualmente promover ao catálogo oficial? Ou preferem que nem possam
-criar?
-
-📝 **Resposta:**
+➡️ **Resposta:**
 
 <br>
-
----
-
-### 3.2 🔴 Quem cadastra as escolas, diretores e professores?
-
-**O que deduzimos:** a Bebelingue cadastra a escola e o diretor; o diretor
-cadastra os professores dele.
-
-**A pergunta:** confirma? Ou vocês cadastram tudo, inclusive professores?
-
-**O que muda:** define as permissões e o que priorizamos na área da coordenação.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 3.3 🟡 Quantos coordenadores, e com que prazo para popular?
-
-**A pergunta:** quantas pessoas na Bebelingue vão cadastrar TG e catálogo? Têm
-divisão (uma cuida do Year 1–3, outra do 4–5)? E quando a primeira turma precisa
-estar rodando — dá para começar com um Year só?
-
-**O que muda:** define se precisamos de permissão por Year e a ordem de entrega.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## 4. Class Feedback 🔴
-
-> **Demanda parada aguardando esta conversa.** Temos o formulário-modelo. O que
-> falta é o **fluxo** e, principalmente, **quem enxerga o quê** — é avaliação de
-> desempenho de pessoa, com implicação trabalhista.
-
-### 4.1 O professor vê o próprio feedback?
-
-**Por quê importa:** o formulário tem duas partes de tom diferente — os BeTips em
-inglês (dirigidos ao professor) e o resumo em português endereçado ao
-"Coordenador(a) / Diretor(a) da Escola".
-
-**A pergunta:** o professor recebe o documento inteiro? Só os BeTips? Nada? Como
-é entregue hoje — conversa, e-mail, impresso?
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 4.2 O que a escola (diretor) vê?
-
-**A pergunta:** o diretor recebe o resumo em português? Vê os BeTips detalhados?
-Vê as notas das 4 dimensões?
-
-> ⚠️ É o ponto em que a informação atravessa da Bebelingue para o empregador do
-> professor. Um professor mal avaliado aparecendo assim para a escola tem
-> implicação trabalhista — queremos que vocês decidam conscientemente.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 4.3 🟡 As 4 dimensões viram histórico? O checklist vem da aula?
-
-**A pergunta:** faz sentido ver a evolução de um professor ao longo do ano
-("melhorou em Class Management")? E o checklist da rotina — deve ser gerado a
-partir dos blocos reais da aula, ou uma lista fixa genérica?
-
-**O que muda:** série histórica é mais valiosa e mais delicada; derivar o
-checklist da aula é mais preciso mas amarra à qualidade do cadastro.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 4.4 🟡 Com que frequência acontece a observação?
-
-**A pergunta:** cada professor é observado quantas vezes por semestre? É agendado
-ou surpresa? Existe planejamento de visitas que o sistema deveria ajudar a
-organizar?
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## 5. Métricas de professor
-
-### 5.1 🔴 O que significa "professor em dia"?
-
-> Vocês disseram que é medido no **RMP** (o professor informa em que aula está) e
-> o previsto vem do **Yearly Plan Review**. Falta receber os dois modelos — e
-> entender a conta.
-
-**A pergunta:** o que é "atraso aceitável" — uma aula? Duas semanas? A referência
-é "está na Unit certa para o mês", ou "deu X aulas no mês"? Alguém compara isso
-manualmente hoje?
-
-**O que muda:** define completamente o relatório da Demanda 4.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 5.2 🟡 A presença serve para quê, e quem vê as métricas?
-
-**A pergunta:** a presença por aula é para cobrança, relatório aos pais, controle
-interno? E as métricas de cada professor — o diretor vê os da escola dele, o
-professor vê só os próprios, a Bebelingue vê todas? Um professor pode ver a de
-outro?
-
-**O que muda:** é dado sensível — queremos acertar antes de expor.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## 6. Turmas
-
-### 6.1 🟡 Uma turma tem sempre um professor só? Muda de Year no ano?
-
-**A pergunta:** existe co-docência ou divisão de turma? Quando alguém falta,
-outro assume — precisa registrar? E na virada de ano, a turma "sobe" para o Year
-seguinte ou é criada nova?
-
-**O que muda:** define se `Turma` é anual ou permanente, e se registramos
-substituição.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 6.2 🟢 Como se chamam as turmas?
-
-**A pergunta:** identificam por turno (o feedback da Gabriela diz "4º Ano
-Tarde")? Nome livre resolve, ou querem um campo de turno separado?
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## 7. Cenários de fundo do Kevin 🔴
-
-> O animador entregou 7 cenários (floresta, quarto, banheiro, escola
-> interior/exterior, hospital interior/exterior). Cada aula tem um campo
-> `background`.
-
-### 7.1 Quem escolhe qual cenário para qual aula?
-
-**O que deduzimos:** que o coordenador escolhe ao cadastrar o TG, casando o
-cenário com o vocabulário (daily routines → quarto; at the doctor → hospital).
-
-**A pergunta:** faz sentido? Vocês têm um mapeamento vocabulário → cenário, ou é
-bom senso? Os 7 cobrem o que precisam, ou faltam temas?
-
-**O que muda:** com um padrão claro, podemos **sugerir** o cenário
-automaticamente pelo tema da aula em vez de deixar tudo manual.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## 8. Operação (leves)
-
-### 8.1 🟢 Provas e avaliação
-
-**A pergunta:** quantas provas por ano (uma por Unit)? Quem imprime, aplica e
-corrige, e a nota vai para onde? Faria sentido o Kevin ajudar (gerar exercícios,
-preparar a turma), ou avaliação fica inteiramente com o professor?
-
-📝 **Resposta:**
-
-<br>
-
----
-
-### 8.2 🔴 Qual escola entra primeiro e quando?
-
-**A pergunta:** qual é a primeira escola a usar de verdade? Quantas turmas e
-professores? Qual a data?
-
-**O que muda:** define nossa ordem de entrega — uma escola com um Year só permite
-entregar bem menos, bem mais rápido.
-
-📝 **Resposta:**
-
-<br>
-
----
-
-## Checklist de saída da reunião
-
-**Decisões que destravam trabalho:**
-- [ ] 🔴 **5x vs 3x**: uma turma usa um TG por vez? Escola mistura turmas 3x e 5x? — §1
-- [ ] 🔴 **Class Feedback**: professor vê? escola vê? — §4
-- [ ] 🔴 **Tipos de aula** completos — §2.1
-- [ ] 🔴 **Quem cadastra o quê** — §3.2
-- [ ] 🔴 **Qual escola entra primeiro e quando** — §8.2
-
-**Arquivos a receber:**
-- [ ] **TGs dos Years 1–4**
-- [ ] **RMP** e **Yearly Plan Review** — §5.1
-
-**Confirmações leves (se sobrar tempo):** §2.2, §2.3, §3.1, §3.3, §5.2, §6, §7, §8.1.
