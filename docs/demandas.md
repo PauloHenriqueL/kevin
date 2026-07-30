@@ -3,7 +3,8 @@
 > **Status deste documento:** aprovado como escopo. Cada demanda tem seu próprio
 > status de implementação — leia o cabeçalho de cada uma antes de começar.
 >
-> **Última atualização:** 21/07/2026
+> **Última atualização:** 30/07/2026 — reunião com a Bebelingue fechou a
+> modelagem de currículo (D31–D36). Novas **Demandas 15–17** para o MVP.
 
 ---
 
@@ -20,6 +21,9 @@
 - [Demanda 6 — Busca global de conteúdo](#demanda-6--busca-global-de-conteúdo)
 - [Demanda 7 — Área da coordenação](#demanda-7--área-da-coordenação)
 - [Demanda 8 — Configuração do comportamento do Kevin](#demanda-8--configuração-do-comportamento-do-kevin) 📌
+- **[Demanda 15 — Série e TG como entidades](#demanda-15--série-e-tg-como-entidades-remodelagem-do-vínculo-escolacurrículo)** 🔴 (MVP)
+- **[Demanda 16 — Relatório orientado ao professor](#demanda-16--relatório-orientado-ao-professor)** 🔴
+- **[Demanda 17 — June ordenada entre a Unit 4 e a Unit 5](#demanda-17--june-ordenada-entre-a-unit-4-e-a-unit-5)** 🔴
 - [Decisões registradas](#decisões-registradas)
 - [Considerado e adiado](#considerado-e-adiado)
 - [Riscos aceitos](#riscos-aceitos)
@@ -1379,6 +1383,155 @@ docker compose exec web python manage.py test apps.escolas.tests.ConclusaoAulaTe
 
 ---
 
+## Demanda 15 — Série e TG como entidades (remodelagem do vínculo escola↔currículo)
+
+**Status:** 🔴 A implementar (prioridade máxima — destrava o MVP)
+**Origem:** reunião 30/07/2026. Decisões D31, D32, D36.
+**Objetivo:** modelar como a escola escolhe qual cronograma cada segmento segue,
+substituindo o vínculo frágil de hoje (`Turma.year` + `Turma.aulas_por_semana`).
+
+### 15.1 O problema, em concreto
+
+Hoje a `Aula` é global por `year` + `frequencia_minima`, e a `Turma` puxa as
+aulas filtrando por esses dois campos. A reunião mostrou que a realidade é outra:
+
+- A escola organiza os alunos em **segmentos com nome próprio** — a Mila disse
+  que cada escola batiza do seu jeito ("não é sempre 'Fundamental'"). Uma escola
+  usa 3x no Infantil, 4x no Fundamental, 5x nos Adolescentes.
+- **3x, 4x e 5x são cronogramas diferentes** (não um derivado do outro — D29).
+- Quem monta o cronograma é a **Bebelingue** (currículo global, D1); a escola só
+  **escolhe qual usar** para cada segmento.
+
+### 15.2 Modelo alvo
+
+```
+Bebelingue                         Escola (cliente)
+──────────                         ────────────────
+TG  (global, nomeado)  ◄────────── Serie  (nome livre)  ──1─N── Turma
+  "TG 3x — Year 5"                   "Fundamental"
+  frequencia: 3                       year: 5
+  1─N Aula                            tg: → TG 3x Year 5
+```
+
+- **`TG`** (nova entidade, da Bebelingue):
+  - `nome` — ex: "TG 3x — Year 5". É o que o coordenador lê ao escolher.
+  - `year` — a que Year se aplica.
+  - `frequencia` — 3, 4 ou 5. **Sai de `Aula.frequencia_minima`** (D31).
+  - `1─N Aula` — as aulas passam a apontar para um `TG`, não para `year` solto.
+- **`Serie`** (nova entidade, da escola):
+  - `escola` (FK), `nome` (livre, ex: "Fundamental"), `year`.
+  - `tg` (FK para TG) — qual cronograma esta série segue. **É o coordenador
+    (Mila) quem preenche**, numa aba de escola → série → escolher TG.
+- **`Turma`** passa a ter `serie` (FK). Herda o TG pela série. `Turma.year` e
+  `Turma.aulas_por_semana` **saem** (vêm da série/TG agora).
+
+### 15.3 Fluxo de uso (o que a reunião descreveu)
+
+1. **Diretor** cadastra a escola no plano Premium e cria uma **Série** ("Fundamental").
+2. **Coordenador (Mila)** monta o **TG padrão** de 3x para o Year 5 (na grade da
+   Demanda 7, agora vinculada a um TG).
+3. **Coordenador** entra em *Escolas → Bernoulli → Fundamental* e **escolhe o TG**
+   que essa série usa.
+4. A **turma 5B** (da série Fundamental) passa a seguir aquele TG.
+
+### 15.4 Migração
+
+- Criar `TG` e `Serie`. Migrar os dados atuais: as aulas de Y5 viram um `TG 3x
+  Year 5`; a turma 5A/5B ganham uma série apontando para ele.
+- `Aula.frequencia_minima` → derivada do `TG.frequencia` (remover o campo depois).
+- `Turma.aulas_do_curriculo()` passa a ser `self.serie.tg.aulas.all()`.
+- Atualizar a grade da coordenação (Demanda 7) para editar aulas **de um TG**.
+
+### 15.5 Escopo do MVP (D36)
+
+Modelar tudo, mas **popular só o Year 5**: um TG 3x Year 5, uma série, uma turma.
+Não travar em Infantil/Fundamental/Adolescente — a estrutura suporta, os dados
+vêm depois.
+
+### 15.6 Critérios de aceite
+
+- [ ] Existem entidades `TG` (Bebelingue) e `Serie` (escola)
+- [ ] Coordenador cria um TG nomeado e monta as aulas dele
+- [ ] Coordenador vincula uma série de uma escola a um TG
+- [ ] Turma segue o TG da sua série; `aulas_do_curriculo` reflete isso
+- [ ] Migração converte os dados de Y5 atuais sem perda
+- [ ] `Aula.frequencia_minima` removido; frequência vem do TG
+
+---
+
+## Demanda 16 — Relatório orientado ao professor
+
+**Status:** 🔴 A implementar
+**Origem:** reunião 30/07/2026. Decisão D33. Substitui o foco da Demanda 4.
+**Objetivo:** inverter o relatório — a métrica principal é do **professor**, não
+da turma, com filtro temporal.
+
+### 16.1 O problema
+
+O relatório atual (`/gestao/relatorios/`) é centrado na turma. A Mila foi
+explícita: **"a métrica que importa é a do professor"**. A turma aparece, mas
+aninhada sob o professor.
+
+### 16.2 Modelo alvo da tela
+
+```
+Professor João Santos                          [ mês atual ▼ ]
+├─ Turma 5B — Fundamental
+│    posição no plano: Unit 2, Semana 3  ·  previsto (Early Plan): Unit 3
+│    ▓▓▓▓▓░░░░░  52% do TG
+└─ (outras turmas do professor…)
+```
+
+- **Agrupa por professor**; cada turma dele é uma linha com **onde está no TG**
+  vs. **onde deveria estar** (o previsto vem do Early Plan).
+- **Filtro temporal** (D33): **mês atual / mês passado / ano**. O coordenador
+  quer ver a posição hoje, no mês anterior, ou o acumulado do ano.
+
+### 16.3 De onde vem o "previsto"
+
+O **Early Plan** (o que chamávamos Yearly Plan Review) define os marcos de
+conclusão de unidade. Ainda **não recebemos o modelo** — enquanto não vier, o
+previsto pode ser um campo manual por turma, ou ficar em branco.
+
+### 16.4 Critérios de aceite
+
+- [ ] Relatório agrupa por professor, turma aninhada
+- [ ] Cada turma mostra posição no TG (unit/semana) vs. previsto
+- [ ] Filtro mês atual / mês passado / ano funciona
+- [ ] Quem vê: coordenador Bebelingue (todas as escolas) e diretor (a sua)
+
+> **Depende da Demanda 15** (a posição no TG precisa do vínculo série→TG) e do
+> **Early Plan** (para o "previsto"). Sem o Early Plan, entrega a posição real e
+> deixa o previsto manual/vazio.
+
+---
+
+## Demanda 17 — June ordenada entre a Unit 4 e a Unit 5
+
+**Status:** 🔴 A implementar (rápida)
+**Origem:** reunião 30/07/2026. Decisão D34.
+**Objetivo:** posicionar a June Unit no lugar certo do ano letivo.
+
+### 17.1 O problema
+
+Hoje `ORDEM_UNITS = {UNIT_WELCOME: 0, UNIT_JUNE: 9}` — a June cai no fim do ano.
+A Mila esclareceu que **as aulas de June vêm logo depois da Unit 4** e são
+**tarefas** (não vão para a sala de aula).
+
+### 17.2 O que muda
+
+- `ordem_da_unit('JU')` passa a devolver **4.5** (entre U4 e U5), não 9.
+- A grade da coordenação e a navegação do professor mostram June após a U4.
+- (Opcional) marcar as aulas de June como "tarefa" para o professor saber que
+  não é aula de sala — avaliar se cabe no MVP ou fica registrado.
+
+### 17.3 Critérios de aceite
+
+- [ ] June aparece entre Unit 4 e Unit 5 na ordenação
+- [ ] O ano letivo começa em fevereiro; julho é férias (contexto, não bloqueia)
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1414,16 +1567,27 @@ uma tem consequência em cascata sobre as demais.
 | **D26** | Visão de aderência **fora** da Demanda 7 | Entregar junto | Depende da Demanda 4, travada esperando Yearly Plan Review e RMP do cliente |
 | **D27** | **Chave da aula volta a ser `Year + Unit + Semana + Aula`** (`U1W1C1`) — **revoga a D2** | Manter mês como chave | O TG real entregue em 24/07/2026 endereça por Unit: o código impresso é `U1W1C1`, e o mês aparece só como faixa lateral. A D2 foi tomada sobre o CSV de março, uma amostra de um mês só, que dava a impressão de que o mês era o eixo. Com o TG completo em mãos, não é |
 | **D28** | `CLIL` entra como tipo de aula | Encaixar em `content` | O TG usa CLIL em ~30 das 128 aulas do Y5 3x. É uma natureza de aula da metodologia (Content and Language Integrated Learning), não uma variação de Content |
-| **D29** | 3x e 5x são **TGs distintos**; o **4x** é que é o 3x + uma Communication. **Complementa a D19, não a revoga** | `frequencia_minima` sobre um cadastro único cobrindo 3x/4x/5x | Confirmado com o cliente (24/07/2026): o eixo da frequência tem **duas coisas diferentes**. (a) 4x = 3x + uma Communication Class — é isso que a D19 modela com `frequencia_minima`, e continua válido. (b) 5x é um **TG próprio**, não um 3x turbinado: a Welcome Unit tem 12 células no 3x e 20 no 5x, com conteúdo diferente. Logo `frequencia_minima` **não** basta para 5x — ele precisa de aulas próprias (mesmo `year`/`unit`/`semana`, `numero_aula` maior, ou um campo de trilha). **Decisão de modelagem pendente** — ver pergunta na pauta |
+| **D29** | 3x e 5x são **TGs distintos**; o **4x** é que é o 3x + uma Communication. **Complementa a D19, não a revoga** | `frequencia_minima` sobre um cadastro único cobrindo 3x/4x/5x | Confirmado com o cliente (24/07/2026): o eixo da frequência tem **duas coisas diferentes**. (a) 4x = 3x + uma Communication Class. (b) 5x é um **TG próprio**, não um 3x turbinado. **Resolvido pela D31** (entidade TG) — cada frequência vira um TG nomeado, e a série da escola aponta para o TG certo |
 | **D30** | O catálogo é **importado** do TG, não digitado | Manter D7 (sem seed) para o catálogo | A D7 protege contra inventar dados. Aqui a fonte é o documento oficial do cliente — a seção "GAMES FOR THE WHOLE YEAR", com 87 jogos e regra completa. Importar é transcrever, não inventar. O TG segue cadastrado à mão pelo coordenador |
+| **D31** | **`TG` vira entidade** (global da Bebelingue, nomeada, ex: "TG 3x Year 5"), dona da frequência. `Aula` pertence a um TG | `Aula` global por `year`+`frequencia_minima` | Reunião 30/07: a Mila esclareceu que 3x/4x/5x são cronogramas diferentes por segmento. Modelar cada um como um TG nomeado resolve a D29 sem `frequencia_minima` na Aula, e permite (futuro) TGs específicos por escola. O currículo segue **global** (D1): o TG é da Bebelingue, a escola só escolhe qual usar |
+| **D32** | **`Serie` vira entidade da escola** (nome livre, ex: "Fundamental"), aponta para um TG. `Turma` pertence a uma `Serie` | `Turma` com `year`+`aulas_por_semana` soltos | Reunião 30/07: cada escola dá o **próprio nome** aos segmentos ("não é sempre fundamental"). A série guarda esse nome e o vínculo com o TG. A turma herda o TG da série — é o que ela executa |
+| **D33** | **Relatório é do professor**, com a turma aninhada e a posição dela no plano; filtro **mês / mês passado / ano** | Relatório centrado na turma (como está hoje) | Reunião 30/07: "a métrica que importa é a do professor, não a da turma". O relatório atual foca na turma — tem que inverter: Professor João → turma 5B → onde está no plano. O previsto vem do **Early Plan** (o "Yearly Plan Review") |
+| **D34** | **June ordena entre a Unit 4 e a Unit 5** (`ordem_unit` da JU = 4.5) | JU no fim do ano (ordem 9) | Reunião 30/07: as aulas de June vêm **depois da Unit 4** e são **tarefas**, não aula de sala. Corrige a `ORDEM_UNITS` (JU deixa de ser 9) |
+| **D35** | **Listening = caixa de som + ondas sonoras** no personagem, sem lip-sync | Lip-sync do listening | Reunião 30/07: o Vitor propôs (e o time aceitou) representar o listening com ícone de caixa de som e ondas pulsantes, mais crível que sincronizar a fala para várias vozes. **Confirma a implementação já feita** (botão de listening só toca o áudio); falta o Vitor entregar as ondas sonoras |
+| **D36** | **MVP: uma turma de Year 5.** Modelar Série+TG por completo, mas popular e testar só Y5 | Cobrir todas as séries no MVP | Reunião 30/07: o primeiro experimento é uma classe Y5. Não é para travar o MVP nas outras séries (Infantil, Fundamental, Adolescente) — a estrutura é modelada, mas os dados que a Mila sobe primeiro são só do Y5 |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
-> (3x e 5x, 657 páginas, recebidos em 24/07/2026). São os primeiros documentos
-> que mostram o ano inteiro; as decisões anteriores foram tomadas sobre o CSV de
-> março. A D19 (4x = 3x + uma Communication) **continua correta** — o cliente
-> reconfirmou. O que a D29 acrescenta é que o **5x é um TG distinto**, não um 3x
-> ampliado; isso deixa uma **decisão de modelagem em aberto** (como o 5x convive
-> com o 3x no banco), levada à reunião.
+> (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)
+> continua correta; a D29 acrescentou que o 5x é um TG distinto. A **reunião de
+> 30/07/2026 fechou a modelagem** (D31–D36): o TG vira entidade nomeada, a série
+> da escola aponta para o TG, e a Aula deixa de carregar `frequencia_minima`.
+
+> **Decisões da reunião de 30/07/2026** (transcrição em `docs/reunião/30-06.md`):
+> D31–D36 acima. Em resumo: **TG** e **Série** viram entidades (o TG é global e
+> nomeado, a série é da escola e aponta para um TG); **relatório é do professor**
+> com filtro mês/ano; **June** ordena entre U4 e U5; **listening** com caixa de
+> som (sem lip-sync); **MVP** numa turma Y5. As demandas 15–17 detalham a
+> implementação.
 
 ---
 
