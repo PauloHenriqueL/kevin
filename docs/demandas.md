@@ -1385,7 +1385,10 @@ docker compose exec web python manage.py test apps.escolas.tests.ConclusaoAulaTe
 
 ## Demanda 15 — Série e TG como entidades (remodelagem do vínculo escola↔currículo)
 
-**Status:** 🔴 A implementar (prioridade máxima — destrava o MVP)
+**Status:** ✅ Implementada (30/07/2026) — entidades `TG` e `Serie`, migração do
+Y5, grade da coordenação por TG, admin, seeds. Campos depreciados
+(`frequencia_minima`, `aulas_por_semana`) removidos; form de turma passa a pedir
+a Série. Confirmado com o cliente: escola tem N séries, cada série tem 1 TG.
 **Origem:** reunião 30/07/2026. Decisões D31, D32, D36.
 **Objetivo:** modelar como a escola escolhe qual cronograma cada segmento segue,
 substituindo o vínculo frágil de hoje (`Turma.year` + `Turma.aulas_por_semana`).
