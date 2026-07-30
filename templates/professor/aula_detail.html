@@ -99,7 +99,8 @@
         {% endif %}
         {% if aula.tem_listening %}
         <div class="call-btn-wrap">
-            <button class="btn-listening" id="btn-listening" type="button" aria-label="Tocar áudio de listening" data-playing="false">
+            {# Mesmo estilo do botão de música (btn-musica); muda só o ícone (fone) e o texto. #}
+            <button class="btn-musica" id="btn-listening" type="button" aria-label="Tocar áudio de listening" data-playing="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
                 </svg>
@@ -310,6 +311,6 @@ window.KEVIN_DEMO_MODE = true;
 <!-- Adapter do kevin-puppet (ES module) — registra window.KevinChatIntegration.
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
      kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
-<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=2"></script>
-<script defer src="{% static 'js/kevin_chat.js' %}?v=18"></script>
+<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=3"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=19"></script>
 {% endblock %}

@@ -1706,34 +1706,8 @@ body::after {
   box-shadow: 0 0 0 4px rgba(22,163,74,0.20), 0 4px 12px rgba(22,163,74,0.30);
 }
 
-/* Botão de listening (atividade de escuta) — espelha o de música, em roxo
-   para distinguir do verde da música. */
-.btn-listening {
-  background: white;
-  color: #7c3aed;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
-  box-shadow:
-    0 3px 8px rgba(124,58,237,0.12),
-    0 1px 2px rgba(15,23,42,0.06),
-    0 0 0 1.5px rgba(124,58,237,0.20);
-}
-.btn-listening svg { width: 22px; height: 22px; }
-.btn-listening:hover { transform: translateY(-2px); }
-.btn-listening:active { transform: scale(0.92); }
-.btn-listening[data-playing="true"] {
-  background: #7c3aed;
-  color: white;
-  box-shadow: 0 0 0 4px rgba(124,58,237,0.20), 0 4px 12px rgba(124,58,237,0.30);
-}
+/* O botão de listening reusa a classe .btn-musica (mesmo visual). Não precisa
+   de estilo próprio — muda só o ícone e o texto no template. */
 
 .btn-mic-live {
   background: white;
