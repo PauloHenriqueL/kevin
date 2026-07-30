@@ -209,7 +209,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  ✓ Catálogo: {len(oficiais)} atividades oficiais (Bebelingue)')
 
     # ── Aulas do TG (ligadas ao TG 3x Year 5) ──
-    def _aula(self, semana, num, tipo, unit, lesson, titulo, freq=3, bg='floresta',
+    def _aula(self, semana, num, tipo, unit, lesson, titulo, bg='floresta',
               blocos=None, hw=None, obs='', kickoff=''):
         # A `unit` posicional é numérica por herança; aqui vira a sigla do TG.
         sigla_unit = f'U{unit}' if isinstance(unit, int) else unit

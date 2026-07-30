@@ -283,12 +283,6 @@ class Aula(models.Model):
         default=Tipo.CONTENT,
         help_text='Define o formato do roteiro e o que o Kevin espera da aula.',
     )
-    # DEPRECIADO (D31): a frequência agora vem do TG (Aula.tg.frequencia). Mantido
-    # temporariamente para não quebrar código legado; será removido. Não usar.
-    frequencia_minima = models.PositiveIntegerField(
-        default=3,
-        help_text='Depreciado — a frequência vem do TG. Não usar.',
-    )
 
     # ── Descritivo (não é chave) ──
     # O mês continua no modelo porque o TG o exibe na faixa lateral da grade

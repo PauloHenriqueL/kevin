@@ -218,12 +218,6 @@ class Turma(models.Model):
         default=0,
         help_text='Quantos alunos a turma tem. Substitui o cadastro individual.',
     )
-    # DEPRECIADO (D31/D32): a frequência agora vem do TG da série
-    # (serie.tg.frequencia). Mantido temporariamente; será removido.
-    aulas_por_semana = models.PositiveIntegerField(
-        default=3,
-        help_text='Depreciado — a frequência vem do TG da série.',
-    )
 
     class Meta:
         verbose_name = 'Turma'
@@ -233,10 +227,21 @@ class Turma(models.Model):
     def __str__(self):
         return f'{self.escola.nome} — Turma {self.year}{self.nome}'
 
+    def save(self, *args, **kwargs):
+        # O year da turma vem da série (fonte única, D32).
+        if self.serie_id:
+            self.year = self.serie.year
+        super().save(*args, **kwargs)
+
     @property
     def tg(self):
         """O cronograma que esta turma segue, vindo da série (D32)."""
         return self.serie.tg if self.serie_id else None
+
+    @property
+    def frequencia(self):
+        """Frequência semanal (3/4/5) do TG da série, ou None."""
+        return self.tg.frequencia if self.tg else None
 
     def aulas_do_curriculo(self):
         """Aulas do TG que esta turma deve dar, na ordem (D31/D32).
