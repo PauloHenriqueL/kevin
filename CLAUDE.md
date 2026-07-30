@@ -61,7 +61,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Tipo de mudança | Como validar |
 |---|---|
-| Modelo/lógica | `docker compose exec web python manage.py test` (51 testes) |
+| Modelo/lógica | `docker compose exec web python manage.py test` (55 testes) |
 | Tela/fluxo | Playwright: login → navegar → screenshot. **Olhar o screenshot** |
 | Animação | Screenshot no modo específico. Comparar com o `demo.html` do animador |
 | Qualquer coisa | `manage.py check` limpo antes de commitar |
@@ -147,11 +147,18 @@ templates/     → Django templates (base, professor area, school management are
 static/        → CSS (style.css), JS (kevin_chat.js), images
 ```
 
-**Key Models & Relations** (após a Demanda 1 — ver `docs/demandas.md`):
+**Key Models & Relations** (após Demandas 1 e 15 — ver `docs/demandas.md`):
 - `Plano 1─N Escola 1─N Professor 1─N Turma` (Turma tem `qtd_alunos`, sem modelo Aluno)
-- `Aula` (TG global, código `Y5-U1W1C1`) `1─N BlocoAula N─1 Atividade` (catálogo)
+- **`TG` (cronograma global da Bebelingue, ex: "TG 3x — Year 5") `1─N Aula`** (D31)
+- **`Escola 1─N Serie` (nome livre, ex: "Fundamental") `N─1 TG`; `Turma N─1 Serie`** (D32)
+- A turma segue o TG da sua série: `Turma.aulas_do_curriculo()` = `serie.tg.aulas`
+- `Aula` (código `Y5-U1W1C1`) `1─N BlocoAula N─1 Atividade` (catálogo)
 - `Turma N─N Aula` via `AulaTurma` (execução: data, professor, presença)
 - `Professor 1─N Conversa 0─1 Aula`; `Conversa 1─N Mensagem`
+
+> ⚠️ `Aula.frequencia_minima` e `Turma.aulas_por_semana` estão **depreciados**
+> (D31): a frequência vem do TG. Ainda existem no banco para não quebrar código
+> legado; serão removidos.
 
 > ⚠️ O modelo antigo (`Aluno`, `Conteudo`, `AulaConteudo`, `warm_up`/`development`/
 > `closure` em texto) **não existe mais**. Regras de negócio detalhadas na seção
@@ -326,9 +333,10 @@ iniciativa de se dirigir às crianças.
    o mês é a faixa de calendário do TG. **Revoga a regra antiga (por mês)** —
    ver D27, tomada com o TG completo do Y5 em mãos. A `unit` guarda a sigla do
    TG: `U1`…`U8`, mais `WU` (Welcome) e `JU` (June), que não são numeradas.
-3. **Frequência 3x/4x/5x não gera TGs diferentes.** O de 4x é o de 3x mais uma
-   Communication Class. Modelado como `Aula.frequencia_minima`; a turma filtra
-   por `aulas_por_semana >= frequencia_minima`.
+3. **3x, 4x e 5x são TGs DIFERENTES** (D31, reunião 30/07). Cada frequência é um
+   `TG` próprio (entidade), com suas aulas. A escola cria uma `Serie` (nome
+   livre) e o coordenador a vincula ao TG certo; a turma segue o TG da série.
+   (O 4x continua sendo o 3x + uma Communication, mas cada um é um TG à parte.)
 4. **Roteiro não é texto corrido.** É lista ordenada de `BlocoAula`, cada um
    apontando (opcionalmente) para uma `Atividade` do catálogo.
 5. **O professor não edita o TG.** Só executa e marca progresso.
@@ -522,7 +530,7 @@ See `.env.example`. Key variables:
 **Test API endpoint:**
 - Use `manage.py shell` to test views/models
 - **Suíte de testes (Demanda 14):** `docker compose exec web python manage.py test`
-  — 51 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
+  — 55 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
   commitar mudanças no domínio.
 
 ## ⚠️ Exports de animação do animador — como lidar
@@ -604,12 +612,14 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | 2 | Papéis | `escola`→`diretor`, novo `coordenador`, admin sem loop |
 | 3 | Prompt do Kevin | Reescrito em blocos; Instant Translation isolada; ~411 tokens |
 | 6 | Busca no catálogo | Filtros de tipo/origem, badge "usado em N aulas" |
-| 7 | Área `/coordenacao/` | Grade Unit × semana × aula, editor de blocos (arrastar + autocomplete + autosave), catálogo com "usado em N aulas", duplicar Unit |
+| 7 | Área `/coordenacao/` | Grade **por TG** × Unit × semana × aula, editor de blocos (arrastar + autocomplete + autosave), catálogo, duplicar Unit |
+| 15 | Série + TG | `TG` (cronograma global) e `Serie` (segmento da escola → TG); turma segue o TG da série. Migração do Y5 (D31/D32) |
+| 16 | Relatório do professor | Professor → turma → posição no TG, filtro mês/mês passado/ano. Em `/coordenacao/relatorio/` e `/gestao/` (D33) |
 | 9 + 10 | Animação | Motor novo (7 modos, mosca), enquadramento corrigido, export do animador validado |
 | 11 | Telão | Modal de conclusão com presença, FAB do chat, botão de **música** (Kevin toca ukulele + áudio) e de **listening** (só toca áudio), ambos condicionais ao conteúdo da aula |
 | 12 | Background por aula | Cada aula mostra seu cenário (agora em WebP, 71% menor) |
 | 13 | Seed | `seed_demo` enxuta: 4 aulas de vitrine (música / listening / bg quarto / bg hospital) |
-| 14 | Testes | 51 testes (`manage.py test`) |
+| 14 | Testes | 55 testes (`manage.py test`) |
 | — | Chave por Unit | `Y5-MAR-W1C1` → `Y5-U1W1C1` (D27); `CLIL` vira tipo (D28) |
 | — | Catálogo importado | Games Bank do TG: 91 jogos + técnicas via `importar_catalogo_tg` (D30) |
 | — | Áudio de aula | Música e listening por atividade: o botão só aparece se a aula tem o conteúdo. Faixa em `static/audio/`; `arquivo_url` da atividade aponta ao R2 em produção |
