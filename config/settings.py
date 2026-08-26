@@ -108,14 +108,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ──────────────────────────────────────────────
 # Banco de Dados
 # ──────────────────────────────────────────────
-# Render/Railway injetam um único DATABASE_URL. Se ele existir, tem prioridade;
-# senão, cai nas variáveis DB_* (o padrão do dev com Docker Compose).
+# Render/Railway/Neon injetam um único DATABASE_URL. Se ele existir, tem
+# prioridade; senão, cai nas variáveis DB_* (o padrão do dev com Docker Compose).
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
     import dj_database_url
+    # ssl_require=True: o Neon (e a maioria dos Postgres gerenciados) exige SSL.
+    # Sem isso a conexão é recusada. `conn_max_age` reaproveita conexões — mas o
+    # Neon serverless hiberna, então mantemos moderado.
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+        'default': dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=True
+        ),
     }
 else:
     DATABASES = {

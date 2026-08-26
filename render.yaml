@@ -1,17 +1,14 @@
-# Blueprint de deploy no Render (ver a seção "🚧 Deploy" do CLAUDE.md).
+# Blueprint de deploy no Render — banco no Neon (Postgres serverless).
 #
-# Declara web + Postgres num arquivo versionado, em vez de cliques na interface.
-# Chat roda em modo síncrono (?sync=1) — sem Redis/Celery nesta primeira subida;
-# eles entram depois, quando o volume justificar (dois serviços a mais na conta).
+# O banco NÃO é do Render: usamos o Neon (plano free generoso, sem expirar em
+# 90 dias como o do Render). A conexão vem pela env var DATABASE_URL, que você
+# cola do painel do Neon (marcada `sync: false` = preenchida manualmente).
+#
+# Chat em modo síncrono nesta primeira subida — sem Redis/Celery.
 #
 # Para subir: no Render, "New +" → "Blueprint" → aponte para este repositório.
-# As chaves de IA (opcionais) e o SECRET_KEY são preenchidos no painel.
-
-databases:
-  - name: kevin-db
-    databaseName: bebelingue
-    user: bebelingue
-    plan: free   # trocar para 'basic' antes de uso real — o free expira em 90 dias
+# Depois preencha no painel as vars marcadas `sync: false` (ver docs/demandas.md,
+# "Deploy — passo a passo").
 
 services:
   - type: web
@@ -26,10 +23,10 @@ services:
         value: "False"
       - key: SECRET_KEY
         generateValue: true   # o Render gera uma chave forte e a mantém
+      # Cole aqui a Connection String do Neon (ver passo a passo). Precisa ter
+      # ?sslmode=require no fim — o Neon exige SSL.
       - key: DATABASE_URL
-        fromDatabase:
-          name: kevin-db
-          property: connectionString
+        sync: false
       - key: ALLOWED_HOSTS
         value: kevin.onrender.com   # ajustar se o domínio final for outro
       - key: CSRF_TRUSTED_ORIGINS

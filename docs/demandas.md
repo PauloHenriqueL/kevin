@@ -24,6 +24,7 @@
 - **[Demanda 15 — Série e TG como entidades](#demanda-15--série-e-tg-como-entidades-remodelagem-do-vínculo-escolacurrículo)** 🔴 (MVP)
 - **[Demanda 16 — Relatório orientado ao professor](#demanda-16--relatório-orientado-ao-professor)** 🔴
 - **[Demanda 17 — June ordenada entre a Unit 4 e a Unit 5](#demanda-17--june-ordenada-entre-a-unit-4-e-a-unit-5)** 🔴
+- **[Demanda 18 — Subir para produção (Render + Neon)](#demanda-18--subir-para-produção-render--neon)** 🔵 (passo a passo)
 - [Decisões registradas](#decisões-registradas)
 - [Considerado e adiado](#considerado-e-adiado)
 - [Riscos aceitos](#riscos-aceitos)
@@ -1523,6 +1524,161 @@ simples e não quebra a ordenação de `ordem_unit`.
 
 ---
 
+## Demanda 18 — Subir para produção (Render + Neon)
+
+**Status:** 🔵 Código pronto — falta executar o passo a passo (é trabalho de
+infra: criar contas, colar credenciais). O código não muda; o que segue é o
+roteiro do que **você** faz nos painéis.
+**Objetivo:** colocar o Kevin no ar para a Mila (coordenadora) popular os dados.
+
+### 18.1 A arquitetura da subida
+
+```
+  GitHub (repo kevin, branch main)
+        │  deploy automático
+        ▼
+  Render (web service, Docker)  ──DATABASE_URL──►  Neon (Postgres serverless)
+        │
+        └─ arquivos estáticos: WhiteNoise (já configurado)
+           mídia (áudios/backgrounds): Cloudflare R2 (passo opcional, adiante)
+```
+
+- **Render** roda o container (o `Dockerfile` + `render.yaml` já prontos).
+- **Neon** é o banco (Postgres gerenciado, plano free que não expira).
+- **Chat em modo síncrono** nesta primeira subida — sem Redis/Celery ainda.
+
+### 18.2 O que já está pronto no código (não precisa mexer)
+
+- `Dockerfile` com `collectstatic` e `gunicorn`
+- `render.yaml` declarando o web service e as env vars
+- `settings.py` lê `DATABASE_URL` (com SSL, que o Neon exige) e liga o
+  hardening (HTTPS, HSTS, cookies) sozinho com `DEBUG=False`
+- WhiteNoise servindo os estáticos
+
+### 18.3 PASSO A PASSO
+
+> Ordem pensada para falhar cedo e barato. Faça na sequência.
+
+**Passo 1 — Criar o banco no Neon**
+
+1. Entre em **https://neon.tech** e crie conta (pode ser com o GitHub).
+2. **Create project** → nome `kevin` (ou o que preferir). Região: escolha a
+   mais próxima (ex: AWS US East).
+3. Ao criar, o Neon mostra a **Connection String**. Copie a versão
+   **"Pooled connection"** (recomendada para serverless). Ela é assim:
+   ```
+   postgres://<user>:<senha>@ep-xxxx-pooler.<região>.aws.neon.tech/<db>?sslmode=require
+   ```
+4. **Guarde essa string** — é o `DATABASE_URL` que você cola no Render no
+   Passo 3. Confira que ela termina com `?sslmode=require`.
+
+> O Neon já cria um banco padrão (`neondb`). Pode usar esse — não precisa
+> criar um chamado `bebelingue`.
+
+**Passo 2 — Conectar o Render ao repositório**
+
+1. Entre em **https://render.com** e crie conta com o **GitHub**.
+2. Autorize o Render a ver o repositório `PauloHenriqueL/kevin`.
+3. **New +** → **Blueprint**. Selecione o repo `kevin` e a branch `main`.
+4. O Render lê o `render.yaml` e propõe criar o serviço `kevin`. **Não crie
+   ainda** se ele pedir as env vars marcadas `sync: false` — preencha-as agora
+   (Passo 3) ou logo após criar, em Environment.
+
+**Passo 3 — Preencher as variáveis de ambiente no Render**
+
+No painel do serviço → **Environment**, preencha as que estão `sync: false`:
+
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | a Connection String do Neon (Passo 1.3) |
+| `ALLOWED_HOSTS` | o domínio do Render, ex: `kevin.onrender.com` |
+| `CSRF_TRUSTED_ORIGINS` | `https://kevin.onrender.com` (com https://) |
+| `ANTHROPIC_API_KEY` | opcional — só se quiser IA real já |
+| `OPENAI_API_KEY` | opcional |
+| `ELEVENLABS_API_KEY` | opcional |
+
+As que **não** precisa preencher (o Render cuida):
+- `DEBUG=False` (já no yaml)
+- `SECRET_KEY` (o Render gera sozinho)
+
+> ⚠️ O domínio só se define quando o serviço é criado. Se `ALLOWED_HOSTS` ficar
+> com o nome errado, o site dá **Bad Request (400)**. Depois de criado, veja o
+> domínio real no topo do painel e ajuste as duas vars (`ALLOWED_HOSTS` e
+> `CSRF_TRUSTED_ORIGINS`), depois **Manual Deploy → Deploy latest commit**.
+
+**Passo 4 — Primeiro deploy e migração**
+
+1. **Create** / **Apply** o blueprint. O Render faz o build do Docker
+   (~3-5 min na primeira vez).
+2. O `preDeployCommand` do `render.yaml` roda `migrate` sozinho — o banco do
+   Neon recebe as tabelas.
+3. Quando o log mostrar `gunicorn ... Listening at 0.0.0.0`, o site está no ar.
+4. Abra `https://<seu-domínio>.onrender.com/login/`. Se o CSS e o Kevin
+   aparecem, **o deploy funcionou** (é a falha nº 1 de quem sobe Django — aqui
+   já está resolvida pelo WhiteNoise).
+
+**Passo 5 — Popular o banco (dados iniciais)**
+
+O banco sobe vazio. Para a Mila entrar, precisa ao menos dos usuários e de um
+TG. Use o **Shell** do Render (aba **Shell** do serviço) e rode:
+
+```bash
+# cria admin, coordenador (coord/coord123), escola, série, TG e as aulas de demo
+python manage.py seed_demo
+# popula o catálogo com o Games Bank do TG
+python manage.py importar_catalogo_tg "documento_escola/Y5 3x Part 1 .pdf" --sobrescrever
+```
+
+> Se preferir começar do zero (sem dados de demo), rode só
+> `python manage.py createsuperuser` e cadastre tudo pelo `/admin/`.
+
+**Passo 6 — Entregar para a Mila**
+
+- Mande a URL `https://<domínio>.onrender.com/` e o login dela
+  (`coord` / `coord123`, se usou o seed — **troque a senha** no `/admin/`).
+- Ela usa `/coordenacao/` para montar o TG e o catálogo.
+
+### 18.4 Passos opcionais (depois, quando precisar)
+
+**Cloudflare R2 — mídia (áudios e backgrounds)**
+
+Hoje os áudios de demo estão em `static/audio/` (vão no WhiteNoise). Quando
+houver muita mídia (backgrounds do animador), migre para o R2:
+1. Cloudflare → **R2** → criar bucket `kevin-media`.
+2. Subir os arquivos pela interface, copiar as URLs públicas.
+3. Gravar essas URLs no `arquivo_url` da atividade / `Aula.background`.
+   (Preferir R2 a S3: 10 GB grátis e sem cobrança de egress.)
+
+**Redis + Celery — chat assíncrono**
+
+Só quando o volume justificar (dois serviços a mais). Enquanto isso, o chat
+funciona em modo síncrono.
+
+**Plano pago**
+
+O free do Render **hiberna após 15 min** (leva ~30s para acordar) — bom para
+teste, ruim para demo ao vivo. Para uso real, subir o web para o plano
+**Starter** (~$7/mês). O Neon free costuma bastar por bastante tempo.
+
+### 18.5 Critérios de aceite
+
+- [ ] Banco Neon criado, `DATABASE_URL` em mãos (com `?sslmode=require`)
+- [ ] Serviço no Render criado a partir do `render.yaml`
+- [ ] Env vars preenchidas (DATABASE_URL, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS)
+- [ ] Deploy verde; `/login/` abre com CSS e o Kevin
+- [ ] Banco populado (seed ou superuser)
+- [ ] Mila tem a URL e o login
+
+### 18.6 Se der errado — os 3 erros mais comuns
+
+| Sintoma | Causa | Correção |
+|---|---|---|
+| **Bad Request (400)** | `ALLOWED_HOSTS` sem o domínio real | Ajustar a var e redeploy |
+| **CSRF verification failed** ao logar | Falta `CSRF_TRUSTED_ORIGINS` com `https://` | Ajustar a var |
+| **connection refused / SSL** no banco | `DATABASE_URL` sem `?sslmode=require` | Usar a Connection String completa do Neon |
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1566,6 +1722,7 @@ uma tem consequência em cascata sobre as demais.
 | **D34** | **June fica no fim do ano** (`ordem_unit` da JU = 9, como já está) | JU entre U4 e U5 | Reunião 30/07 sugeriu June depois da U4; revisto em 30/07 (Paulo): **fica no fim**. As aulas de June são tarefas, não aula de sala, e ordená-las no fim é mais simples (não quebra a ordenação inteira de `ordem_unit`). **Nada a implementar** — o modelo atual já faz isso |
 | **D35** | **Listening = caixa de som + ondas sonoras** no personagem, sem lip-sync | Lip-sync do listening | Reunião 30/07: o Vitor propôs (e o time aceitou) representar o listening com ícone de caixa de som e ondas pulsantes, mais crível que sincronizar a fala para várias vozes. **Confirma a implementação já feita** (botão de listening só toca o áudio); falta o Vitor entregar as ondas sonoras |
 | **D36** | **MVP: uma turma de Year 5.** Modelar Série+TG por completo, mas popular e testar só Y5 | Cobrir todas as séries no MVP | Reunião 30/07: o primeiro experimento é uma classe Y5. Não é para travar o MVP nas outras séries (Infantil, Fundamental, Adolescente) — a estrutura é modelada, mas os dados que a Mila sobe primeiro são só do Y5 |
+| **D37** | **Banco em produção: Neon** (Postgres serverless), não o Postgres do Render | Postgres gerenciado do próprio Render | O free do Render expira em 90 dias; o do Neon não. O código já lê `DATABASE_URL`, então trocar o provedor é só colar outra URL — nenhuma mudança de código. `render.yaml` deixa de declarar o banco; a URL do Neon entra como env var. Ver Demanda 18 |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)
