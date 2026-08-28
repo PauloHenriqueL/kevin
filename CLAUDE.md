@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Arquivo | O que é |
 |---|---|
+| `docs/SETUP_MAC.md` | **Guia de setup no Mac** para o dev de animação: baixar, subir com Docker, e instalar exports |
 | `docs/demandas.md` | **Fonte de verdade do escopo.** Todas as demandas, decisões (D1–D22), modelo de dados alvo, migração. Leia antes de mexer no domínio |
 | `docs/PERGUNTAS_REUNIAO_CLIENTE.md` | Pauta de validação com a Bebelingue; o que já foi respondido e o que falta |
 | `docs/mensagens.md` | Mensagens para o **cliente** e o **Arthur** |
@@ -156,9 +157,9 @@ static/        → CSS (style.css), JS (kevin_chat.js), images
 - `Turma N─N Aula` via `AulaTurma` (execução: data, professor, presença)
 - `Professor 1─N Conversa 0─1 Aula`; `Conversa 1─N Mensagem`
 
-> ⚠️ `Aula.frequencia_minima` e `Turma.aulas_por_semana` estão **depreciados**
-> (D31): a frequência vem do TG. Ainda existem no banco para não quebrar código
-> legado; serão removidos.
+> ⚠️ `Aula.frequencia_minima` e `Turma.aulas_por_semana` foram **removidos**
+> (D31): a frequência vem do TG (`Aula.tg.frequencia`), o year da turma vem da
+> série (`Turma.serie.year`).
 
 > ⚠️ O modelo antigo (`Aluno`, `Conteudo`, `AulaConteudo`, `warm_up`/`development`/
 > `closure` em texto) **não existe mais**. Regras de negócio detalhadas na seção
@@ -538,7 +539,7 @@ See `.env.example`. Key variables:
 > O animador (Vitor) entrega o Kevin como um `export_N.zip` (SVG + motor JS +
 > CSS + backgrounds). Ele **testa no ambiente dele e vê funcionar**, mas os
 > exports chegam com defeitos que a exportação do Illustrator introduz. Guia
-> completo para ele em `docs/animador.md`.
+> completo para ele em `docs/mensagem.md`.
 
 **Padrão de bug: "funciona no ambiente dele, quebra aqui".** A causa quase sempre
 é a **exportação** perdendo uma configuração, não a arte. Investigue o SVG/CSS
@@ -555,19 +556,79 @@ exportado antes de suspeitar da integração.
 | **SVG pesado (6,6 MB)** | Export sem otimização (casas decimais, metadata Illustrator) | WhiteNoise comprime; pedir export leve ao animador |
 
 **Regra de ouro:** prefira corrigir na **origem** (pedir export certo, ver
-`docs/animador.md`) a tapar com CSS no nosso lado — senão cada entrega nova traz
+`docs/mensagem.md`) a tapar com CSS no nosso lado — senão cada entrega nova traz
 o bug de volta. Correção CSS temporária é aceitável para não travar, mas registre
 como dívida e cobre o animador.
 
 **Nunca renomeie os IDs do SVG** — o motor encontra cada parte por `id`. Se rodar
 SVGO, use `cleanupIds: false`.
 
+### 📦 Como INSTALAR um export novo (passo a passo para a IA)
+
+> Escrito para o Claude Code executar quando o dev de animação disser algo como
+> "chegou um export novo, instala" ou "vá na pasta X do meu projeto de animação
+> e instale os exports". A fonte pode ser um `export_N.zip` extraído **ou uma
+> pasta externa** que o dev aponta no Mac dele — o procedimento é o mesmo: leia
+> os arquivos daquele caminho e integre sem quebrar o motor.
+
+**Onde cada arquivo do export vai parar:**
+
+| Arquivo no export | Destino no projeto | Versiona no Git? |
+|---|---|---|
+| `kevin-rigged.svg` | `static/js/kevin-puppet/kevin-rigged.svg` | ✅ sim (acoplado ao motor pelos IDs) |
+| `kevin-puppet.js` | `static/js/kevin-puppet/kevin-puppet.js` | ✅ sim (é código) |
+| `kevin-puppet.css` | `static/js/kevin-puppet/kevin-puppet.css` | ✅ sim |
+| `assets/backgrounds/*.png/webp` | `static/js/kevin-puppet/assets/backgrounds/` | ❌ não (mídia, `.gitignore`) |
+| `assets/videos/*.webm` | `static/js/kevin-puppet/assets/videos/` | ❌ não (mídia) |
+
+**O procedimento:**
+
+1. **Validar ANTES de instalar.** Rode o validador contra a pasta extraída:
+   ```bash
+   python3 scripts/validar_export.py <pasta-do-export>/
+   ```
+   Se acusar erro (IDs faltando, esqueleto visível, background com chão alto),
+   **NÃO instale** — devolva ao animador com o que o validador apontou. O
+   contrato completo está em `docs/mensagem.md`.
+
+2. **Copiar os arquivos** para os destinos da tabela acima. Sobrescrever o SVG,
+   o JS e o CSS; adicionar backgrounds/vídeos novos em `assets/`.
+
+3. **Bump do cache-buster** no template que carrega os assets
+   (`templates/professor/aula_detail.html`): incrementar o `?v=N` do
+   `kevin-puppet.js`, do `.css` e do SVG. Sem isso, o navegador serve o cache
+   velho e "não muda nada" (causa nº 1 de "instalei mas continua igual").
+
+4. **Se o background for novo**, registrar a chave em `BACKGROUND_CHOICES`
+   (`apps/curriculo/models.py`) para o cenário aparecer no cadastro de aula.
+
+5. **Validar no browser** (Playwright ou manual): abrir uma aula, iniciar,
+   olhar o Kevin em cada modo (standby, música, listening). Comparar com o
+   `demo.html` do export. **Olhar o screenshot** — não dizer "funciona" sem ver.
+
+6. **Nunca rodar SVGO com `cleanupIds`** no SVG — renomear IDs quebra o motor.
+   Se otimizar, `cleanupIds: false`.
+
+7. **Commitar** só o que versiona (SVG/JS/CSS) — os `export_*.zip`, backgrounds
+   e vídeos ficam fora do Git (`.gitignore`).
+
+**⚠️ Sons ambientes / áudio de cenário — NÃO é só copiar arquivo.** O sistema
+**não tem** hoje suporte a som ambiente ligado ao cenário/background (só áudio
+por aula: música e listening, via `Aula` + `arquivo_url`). Se o export trouxer
+sons ambientes, isso é **feature nova**, não instalação:
+- pergunte ao Paulo onde o som se liga (ao **background**? à **aula**?);
+- é preciso criar o campo/modelo para a referência e fazer o motor tocar o áudio
+  (provavelmente em loop) quando o cenário entra;
+- registre como demanda em `docs/demandas.md` antes de implementar.
+Não invente o vínculo sozinho — os arquivos de áudio o dev entrega; a ligação no
+domínio é decisão de escopo.
+
 ## Kevin Animation System
 
 **Architecture:** Three-layer modular system for SVG rigging and animation.
 
 1. **KevinRig.js** — Core SVG control
-   - Loads SVG from `static/css/animations/kevin-rigged.svg`
+   - Loads SVG from `static/js/kevin-puppet/kevin-rigged.svg`
    - Methods: `setMouthShape()`, `animateTalkingSequence()`, `blink()`, `rotateHead()`, `lookAt()`
    - Manages animation state and continuous blinking loop (3-6s intervals)
 
@@ -591,7 +652,7 @@ SVGO, use `cleanupIds: false`.
 **Config in template:**
 ```javascript
 window.KEVIN_RIG_CONFIG = {
-  svgUrl: "{% static 'css/animations/kevin-rigged.svg' %}",
+  svgUrl: "{% static 'js/kevin-puppet/kevin-rigged.svg' %}",
   rigMountSelector: "#kevin-rig-mount",  // mounts to stage area in lesson page
 };
 window.KEVIN_CHAT_CONFIG = { ... };

@@ -35,7 +35,7 @@ Carrega o SVG do Kevin e expõe métodos para controlar:
 - **Cabeça**: `rotateHead(degrees)`
 
 ```javascript
-const rig = new KevinRig('#kevin-rig-mount', '/static/css/animations/kevin-rigged.svg');
+const rig = new KevinRig('#kevin-rig-mount', '/static/js/kevin-puppet/kevin-rigged.svg');
 await rig.load();
 
 // Animar boca falando
@@ -84,7 +84,7 @@ Conecta animações com eventos do chat:
 ```javascript
 const kevinChat = new KevinChatIntegration(
   '#kevin-rig-mount',
-  '/static/css/animations/kevin-rigged.svg'
+  '/static/js/kevin-puppet/kevin-rigged.svg'
 );
 await kevinChat.init();
 
@@ -120,7 +120,7 @@ No `templates/professor/aula_detail.html`:
 <!-- Configuração global (window.KEVIN_RIG_CONFIG) -->
 <script>
 window.KEVIN_RIG_CONFIG = {
-    svgUrl: "{% static 'css/animations/kevin-rigged.svg' %}",
+    svgUrl: "{% static 'js/kevin-puppet/kevin-rigged.svg' %}",
     rigMountSelector: "#kevin-rig-mount",
 };
 </script>
