@@ -295,6 +295,10 @@ window.KEVIN_RIG_CONFIG = {
     // fundo desta aula, com fallback para floresta se a chave não existir
     backgroundUrl:    window.KEVIN_BACKGROUNDS["{{ aula.background }}"] || window.KEVIN_BACKGROUNDS["floresta"],
     rigMountSelector: "#kevin-rig-mount",
+    // Vídeo de entrada, usado pra congelar o 1º frame atrás da tela de espera
+    // (#call-standby) antes do "Iniciar aula" — em vez do Kevin em standby
+    // já visível por trás do popup.
+    entradaVideoUrl:  "{% static 'js/kevin-puppet/assets/videos/entrada-kevin.webm' %}",
 };
 // Áudio de música desta aula: vem do arquivo_url da atividade de música (ex:
 // faixa no R2). Vazio = o botão só anima o ukulele, sem tocar som. Sem fallback
@@ -311,6 +315,6 @@ window.KEVIN_DEMO_MODE = true;
 <!-- Adapter do kevin-puppet (ES module) — registra window.KevinChatIntegration.
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
      kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
-<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=3"></script>
-<script defer src="{% static 'js/kevin_chat.js' %}?v=19"></script>
+<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=6"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=22"></script>
 {% endblock %}

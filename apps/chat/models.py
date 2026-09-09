@@ -44,6 +44,13 @@ class Mensagem(models.Model):
     role = models.CharField(max_length=10, choices=RoleChoices.choices)
     tipo = models.CharField(max_length=10, choices=TipoChoices.choices, default=TipoChoices.TEXTO)
     conteudo = models.TextField(help_text='Texto da mensagem ou URL do áudio')
+    celebrar = models.BooleanField(
+        default=False,
+        help_text=(
+            'A IA sinalizou (via tool-calling) que esta resposta celebra um '
+            'acerto do Teacher/turma — dispara o modo "celebrate" do Kevin.'
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

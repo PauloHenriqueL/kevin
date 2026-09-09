@@ -7,7 +7,7 @@
 //     backgroundUrl: "./background.png", // opcional
 //     onError: (msg) => console.error(msg),
 //   });
-//   await kevin.setMode("standby" | "thinking" | "speaking" | "off");
+//   await kevin.setMode("standby" | "thinking" | "speaking" | "sleeping" | "musica" | "celebrate" | "tchau" | "off");
 //   await kevin.setAudioInput(outraFonteDeAudio); // troca o microfone por outra fonte
 //   kevin.destroy();
 //
@@ -68,6 +68,23 @@ const HEAD_PIVOT = { x: 493, y: 460.9 };
 const PUPPET_BASE_ZOOM = 86;      // escala, em %
 const PUPPET_BASE_OFFSET_X = 0;   // px
 const PUPPET_BASE_OFFSET_Y = -46; // px (negativo = desce)
+
+const DEFAULT_VOCABULARY_ITEMS = [
+  { id: "wake-up", words: "wake up", imageSrc: "./assets/img/vocabulario/wake-up.png" },
+  { id: "take-a-shower", words: "take a shower", imageSrc: "./assets/img/vocabulario/take-a-shower .png" },
+  { id: "get-dressed", words: "get dressed", imageSrc: "./assets/img/vocabulario/get-dressed.png" },
+  { id: "brush-my-hair", words: "brush my hair", imageSrc: "./assets/img/vocabulario/brush-my-hair.png" },
+  { id: "wash-my-face", words: "wash my face", imageSrc: "./assets/img/vocabulario/wahs-my-face.png" },
+  { id: "have-breakfast", words: "have breakfast", imageSrc: "./assets/img/vocabulario/have-breakfast.png" },
+  { id: "make-breakfast", words: "make breakfast" },
+  { id: "go-to-school", words: "go to school" },
+  { id: "take-a-taxi", words: "take a taxi" },
+  { id: "take-the-bus", words: "take the bus" },
+  { id: "take-the-train", words: "take the train" },
+  { id: "take-the-subway", words: "take the subway" },
+  { id: "walk", words: "walk" },
+  { id: "ride-a-bicycle", words: "ride a bicycle" },
+];
 
 const TAIL_BOB_AMPLITUDE = 6.2;
 const TAIL_BOB_SPEED = 1.9;
@@ -130,6 +147,51 @@ const TCHAU_ELBOW_MID   = (27 + 58) / 2;   // 42.5
 const TCHAU_ELBOW_AMP   = (58 - 27) / 2;   // 15.5
 const TCHAU_WAVE_FREQ   = 1.5;              // Hz
 const TCHAU_WAVE_CYCLES = 3;
+
+// ── Modo Celebrate ───────────────────────────────────────────────────────────
+const CELEBRATE_INIT_RIGHT = { shoulder: 21,  elbow: -90 };
+const CELEBRATE_INIT_LEFT  = { shoulder: -17, elbow:  90 };
+const CELEBRATE_M1_RIGHT   = { shoulder: 55,  elbow: -66 };
+const CELEBRATE_M1_LEFT    = { shoulder: -55, elbow:  66 };
+const CELEBRATE_M1_BODY_DROP = 50;
+const CELEBRATE_M2_RIGHT   = { shoulder: 55,  elbow: 64 };
+const CELEBRATE_M2_LEFT    = { shoulder: -55, elbow: 66 };
+const CELEBRATE_M2_LEFT_LATE = { shoulder: 14, elbow: 32 };
+const CELEBRATE_JUMP_TRIGGER_BODY_DROP = 20;
+const CELEBRATE_JUMP_HEIGHT = 82;
+const CELEBRATE_M3_RIGHT   = { shoulder: 33,  elbow: -66 };
+const CELEBRATE_M3_LEFT    = { shoulder: -33, elbow:  66 };
+const CELEBRATE_LANDING_BOUNCE = 28;
+const CELEBRATE_FOOT_TILT_LEFT  = 13;
+const CELEBRATE_FOOT_TILT_RIGHT = -13;
+const CELEBRATE_ARM_LERP  = 0.1;
+const CELEBRATE_BODY_LERP = 0.08;
+const CELEBRATE_JUMP_LERP = 0.16;
+const CELEBRATE_CONFETTI_COLORS = ["#ffd470", "#2ef2bb", "#ff6b8a", "#6aa7ff", "#ffffff", "#ff9f43"];
+const DEFAULT_CELEBRATE_AUDIO_VOLUME = 0.1;
+const DEFAULT_CELEBRATE_AUDIO_PLAY_DELAY_MS = 500;
+
+// ── Mod Teaching (aditivo: zoom de câmera + objeto "quadro-negro" deslizando) ──
+// Sequência: camera-in (câmera aproxima) → object-in (quadro entra e desce até
+// o repouso) → active (segura) → object-out (quadro sobe e some) →
+// camera-out (câmera volta a 0) → off. Reaproveita o sistema genérico de
+// Câmera e de Objetos definidos abaixo.
+const DEFAULT_TEACHING_CAMERA_ZOOM = 52;
+const DEFAULT_TEACHING_CAMERA_PAN_X = -82;
+const DEFAULT_TEACHING_CAMERA_PAN_Y = -31;
+const DEFAULT_TEACHING_OBJECT_ZOOM = 34;
+const DEFAULT_TEACHING_OBJECT_OFFSET_X = 224;
+const DEFAULT_TEACHING_OBJECT_ENTER_Y = -400; // posição de onde o quadro entra/sai
+const DEFAULT_TEACHING_OBJECT_REST_Y = -17;   // posição de repouso, quadro no lugar
+const TEACHING_OBJECT_ID = "teaching-board";
+const TEACHING_LERP = 0.08;
+const CAMERA_ZOOM_MAX_EXTRA = 1.2; // zoom 100 → escala 1 + 1.2 = 2.2x
+
+// ── Mod Camuflage (aditivo, disparo único: matiz 0→360→0, desativa sozinho) ──
+const CAMUFLAGE_LERP = 0.01;
+
+const DEFAULT_BACKSOUND_MUSIC_VOLUME = 0.4;
+const DEFAULT_SNORE_AUDIO_VOLUME = 0.3;
 
 // ── Mosca ─────────────────────────────────────────────────────────────────────
 const MOSCA_ORIGIN_X = 142.9; // cx do Corpo_mosca no espaço local do grupo
@@ -567,17 +629,89 @@ export async function createKevinPuppet(container, options = {}) {
   const svgUrl = options.svgUrl ?? resolveAsset("./kevin-rigged.svg");
   const backgroundUrl = options.backgroundUrl ?? null;
   const transitionVideoUrl = options.transitionVideoUrl ?? resolveAsset("./assets/videos/mudanca-cenario.webm");
+  const entradaVideoUrl = options.entradaVideoUrl ?? resolveAsset("./assets/videos/entrada-kevin.webm");
+  const teachingBoardUrl = options.teachingBoardUrl ?? resolveAsset("./assets/obj/quadro-negro.png");
+  const celebrateAudioUrl = options.celebrateAudioUrl ?? resolveAsset("./assets/audio/efeitos-sonoros/celebrate.mp3");
+  const celebrateAudioVolume = options.celebrateAudioVolume ?? DEFAULT_CELEBRATE_AUDIO_VOLUME;
+  const celebrateAudioPlayDelayMs = options.celebrateAudioPlayDelayMs ?? DEFAULT_CELEBRATE_AUDIO_PLAY_DELAY_MS;
+  const teachingCameraZoom = options.teachingCameraZoom ?? DEFAULT_TEACHING_CAMERA_ZOOM;
+  const teachingCameraPanX = options.teachingCameraPanX ?? DEFAULT_TEACHING_CAMERA_PAN_X;
+  const teachingCameraPanY = options.teachingCameraPanY ?? DEFAULT_TEACHING_CAMERA_PAN_Y;
+  const teachingObjectZoom = options.teachingObjectZoom ?? DEFAULT_TEACHING_OBJECT_ZOOM;
+  const teachingObjectOffsetX = options.teachingObjectOffsetX ?? DEFAULT_TEACHING_OBJECT_OFFSET_X;
+  const teachingObjectEnterY = options.teachingObjectEnterY ?? DEFAULT_TEACHING_OBJECT_ENTER_Y;
+  const teachingObjectRestY = options.teachingObjectRestY ?? DEFAULT_TEACHING_OBJECT_REST_Y;
+  const backsoundMusicUrl = options.backsoundMusicUrl ?? resolveAsset("./assets/audio/backsound/trilha-padrao.mp3");
+  const backsoundMusicVolume = options.backsoundMusicVolume ?? DEFAULT_BACKSOUND_MUSIC_VOLUME;
+  const snoreAudioUrl = options.snoreAudioUrl ?? resolveAsset("./assets/audio/voz-kevin/ronco-kevin.mp3");
+  const snoreAudioVolume = options.snoreAudioVolume ?? DEFAULT_SNORE_AUDIO_VOLUME;
+  // Sequência de abertura padrão de qualquer aula: cortina congelada no 1º
+  // frame + popup com o nome da aula + botão Iniciar. Ao clicar, a cortina
+  // abre e, ao terminar, o Kevin acena (tchau) e emenda pra falando sozinho.
+  // Desative com autoOpening:false se a aplicação externa preferir orquestrar
+  // isso na mão (chamando playEntrada()/setMode() diretamente).
+  const autoOpening = options.autoOpening ?? true;
+  let lessonName = options.lessonName ?? "{{nome-aula}}";
   const onError = options.onError ?? ((msg) => console.error(`KevinPuppet: ${msg}`));
 
   // --- DOM: cria o card (stage + mount) dentro do container fornecido ---
   const stage = document.createElement("div");
   stage.className = "kevin-stage";
-  if (backgroundUrl) stage.style.backgroundImage = `url("${backgroundUrl}")`;
+
+  // Wrapper de câmera: leva o background + o objeto genérico + o puppet, e
+  // recebe o transform de zoom/pan do mod Teaching. `stage` continua sendo só
+  // o frame fixo que corta (overflow:hidden) - ver applyCameraTransform().
+  const stageCamera = document.createElement("div");
+  stageCamera.className = "kevin-stage-camera";
+  if (backgroundUrl) stageCamera.style.backgroundImage = `url("${backgroundUrl}")`;
+  stage.appendChild(stageCamera);
+
+  // Camada de objeto genérica (props posicionáveis). O Teaching a usa pra
+  // mostrar o quadro-negro, mas o mecanismo (setActiveObjectId/setObjectPosition)
+  // não é específico do Teaching - só um objeto fica visível por vez.
+  const objectLayer = document.createElement("img");
+  objectLayer.className = "kevin-object-layer";
+  objectLayer.alt = "";
+  stageCamera.appendChild(objectLayer);
+
+  const vocabularyBoard = document.createElement("div");
+  vocabularyBoard.className = "kevin-vocabulary-board";
+  vocabularyBoard.setAttribute("aria-live", "polite");
+
+  const vocabularyWords = document.createElement("div");
+  vocabularyWords.className = "kevin-vocabulary-words";
+  vocabularyBoard.appendChild(vocabularyWords);
+
+  const vocabularyImage = document.createElement("img");
+  vocabularyImage.className = "kevin-vocabulary-image";
+  vocabularyImage.alt = "";
+  vocabularyBoard.appendChild(vocabularyImage);
+  stageCamera.appendChild(vocabularyBoard);
 
   const mount = document.createElement("div");
   mount.className = "kevin-puppet-mount";
   mount.setAttribute("aria-label", "Kevin animado");
-  stage.appendChild(mount);
+  stageCamera.appendChild(mount);
+
+  const celebrateAudio = document.createElement("audio");
+  celebrateAudio.preload = "auto";
+  celebrateAudio.src = celebrateAudioUrl;
+  celebrateAudio.volume = celebrateAudioVolume;
+  stage.appendChild(celebrateAudio);
+
+  const backsoundMusicAudio = document.createElement("audio");
+  backsoundMusicAudio.loop = true;
+  backsoundMusicAudio.preload = "auto";
+  backsoundMusicAudio.src = backsoundMusicUrl;
+  backsoundMusicAudio.volume = backsoundMusicVolume;
+  stage.appendChild(backsoundMusicAudio);
+
+  const snoreAudio = document.createElement("audio");
+  snoreAudio.loop = true;
+  snoreAudio.preload = "auto";
+  snoreAudio.src = snoreAudioUrl;
+  snoreAudio.volume = snoreAudioVolume;
+  stage.appendChild(snoreAudio);
 
   const transitionVideo = document.createElement("video");
   transitionVideo.className = "kevin-transition-overlay";
@@ -590,11 +724,68 @@ export async function createKevinPuppet(container, options = {}) {
   transitionVideo.appendChild(webmSrc);
   stage.appendChild(transitionVideo);
 
+  // Overlay de entrada (toca uma vez ao chamar playEntrada(), "abre a cena"
+  // revelando o Kevin já posicionado por baixo, em vez dele só aparecer).
+  const entradaVideo = document.createElement("video");
+  entradaVideo.className = "kevin-transition-overlay";
+  entradaVideo.muted = true;
+  entradaVideo.setAttribute("playsinline", "");
+  entradaVideo.style.display = "none";
+  const entradaWebmSrc = document.createElement("source");
+  entradaWebmSrc.src = entradaVideoUrl;
+  entradaWebmSrc.type = "video/webm";
+  entradaVideo.appendChild(entradaWebmSrc);
+  stage.appendChild(entradaVideo);
+
+  // Card da sequência de abertura (fora de stageCamera - não é afetado por
+  // zoom de câmera, igual entradaVideo/transitionVideo). `openingCard` só
+  // posiciona (sem fundo, não escurece a cena); `openingCardBox` é o card
+  // visual de verdade.
+  const openingCard = document.createElement("div");
+  openingCard.className = "kevin-opening-card";
+  const openingCardBox = document.createElement("div");
+  openingCardBox.className = "kevin-opening-card-box";
+  const openingLessonName = document.createElement("h2");
+  openingLessonName.className = "kevin-opening-lesson-name";
+  openingLessonName.textContent = lessonName;
+  openingCardBox.appendChild(openingLessonName);
+  const openingStartBtn = document.createElement("button");
+  openingStartBtn.className = "kevin-opening-start-btn";
+  openingStartBtn.type = "button";
+  openingStartBtn.textContent = "Iniciar";
+  openingCardBox.appendChild(openingStartBtn);
+  openingCard.appendChild(openingCardBox);
+  if (autoOpening) stage.appendChild(openingCard);
+
   container.appendChild(stage);
 
   // --- estado de instância (substitui os globais da demo) ---
   let currentBgUrl = backgroundUrl ?? null;
   let transitionBusy = false;
+  let entradaBusy = false;
+
+  function runEntradaAnimation() {
+    if (entradaBusy) return Promise.resolve(false);
+    entradaBusy = true;
+
+    return new Promise((resolve) => {
+      function onEnded() {
+        entradaVideo.style.display = "none";
+        entradaBusy = false;
+        entradaVideo.removeEventListener("ended", onEnded);
+        resolve(true);
+      }
+      entradaVideo.addEventListener("ended", onEnded);
+      entradaVideo.style.display = "block";
+      entradaVideo.currentTime = 0;
+      entradaVideo.play();
+      // playEntrada() é o primeiro gesto do usuário disparado pela plataforma
+      // (não há popup "Iniciar" no export) - aproveita esse mesmo gesto pra
+      // ligar a música de fundo em loop, senão a política de autoplay do
+      // navegador bloqueia o áudio sem interação.
+      backsoundMusicAudio.play().catch(() => {});
+    });
+  }
 
   function runBackgroundTransition(newBgUrl) {
     if (transitionBusy || newBgUrl === currentBgUrl) return Promise.resolve(true);
@@ -605,7 +796,7 @@ export async function createKevinPuppet(container, options = {}) {
       function onTimeUpdate() {
         if (!swapped && transitionVideo.duration && transitionVideo.currentTime >= transitionVideo.duration / 2) {
           swapped = true;
-          stage.style.backgroundImage = `url("${newBgUrl}")`;
+          stageCamera.style.backgroundImage = `url("${newBgUrl}")`;
           currentBgUrl = newBgUrl;
         }
       }
@@ -624,6 +815,221 @@ export async function createKevinPuppet(container, options = {}) {
     });
   }
 
+  function normalizeVocabularyItem(item) {
+    if (!item) return null;
+    const words = item.words || item.word || item.label || "";
+    if (!words) return null;
+    return {
+      id: item.id || words.toLowerCase().trim().replace(/\s+/g, "-"),
+      words,
+      imageSrc: item.imageSrc || item.imageUrl || item.src || "",
+    };
+  }
+
+  function resolveVocabularyItemAsset(item) {
+    const normalized = normalizeVocabularyItem(item);
+    if (!normalized) return null;
+    const isDefaultRelativeAsset = DEFAULT_VOCABULARY_ITEMS.some((defaultItem) => defaultItem.id === normalized.id && defaultItem.imageSrc === normalized.imageSrc);
+    return {
+      ...normalized,
+      imageSrc: isDefaultRelativeAsset && normalized.imageSrc ? resolveAsset(normalized.imageSrc) : normalized.imageSrc,
+    };
+  }
+
+  function getVocabularyItem(input) {
+    if (typeof input === "object") return resolveVocabularyItemAsset(input);
+    return vocabularyItems.find((item) => item.id === input || item.words === input) || null;
+  }
+
+  function renderVocabularyContent(item) {
+    if (!item) return false;
+    activeVocabularyId = item.id;
+    vocabularyWords.textContent = item.words;
+    if (item.imageSrc) {
+      vocabularyImage.src = item.imageSrc;
+      vocabularyImage.alt = item.words;
+    } else {
+      vocabularyImage.removeAttribute("src");
+      vocabularyImage.alt = "";
+    }
+    vocabularyBoard.classList.add("active");
+    vocabularyVisible = true;
+    return true;
+  }
+
+  // Só esconde a palavra/imagem - o quadro em si (objeto genérico) é
+  // controlado pelo mod Teaching (ver startTeachingMode/stopTeachingMode).
+  function hideVocabularyContent() {
+    vocabularyBoard.classList.remove("active");
+    vocabularyImage.removeAttribute("src");
+    vocabularyImage.alt = "";
+    vocabularyWords.textContent = "";
+    vocabularyVisible = false;
+  }
+
+  // --- Câmera (genérico) ---
+
+  function applyCameraTransform() {
+    const scale = 1 + (cameraZoom / 100) * CAMERA_ZOOM_MAX_EXTRA;
+    const baseW = stageCamera.offsetWidth;
+    const baseH = stageCamera.offsetHeight;
+    const maxPanX = ((scale - 1) * baseW) / 2;
+    const maxPanY = ((scale - 1) * baseH) / 2;
+    const tx = (cameraPanX / 100) * maxPanX;
+    const ty = (cameraPanY / 100) * maxPanY;
+    stageCamera.style.transform = `scale(${scale}) translate(${tx / scale}px, ${ty / scale}px)`;
+  }
+
+  function setCameraState(zoom, panX, panY) {
+    cameraZoom = zoom;
+    cameraPanX = panX;
+    cameraPanY = panY;
+    applyCameraTransform();
+  }
+
+  // --- Objetos (genérico: props posicionáveis dentro de stageCamera) ---
+
+  function getObjectPosition(id) {
+    if (!objectPositions[id]) objectPositions[id] = { zoom: 100, offsetX: 0, offsetY: 0 };
+    return objectPositions[id];
+  }
+
+  function applyObjectTransform() {
+    if (!activeObjectId) {
+      objectLayer.style.display = "none";
+      return;
+    }
+    const pos = getObjectPosition(activeObjectId);
+    const s = pos.zoom / 100;
+    objectLayer.style.display = "block";
+    objectLayer.style.transform = `translate(-50%, -50%) translateX(${pos.offsetX}px) translateY(${-pos.offsetY}px) scale(${s})`;
+    // O quadro de vocabulário acompanha a mesma posição do objeto ativo (sem
+    // escalar - fica legível independente do zoom do objeto), pra nunca
+    // dessincronizar da posição real do quadro.
+    vocabularyBoard.style.transform = `translate(-50%, -50%) translateX(${pos.offsetX}px) translateY(${-pos.offsetY}px)`;
+  }
+
+  function setActiveObjectId(id, src) {
+    activeObjectId = id;
+    if (id && src) objectLayer.src = src;
+    else if (!id) objectLayer.removeAttribute("src");
+    applyObjectTransform();
+  }
+
+  function setObjectPosition(id, zoom, offsetX, offsetY) {
+    const pos = getObjectPosition(id);
+    pos.zoom = zoom;
+    pos.offsetX = offsetX;
+    pos.offsetY = offsetY;
+    if (activeObjectId === id) applyObjectTransform();
+  }
+
+  // --- Mod Teaching ---
+
+  function startTeachingMode() {
+    if (teachingPhase === "off" || teachingPhase === "object-out" || teachingPhase === "camera-out") {
+      teachingPhase = "camera-in";
+    }
+  }
+
+  function stopTeachingMode() {
+    pendingVocabularyId = null;
+    hideVocabularyContent();
+    if (teachingPhase === "object-in" || teachingPhase === "active") {
+      teachingPhase = "object-out";
+    } else if (teachingPhase === "camera-in") {
+      teachingPhase = "camera-out";
+    }
+  }
+
+  function updateTeaching() {
+    if (teachingPhase === "off") return;
+
+    if (teachingPhase === "camera-in") {
+      const nz = lerp(cameraZoom, teachingCameraZoom, TEACHING_LERP);
+      const nx = lerp(cameraPanX, teachingCameraPanX, TEACHING_LERP);
+      const ny = lerp(cameraPanY, teachingCameraPanY, TEACHING_LERP);
+      setCameraState(nz, nx, ny);
+      if (Math.abs(nz - teachingCameraZoom) < 0.5 && Math.abs(nx - teachingCameraPanX) < 0.5 && Math.abs(ny - teachingCameraPanY) < 0.5) {
+        setCameraState(teachingCameraZoom, teachingCameraPanX, teachingCameraPanY);
+        setActiveObjectId(TEACHING_OBJECT_ID, teachingBoardUrl);
+        setObjectPosition(TEACHING_OBJECT_ID, teachingObjectZoom, teachingObjectOffsetX, teachingObjectEnterY);
+        teachingPhase = "object-in";
+      }
+      return;
+    }
+
+    if (teachingPhase === "object-in") {
+      const pos = getObjectPosition(TEACHING_OBJECT_ID);
+      const ny = lerp(pos.offsetY, teachingObjectRestY, TEACHING_LERP);
+      setObjectPosition(TEACHING_OBJECT_ID, teachingObjectZoom, teachingObjectOffsetX, ny);
+      if (Math.abs(ny - teachingObjectRestY) < 0.5) {
+        setObjectPosition(TEACHING_OBJECT_ID, teachingObjectZoom, teachingObjectOffsetX, teachingObjectRestY);
+        teachingPhase = "active";
+        if (pendingVocabularyId) {
+          const item = getVocabularyItem(pendingVocabularyId);
+          pendingVocabularyId = null;
+          renderVocabularyContent(item);
+        }
+      }
+      return;
+    }
+
+    if (teachingPhase === "active") return;
+
+    if (teachingPhase === "object-out") {
+      const pos = getObjectPosition(TEACHING_OBJECT_ID);
+      const ny = lerp(pos.offsetY, teachingObjectEnterY, TEACHING_LERP);
+      setObjectPosition(TEACHING_OBJECT_ID, teachingObjectZoom, teachingObjectOffsetX, ny);
+      if (Math.abs(ny - teachingObjectEnterY) < 0.5) {
+        setActiveObjectId(null);
+        teachingPhase = "camera-out";
+      }
+      return;
+    }
+
+    if (teachingPhase === "camera-out") {
+      const nz = lerp(cameraZoom, 0, TEACHING_LERP);
+      const nx = lerp(cameraPanX, 0, TEACHING_LERP);
+      const ny = lerp(cameraPanY, 0, TEACHING_LERP);
+      setCameraState(nz, nx, ny);
+      if (Math.abs(nz) < 0.5 && Math.abs(nx) < 0.5 && Math.abs(ny) < 0.5) {
+        setCameraState(0, 0, 0);
+        teachingPhase = "off";
+      }
+    }
+  }
+
+  // --- Mod Camuflage ---
+
+  function applyHueRotate() {
+    if (!puppet) return;
+    puppet.style.filter = hueRotateDeg !== 0 ? `hue-rotate(${hueRotateDeg}deg)` : "";
+  }
+
+  function updateCamuflage() {
+    if (camuflagePhase === "off") return;
+    if (camuflagePhase === "m1") {
+      hueRotateDeg = lerp(hueRotateDeg, 360, CAMUFLAGE_LERP);
+      applyHueRotate();
+      if (Math.abs(hueRotateDeg - 360) < 0.5) {
+        hueRotateDeg = 360;
+        applyHueRotate();
+        camuflagePhase = "m2";
+      }
+      return;
+    }
+    if (camuflagePhase === "m2") {
+      hueRotateDeg = lerp(hueRotateDeg, 0, CAMUFLAGE_LERP);
+      applyHueRotate();
+      if (Math.abs(hueRotateDeg) < 0.5) {
+        hueRotateDeg = 0;
+        applyHueRotate();
+        camuflagePhase = "off";
+      }
+    }
+  }
+
   let puppet = null;
   let rig = null;
   let rafHandle = null;
@@ -633,12 +1039,35 @@ export async function createKevinPuppet(container, options = {}) {
   let bodyDropY = 0;
   let idleTiltExtra = 0;
   let activeAudioInput = createMicAudioInput();
+  let vocabularyItems = (options.vocabularyItems || DEFAULT_VOCABULARY_ITEMS).map(resolveVocabularyItemAsset).filter(Boolean);
+  let activeVocabularyId = null;
+  let vocabularyVisible = false;
+  let pendingVocabularyId = null;
 
-  // currentMode: "off" | "standby" | "speaking" | "thinking" | "sleeping" | "musica" | "tchau"
+  // --- Câmera (genérico): zoom/pan do quadro inteiro dentro de stageCamera ---
+  let cameraZoom = 0;   // 0-100, 0 = enquadramento padrão (sem zoom)
+  let cameraPanX = 0;   // -100 a 100, % do deslocamento máximo disponível na escala atual
+  let cameraPanY = 0;   // -100 a 100, idem
+
+  // --- Objetos (genérico): props posicionáveis dentro de stageCamera, um por vez ---
+  let activeObjectId = null;
+  const objectPositions = {}; // { [objId]: { zoom, offsetX, offsetY } }
+
+  // --- Mod Teaching ---
+  let teachingPhase = "off"; // "off" | "camera-in" | "object-in" | "active" | "object-out" | "camera-out"
+
+  // --- Sequência de abertura (autoOpening) ---
+  let openingPendingSpeaking = false;
+
+  // --- Mod Camuflage ---
+  let camuflagePhase = "off"; // "off" | "m1" | "m2"
+  let hueRotateDeg = 0; // 0-360, gira o matiz de todas as cores do SVG (usado só pelo Camuflage)
+
+  // currentMode: "off" | "standby" | "speaking" | "thinking" | "sleeping" | "musica" | "celebrate" | "tchau"
   // É o modo pedido via setMode(). O modo efetivamente renderizado a cada frame
   // (effectiveMode, calculado em animate()) pode divergir temporariamente: a
-  // saída do modo Musica é animada (M4 → exit_m2 → exit_m1) e o Tchau é um
-  // gesto de disparo único - os dois voltam para "off" sozinhos ao terminar.
+  // saída do modo Musica é animada (M4 → exit_m2 → exit_m1) e Celebrate/Tchau
+  // são gestos de disparo único que voltam sozinhos ao terminar.
   let currentMode = "off";
   let previousMode = "off";
   // Modo efetivamente renderizado no frame atual (calculado em animate()).
@@ -665,6 +1094,16 @@ export async function createKevinPuppet(container, options = {}) {
     left:  { curS: 0, curE: 0 },
     right: { curS: 0, curE: 0 },
   };
+
+  // --- Celebrate ---
+  let celebratePhase = "off"; // "off" | "enter" | "m1" | "m2" | "m3"
+  let celebrateJumpStage = "none"; // "none" | "up" | "down" | "done"
+  let celebrateLandingStage = "bounceDown"; // "bounceDown" | "bounceUp"
+  let celebrateM3FeetTriggered = false;
+  let celebrateConfettiFired = false;
+  let celebrateAudioTimeout = null;
+  const celebrateArmState = { rightS: 0, rightE: 0, leftS: 0, leftE: 0 };
+  let celebrateJumpOffset = 0;
 
   // --- Musica ---
   let musicaPhase = "m1";          // "m1" | "m2" | "m3" | "m4" | "exit_m2" | "exit_m1"
@@ -952,6 +1391,14 @@ export async function createKevinPuppet(container, options = {}) {
     return bodyDropY > 0 ? `translate(0 ${bodyDropY.toFixed(3)})` : "";
   }
 
+  function applyPuppetBaseTransform() {
+    if (!puppet) return;
+    const s = PUPPET_BASE_ZOOM / 100;
+    const ty = PUPPET_BASE_OFFSET_Y + celebrateJumpOffset;
+    puppet.style.transformOrigin = "bottom center";
+    puppet.style.transform = `translateX(${PUPPET_BASE_OFFSET_X}px) translateY(${-ty}px) scale(${s})`;
+  }
+
   function applyHeadRotation() {
     if (!rig || !rig.head || !rig.head.node) return;
     const tilt = idleTiltExtra + moscaState.tiltCur;
@@ -994,6 +1441,8 @@ export async function createKevinPuppet(container, options = {}) {
     if (arm.ukeleGroup) arm.ukeleGroup.style.display = "none";
     if (arm.tchauGroup && arm.tchauGroup.parentNode !== wristDriver) wristDriver.appendChild(arm.tchauGroup);
     if (arm.tchauGroup) arm.tchauGroup.style.display = "none";
+    if (arm.fechadaGroup && arm.fechadaGroup.parentNode !== wristDriver) wristDriver.appendChild(arm.fechadaGroup);
+    if (arm.fechadaGroup) arm.fechadaGroup.style.display = "none";
 
     arm.elbowDriver = elbowDriver;
     arm.wristDriver = wristDriver;
@@ -1166,6 +1615,7 @@ export async function createKevinPuppet(container, options = {}) {
         handMirrorShoulderLteDeg: -54.5,
         handMirrorElbowSign: "negative",
         ukeleGroup: getNodeById("Mão_Ukulele"),
+        fechadaGroup: getNodeById("Mão_fechada1"),
         driverPrefix: "left",
         pivots: LEFT_ARM_PIVOTS,
       },
@@ -1200,6 +1650,7 @@ export async function createKevinPuppet(container, options = {}) {
         handMirrorShoulderGteDeg: 54.5,
         handMirrorShoulderLteDeg: null,
         handMirrorElbowSign: "positive",
+        fechadaGroup: getNodeById("Mão_fechada"),
         driverPrefix: "right",
         pivots: RIGHT_ARM_PIVOTS,
       },
@@ -1215,6 +1666,7 @@ export async function createKevinPuppet(container, options = {}) {
         kneeDeform: getNodeById("Deform"),
         kneeDriver: null,
         ankleDriver: null,
+        footManualTiltDeg: 0,
         driverPrefix: "leftLeg",
         hipSign: 1,
         kneeSign: 1,
@@ -1235,6 +1687,7 @@ export async function createKevinPuppet(container, options = {}) {
         kneeDeform: getNodeById("Deform1"),
         kneeDriver: null,
         ankleDriver: null,
+        footManualTiltDeg: 0,
         driverPrefix: "rightLeg",
         hipSign: -1,
         kneeSign: -1,
@@ -1452,6 +1905,7 @@ export async function createKevinPuppet(container, options = {}) {
         setSvgTransform(arm.ukeleGroup, ukeTilt);
       }
       if (arm.tchauGroup) setSvgTransform(arm.tchauGroup, handTransform);
+      if (arm.fechadaGroup) setSvgTransform(arm.fechadaGroup, handTransform);
     }
 
     for (let i = 0; i < arm.meshPaths.length; i++) {
@@ -1492,7 +1946,11 @@ export async function createKevinPuppet(container, options = {}) {
       const footLock = bodyDropY > 0 || kneeOut ? `translate(${(-kneeOut).toFixed(3)} ${(-bodyDropY).toFixed(3)})` : "";
       setSvgTransform(leg.ankleDriver, composeTransforms(leg.ankleDriverBaseTransform, cancelKnee, footLock));
     }
-    if (leg.footGroup) setSvgTransform(leg.footGroup, leg.footBaseTransform || "");
+    if (leg.footGroup) {
+      const manualTilt = leg.footManualTiltDeg || 0;
+      const tiltRotate = manualTilt !== 0 ? `rotate(${manualTilt.toFixed(3)} ${leg.pivots.ankleX} ${leg.pivots.ankleY})` : "";
+      setSvgTransform(leg.footGroup, composeTransforms(leg.footBaseTransform, tiltRotate));
+    }
 
     const footLockY = bodyDropY > 0 ? -bodyDropY : 0;
     for (let i = 0; i < leg.meshPaths.length; i++) {
@@ -1765,6 +2223,8 @@ export async function createKevinPuppet(container, options = {}) {
     if (!rig) return;
     sleepPhaseStart = now;
     sleepZNextAt = now + 1200;
+    snoreAudio.currentTime = 0;
+    snoreAudio.play().catch(() => {});
     sleepArmState.left.curS  = rig.leftArm?.lastShoulder  ?? ARM_POSE_LEFT.rest.shoulder;
     sleepArmState.left.curE  = rig.leftArm?.lastElbow      ?? ARM_POSE_LEFT.rest.elbow;
     sleepArmState.right.curS = rig.rightArm?.lastShoulder ?? ARM_POSE_RIGHT.rest.shoulder;
@@ -1831,6 +2291,210 @@ export async function createKevinPuppet(container, options = {}) {
     animateArmWithValues(rig.rightArm, sleepArmState.right.curS, sleepArmState.right.curE);
 
     spawnSleepZ(now);
+  }
+
+  // --- preset: Celebrate ---
+  function celebrateSetFists(visible) {
+    for (const arm of [rig?.rightArm, rig?.leftArm]) {
+      if (!arm) continue;
+      if (arm.handGroup) arm.handGroup.style.display = visible ? "none" : "";
+      if (arm.fechadaGroup) {
+        if (visible) arm.fechadaGroup.removeAttribute("display");
+        arm.fechadaGroup.style.display = visible ? "" : "none";
+      }
+    }
+  }
+
+  function playCelebrateAudio() {
+    if (!celebrateAudio) return;
+    celebrateAudio.currentTime = 0;
+    celebrateAudio.volume = celebrateAudioVolume;
+    celebrateAudio.muted = false;
+    celebrateAudio.play().catch(() => {});
+  }
+
+  function scheduleCelebrateAudio() {
+    if (celebrateAudioTimeout != null) clearTimeout(celebrateAudioTimeout);
+    celebrateAudioTimeout = setTimeout(() => {
+      celebrateAudioTimeout = null;
+      playCelebrateAudio();
+    }, celebrateAudioPlayDelayMs);
+  }
+
+  function spawnCelebrateConfetti() {
+    if (!stage) return;
+    const count = 72;
+    const originX = stage.offsetWidth * 0.5;
+    const originY = stage.offsetHeight * 0.34;
+
+    for (let i = 0; i < count; i++) {
+      const angle = -Math.PI * 0.95 + Math.random() * Math.PI * 0.9;
+      const spread = 110 + Math.random() * 290;
+      const drift = -80 + Math.random() * 160;
+      const size = 6 + Math.random() * 8;
+      const fall = 160 + Math.random() * 230;
+      const el = document.createElement("span");
+
+      el.className = "kevin-celebrate-confetti";
+      el.style.left = `${originX + drift * 0.2}px`;
+      el.style.top = `${originY}px`;
+      el.style.width = `${size}px`;
+      el.style.height = `${size * (0.45 + Math.random() * 0.9)}px`;
+      el.style.background = CELEBRATE_CONFETTI_COLORS[i % CELEBRATE_CONFETTI_COLORS.length];
+      el.style.borderRadius = Math.random() > 0.72 ? "50%" : "2px";
+      el.style.setProperty("--confetti-x", `${Math.cos(angle) * spread + drift}px`);
+      el.style.setProperty("--confetti-y", `${Math.sin(angle) * spread + fall}px`);
+      el.style.setProperty("--confetti-rot", `${180 + Math.random() * 720}deg`);
+      el.style.animationDuration = `${1150 + Math.random() * 650}ms`;
+      el.style.animationDelay = `${Math.random() * 90}ms`;
+
+      stage.appendChild(el);
+      setTimeout(() => el.remove(), 1900);
+    }
+  }
+
+  function initCelebrateState() {
+    celebratePhase = "enter";
+    celebrateJumpStage = "none";
+    celebrateLandingStage = "bounceDown";
+    celebrateM3FeetTriggered = false;
+    celebrateConfettiFired = false;
+    celebrateArmState.rightS = rig?.rightArm?.lastShoulder ?? 0;
+    celebrateArmState.rightE = rig?.rightArm?.lastElbow ?? 0;
+    celebrateArmState.leftS  = rig?.leftArm?.lastShoulder ?? 0;
+    celebrateArmState.leftE  = rig?.leftArm?.lastElbow ?? 0;
+    celebrateJumpOffset = 0;
+    if (rig?.rightArm) rig.rightArm.musicaHandMirrorOverride = false;
+  }
+
+  function cleanupCelebrate() {
+    celebratePhase = "off";
+    celebrateJumpStage = "none";
+    celebrateJumpOffset = 0;
+    celebrateLandingStage = "bounceDown";
+    celebrateM3FeetTriggered = false;
+    celebrateConfettiFired = false;
+    if (celebrateAudioTimeout != null) {
+      clearTimeout(celebrateAudioTimeout);
+      celebrateAudioTimeout = null;
+    }
+    if (stage) stage.querySelectorAll(".kevin-celebrate-confetti").forEach((el) => el.remove());
+    if (rig?.rightArm) rig.rightArm.musicaHandMirrorOverride = null;
+    if (rig?.leftLeg) rig.leftLeg.footManualTiltDeg = 0;
+    if (rig?.rightLeg) rig.rightLeg.footManualTiltDeg = 0;
+    celebrateSetFists(false);
+    applyPuppetBaseTransform();
+  }
+
+  function animateCelebratePose(now) {
+    if (!rig) return;
+    const right = rig.rightArm;
+    const left = rig.leftArm;
+
+    if (celebratePhase === "enter") {
+      celebrateArmState.rightS = lerp(celebrateArmState.rightS, CELEBRATE_INIT_RIGHT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.rightE = lerp(celebrateArmState.rightE, CELEBRATE_INIT_RIGHT.elbow, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftS  = lerp(celebrateArmState.leftS,  CELEBRATE_INIT_LEFT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftE  = lerp(celebrateArmState.leftE,  CELEBRATE_INIT_LEFT.elbow, CELEBRATE_ARM_LERP);
+      setBodyDropValue(lerp(bodyDropY, 0, CELEBRATE_BODY_LERP));
+      if (Math.abs(celebrateArmState.rightS - CELEBRATE_INIT_RIGHT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.rightE - CELEBRATE_INIT_RIGHT.elbow) < 2 &&
+          Math.abs(celebrateArmState.leftS - CELEBRATE_INIT_LEFT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.leftE - CELEBRATE_INIT_LEFT.elbow) < 2) {
+        celebratePhase = "m1";
+      }
+
+    } else if (celebratePhase === "m1") {
+      celebrateArmState.rightS = lerp(celebrateArmState.rightS, CELEBRATE_M1_RIGHT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.rightE = lerp(celebrateArmState.rightE, CELEBRATE_M1_RIGHT.elbow, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftS  = lerp(celebrateArmState.leftS,  CELEBRATE_M1_LEFT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftE  = lerp(celebrateArmState.leftE,  CELEBRATE_M1_LEFT.elbow, CELEBRATE_ARM_LERP);
+      setBodyDropValue(lerp(bodyDropY, CELEBRATE_M1_BODY_DROP, CELEBRATE_BODY_LERP));
+      if (Math.abs(celebrateArmState.rightS - CELEBRATE_M1_RIGHT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.rightE - CELEBRATE_M1_RIGHT.elbow) < 2 &&
+          Math.abs(celebrateArmState.leftS - CELEBRATE_M1_LEFT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.leftE - CELEBRATE_M1_LEFT.elbow) < 2 &&
+          Math.abs(bodyDropY - CELEBRATE_M1_BODY_DROP) < 2) {
+        celebrateSetFists(true);
+        celebratePhase = "m2";
+      }
+
+    } else if (celebratePhase === "m2") {
+      celebrateArmState.rightS = lerp(celebrateArmState.rightS, CELEBRATE_M2_RIGHT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.rightE = lerp(celebrateArmState.rightE, CELEBRATE_M2_RIGHT.elbow, CELEBRATE_ARM_LERP);
+
+      const leftTarget = celebrateJumpStage === "none" ? CELEBRATE_M2_LEFT : CELEBRATE_M2_LEFT_LATE;
+      celebrateArmState.leftS = lerp(celebrateArmState.leftS, leftTarget.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftE = lerp(celebrateArmState.leftE, leftTarget.elbow, CELEBRATE_ARM_LERP);
+
+      const footTiltLeftTarget  = celebrateJumpStage === "none" ? 0 : CELEBRATE_FOOT_TILT_LEFT;
+      const footTiltRightTarget = celebrateJumpStage === "none" ? 0 : CELEBRATE_FOOT_TILT_RIGHT;
+      if (rig.leftLeg)  rig.leftLeg.footManualTiltDeg  = lerp(rig.leftLeg.footManualTiltDeg  ?? 0, footTiltLeftTarget,  CELEBRATE_ARM_LERP);
+      if (rig.rightLeg) rig.rightLeg.footManualTiltDeg = lerp(rig.rightLeg.footManualTiltDeg ?? 0, footTiltRightTarget, CELEBRATE_ARM_LERP);
+
+      setBodyDropValue(lerp(bodyDropY, 0, CELEBRATE_BODY_LERP));
+
+      if (celebrateJumpStage === "none" && bodyDropY <= CELEBRATE_JUMP_TRIGGER_BODY_DROP) {
+        celebrateJumpStage = "up";
+        if (!celebrateConfettiFired) {
+          celebrateConfettiFired = true;
+          spawnCelebrateConfetti();
+        }
+      } else if (celebrateJumpStage === "up") {
+        celebrateJumpOffset = lerp(celebrateJumpOffset, CELEBRATE_JUMP_HEIGHT, CELEBRATE_JUMP_LERP);
+        if (celebrateJumpOffset > CELEBRATE_JUMP_HEIGHT - 2) celebrateJumpStage = "down";
+      } else if (celebrateJumpStage === "down") {
+        celebrateJumpOffset = lerp(celebrateJumpOffset, 0, CELEBRATE_JUMP_LERP);
+        if (celebrateJumpOffset < 2) {
+          celebrateJumpOffset = 0;
+          celebrateJumpStage = "done";
+        }
+      }
+
+      if (celebrateJumpStage === "done") {
+        celebrateSetFists(false);
+        celebrateLandingStage = "bounceDown";
+        celebratePhase = "m3";
+      }
+
+    } else if (celebratePhase === "m3") {
+      celebrateArmState.rightS = lerp(celebrateArmState.rightS, CELEBRATE_M3_RIGHT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.rightE = lerp(celebrateArmState.rightE, CELEBRATE_M3_RIGHT.elbow, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftS  = lerp(celebrateArmState.leftS,  CELEBRATE_M3_LEFT.shoulder, CELEBRATE_ARM_LERP);
+      celebrateArmState.leftE  = lerp(celebrateArmState.leftE,  CELEBRATE_M3_LEFT.elbow, CELEBRATE_ARM_LERP);
+
+      if (celebrateLandingStage === "bounceDown") {
+        setBodyDropValue(lerp(bodyDropY, CELEBRATE_LANDING_BOUNCE, CELEBRATE_BODY_LERP));
+        if (bodyDropY > CELEBRATE_LANDING_BOUNCE - 2) celebrateLandingStage = "bounceUp";
+      } else {
+        setBodyDropValue(lerp(bodyDropY, 0, CELEBRATE_BODY_LERP));
+      }
+
+      if (!celebrateM3FeetTriggered && bodyDropY >= CELEBRATE_JUMP_TRIGGER_BODY_DROP) {
+        celebrateM3FeetTriggered = true;
+      }
+      const footTiltLeftTarget  = celebrateM3FeetTriggered ? 0 : CELEBRATE_FOOT_TILT_LEFT;
+      const footTiltRightTarget = celebrateM3FeetTriggered ? 0 : CELEBRATE_FOOT_TILT_RIGHT;
+      if (rig.leftLeg)  rig.leftLeg.footManualTiltDeg  = lerp(rig.leftLeg.footManualTiltDeg  ?? 0, footTiltLeftTarget,  CELEBRATE_ARM_LERP);
+      if (rig.rightLeg) rig.rightLeg.footManualTiltDeg = lerp(rig.rightLeg.footManualTiltDeg ?? 0, footTiltRightTarget, CELEBRATE_ARM_LERP);
+
+      if (celebrateLandingStage === "bounceUp" && bodyDropY < 2 &&
+          Math.abs(celebrateArmState.rightS - CELEBRATE_M3_RIGHT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.rightE - CELEBRATE_M3_RIGHT.elbow) < 2 &&
+          Math.abs(celebrateArmState.leftS - CELEBRATE_M3_LEFT.shoulder) < 2 &&
+          Math.abs(celebrateArmState.leftE - CELEBRATE_M3_LEFT.elbow) < 2) {
+        cleanupCelebrate();
+        currentMode = "standby";
+        return;
+      }
+    }
+
+    if (right) animateArmWithValues(right, celebrateArmState.rightS, celebrateArmState.rightE);
+    if (left) animateArmWithValues(left, celebrateArmState.leftS, celebrateArmState.leftE);
+    applyPuppetBaseTransform();
+    animateBodyWithSway(rig.body, 0);
+    animateTail(now);
+    if (poseIndexToHeadTurnStep(poseIndex) !== 0) setPose(headTurnStepToPoseIndex(0));
   }
 
   // --- preset: Musica ---
@@ -2118,7 +2782,11 @@ export async function createKevinPuppet(container, options = {}) {
       tchauArmState.curE = lerp(tchauArmState.curE, 0, 0.2);
       if (Math.abs(tchauArmState.curS) < 2 && Math.abs(tchauArmState.curE) < 2) {
         cleanupTchau();
-        currentMode = "off";
+        currentMode = "standby";
+        if (openingPendingSpeaking) {
+          openingPendingSpeaking = false;
+          setModeInternal("speaking");
+        }
         return;
       }
       // Restaura mão padrão assim que o braço estiver descendo
@@ -2520,6 +3188,55 @@ export async function createKevinPuppet(container, options = {}) {
     applyBodyDropPose();
   }
 
+  // Lógica de setMode() extraída pra função interna, reutilizada pela sequência
+  // de abertura (ver runOpeningSequence) sem duplicar o fluxo de mic/prioridade.
+  async function setModeInternal(mode) {
+    if (!VALID_MODES.includes(mode)) {
+      console.warn(`KevinPuppet: modo desconhecido "${mode}".`);
+      return false;
+    }
+
+    if (mode === "tchau" && currentMode === "tchau" && tchauPhase !== "off") {
+      cleanupTchau();
+      currentMode = "off";
+      return true;
+    }
+    if (mode === "tchau" && (currentMode === "musica" || musicaExiting || currentMode === "celebrate" || celebratePhase !== "off")) {
+      return false;
+    }
+    if (mode === currentMode) return true;
+
+    if (mode === "speaking" || mode === "musica" || mode === "tchau") {
+      const ok = await activeAudioInput.start();
+      if (!ok) {
+        onError(`Nao foi possivel iniciar a entrada de audio para o modo "${mode}".`);
+        return false;
+      }
+    }
+
+    // Saindo da Musica: dispara a animação de guardar o ukulele antes de
+    // aplicar o novo modo (que só aparece quando ela terminar).
+    if (currentMode === "musica" && mode !== "musica") {
+      startMusicaExit(null);
+    }
+
+    if (currentMode === "celebrate" && mode !== "celebrate") {
+      cleanupCelebrate();
+    }
+
+    if (mode === "celebrate") {
+      if (currentMode === "tchau" || tchauPhase !== "off") cleanupTchau();
+      scheduleCelebrateAudio();
+    }
+
+    if (moscaActive && (mode === "musica" || mode === "sleeping" || mode === "thinking" || mode === "celebrate" || mode === "tchau")) {
+      dismissMoscaInternal();
+    }
+
+    currentMode = mode;
+    return true;
+  }
+
   // Mic deve continuar rodando enquanto qualquer modo que o usa estiver ativo
   // (inclui a saída animada da Musica e o gesto do Tchau em andamento).
   function isMicNeeded() {
@@ -2530,21 +3247,26 @@ export async function createKevinPuppet(container, options = {}) {
   // --- loop principal ---
   function animate(now) {
     if (!rig) return;
+    updateTeaching();
+    updateCamuflage();
 
     activeMode = (currentMode === "musica" || musicaExiting) ? "musica"
+      : (currentMode === "celebrate" || celebratePhase !== "off") ? "celebrate"
       : (currentMode === "tchau" || tchauPhase !== "off") ? "tchau"
       : currentMode; // off | standby | speaking | thinking | sleeping
 
-    // Musica tem prioridade sobre o Tchau: se ambos ficarem ativos ao mesmo
-    // tempo (corrida entre setMode("musica") e um Tchau em andamento), o
-    // Tchau é cancelado imediatamente.
-    if (activeMode === "musica" && tchauPhase !== "off") {
+    // Musica e Celebrate têm prioridade sobre o Tchau se houver uma corrida
+    // entre chamadas programáticas.
+    if ((activeMode === "musica" || activeMode === "celebrate") && tchauPhase !== "off") {
       cleanupTchau();
     }
 
     if (activeMode === "standby" || activeMode === "speaking") {
       if (previousMode !== "standby" && previousMode !== "speaking") initIdleState(now);
       animateIdlePose(now, { allowHeadTurn: activeMode === "standby" });
+    } else if (activeMode === "celebrate") {
+      if (previousMode !== "celebrate") initCelebrateState();
+      animateCelebratePose(now);
     } else if (activeMode === "tchau") {
       if (previousMode !== "tchau") initTchauState(now);
       animateTchauMode(now);
@@ -2562,6 +3284,15 @@ export async function createKevinPuppet(container, options = {}) {
     }
 
     applyBodyDropPose();
+
+    // Ao sair do sleeping para qualquer modo, para o ronco (cobre todos os
+    // jeitos de sair: setMode direto, Mosca acordando, Tchau/Celebrate/Musica
+    // interrompendo).
+    if (previousMode === "sleeping" && activeMode !== "sleeping") {
+      snoreAudio.pause();
+      snoreAudio.currentTime = 0;
+    }
+
     previousMode = activeMode;
 
     if (!moscaActive || moscaState.entering) {
@@ -2574,6 +3305,8 @@ export async function createKevinPuppet(container, options = {}) {
 
     if ((currentMode === "musica" || musicaExiting) && musicaPhase === "m4") {
       setMouthByAudioLevel(now, activeAudioInput.update());
+    } else if (activeMode === "celebrate") {
+      setMouthShape("Aa");
     } else if (activeMode === "standby" || activeMode === "thinking" || activeMode === "sleeping" || activeMode === "musica") {
       setMouthShape("Neutral");
     } else if (activeMode === "speaking" || activeMode === "tchau") {
@@ -2604,18 +3337,29 @@ export async function createKevinPuppet(container, options = {}) {
   initDefaultVisibility();
 
   // Posição/escala fixa do personagem sobre o fundo (ver PUPPET_BASE_*).
-  {
-    const s = PUPPET_BASE_ZOOM / 100;
-    puppet.style.transformOrigin = "bottom center";
-    puppet.style.transform = `translateX(${PUPPET_BASE_OFFSET_X}px) translateY(${-PUPPET_BASE_OFFSET_Y}px) scale(${s})`;
-  }
+  applyPuppetBaseTransform();
 
   setPose(0);
   nextBlinkAt = performance.now() + 900;
   rafHandle = requestAnimationFrame(animate);
 
+  if (autoOpening) {
+    // Kevin já em standby, congelado no 1º frame da cortina, esperando o
+    // clique em "Iniciar" - o popup cobre a cena até lá.
+    currentMode = "standby";
+    entradaVideo.style.display = "block";
+    entradaVideo.currentTime = 0;
+    openingStartBtn.addEventListener("click", () => {
+      openingCard.style.display = "none";
+      runEntradaAnimation().then(() => {
+        openingPendingSpeaking = true;
+        setModeInternal("tchau");
+      });
+    });
+  }
+
   // --- API pública ---
-  const VALID_MODES = ["off", "standby", "speaking", "thinking", "sleeping", "musica", "tchau"];
+  const VALID_MODES = ["off", "standby", "speaking", "thinking", "sleeping", "musica", "celebrate", "tchau"];
 
   return {
     /**
@@ -2628,47 +3372,16 @@ export async function createKevinPuppet(container, options = {}) {
      * modo é aceita na hora, mas o personagem só assume a nova pose quando a
      * animação de guardar o ukulele terminar.
      *
+     * "celebrate" é um gesto de disparo único com confetes e efeito sonoro;
+     * volta a "standby" sozinho ao terminar.
+     *
      * "tchau" é um gesto de disparo único (acena e volta a "off" sozinho).
      * Chamar setMode("tchau") de novo enquanto ele acena cancela o gesto na
-     * hora. Chamar setMode("tchau") enquanto "musica" está tocando retorna
-     * `false` (musica tem prioridade).
+     * hora. Chamar setMode("tchau") enquanto "musica" ou "celebrate" está
+     * ativo retorna `false` (esses modos têm prioridade).
      */
-    async setMode(mode) {
-      if (!VALID_MODES.includes(mode)) {
-        console.warn(`KevinPuppet: modo desconhecido "${mode}".`);
-        return false;
-      }
-
-      if (mode === "tchau" && currentMode === "tchau" && tchauPhase !== "off") {
-        cleanupTchau();
-        currentMode = "off";
-        return true;
-      }
-      if (mode === "tchau" && (currentMode === "musica" || musicaExiting)) {
-        return false;
-      }
-      if (mode === currentMode) return true;
-
-      if (mode === "speaking" || mode === "musica" || mode === "tchau") {
-        const ok = await activeAudioInput.start();
-        if (!ok) {
-          onError(`Nao foi possivel iniciar a entrada de audio para o modo "${mode}".`);
-          return false;
-        }
-      }
-
-      // Saindo da Musica: dispara a animação de guardar o ukulele antes de
-      // aplicar o novo modo (que só aparece quando ela terminar).
-      if (currentMode === "musica" && mode !== "musica") {
-        startMusicaExit(null);
-      }
-
-      if (moscaActive && (mode === "musica" || mode === "sleeping" || mode === "thinking" || mode === "tchau")) {
-        dismissMoscaInternal();
-      }
-
-      currentMode = mode;
-      return true;
+    setMode(mode) {
+      return setModeInternal(mode);
     },
 
     getMode() {
@@ -2717,10 +3430,115 @@ export async function createKevinPuppet(container, options = {}) {
       return runBackgroundTransition(url);
     },
 
+    /**
+     * Ativa o mod Teaching: a câmera aproxima e o quadro-negro desliza até o
+     * lugar (~1-2s de animação). Aditivo - não sobrepõe standby/speaking/etc.
+     * Não precisa chamar isso antes de `showTeachingVocabulary` - ela já ativa
+     * sozinha se o Teaching ainda não estiver rodando.
+     */
+    startTeaching() {
+      startTeachingMode();
+    },
+
+    /**
+     * Desativa o Teaching: some a palavra/imagem, o quadro desliza pra fora e
+     * some, e só então a câmera volta pra posição normal (~1-2s de animação).
+     */
+    stopTeaching() {
+      stopTeachingMode();
+    },
+
+    isTeachingActive() {
+      return teachingPhase !== "off";
+    },
+
+    /**
+     * Mostra o quadro de ensino com uma palavra/expressão de vocabulário.
+     * Aceita o id da lista padrão ("wake-up") ou um objeto:
+     * { id?: string, words: string, imageSrc?: string }. Se o Teaching ainda
+     * não estiver ativo, ativa sozinho e mostra a palavra assim que o quadro
+     * terminar de entrar.
+     */
+    showTeachingVocabulary(input) {
+      const item = getVocabularyItem(input);
+      if (!item) return false;
+      activeVocabularyId = item.id;
+      if (teachingPhase === "active") return renderVocabularyContent(item);
+      pendingVocabularyId = item.id;
+      startTeachingMode();
+      return true;
+    },
+
+    /**
+     * Esconde a palavra/imagem e desativa o Teaching por completo (câmera e
+     * quadro saem animados) - use antes de qualquer transição de saída do
+     * Teaching na aplicação externa.
+     */
+    hideTeachingVocabulary() {
+      hideVocabularyContent();
+      stopTeachingMode();
+    },
+
+    /** Esconde apenas palavra/imagem, mantendo o quadro/Teaching como está. */
+    hideVocabulary() {
+      hideVocabularyContent();
+    },
+
+    getVocabularyItems() {
+      return vocabularyItems.map((item) => ({ ...item }));
+    },
+
+    /**
+     * Preenche o nome da aula no popup da sequência de abertura (autoOpening).
+     * Pode ser chamado antes ou depois do popup renderizar.
+     */
+    setLessonName(name) {
+      lessonName = name;
+      openingLessonName.textContent = name;
+    },
+
+    setVocabularyItems(items) {
+      if (!Array.isArray(items)) return false;
+      vocabularyItems = items.map(resolveVocabularyItemAsset).filter(Boolean);
+      activeVocabularyId = null;
+      hideVocabularyContent();
+      return true;
+    },
+
+    /**
+     * Dispara o mod Camuflage: o matiz de cor do Kevin gira 0→360→0 (~22s no
+     * ritmo padrão) e desativa sozinho ao terminar. Aditivo - não sobrepõe
+     * outros mods. Chamar de novo enquanto roda cancela na hora.
+     */
+    playCamuflage() {
+      if (camuflagePhase !== "off") {
+        camuflagePhase = "off";
+        hueRotateDeg = 0;
+        applyHueRotate();
+        return;
+      }
+      camuflagePhase = "m1";
+    },
+
+    /**
+     * Toca a animação de entrada uma vez, cobrindo a cena e revelando o Kevin
+     * ao final (em vez dele simplesmente aparecer). Chame antes ou depois de
+     * setMode() - o Kevin já deve estar no modo/cenário desejado por baixo do
+     * vídeo, já que ele só "abre" a cortina, não troca nada sozinho. Retorna
+     * uma Promise que resolve quando a animação termina. Chamadas durante uma
+     * entrada em curso são ignoradas (resolve `false`).
+     */
+    playEntrada() {
+      return runEntradaAnimation();
+    },
+
     /** Para o loop de animação e a entrada de áudio, e remove o DOM criado. */
     destroy() {
       if (rafHandle != null) cancelAnimationFrame(rafHandle);
+      if (celebrateAudioTimeout != null) clearTimeout(celebrateAudioTimeout);
       activeAudioInput.stop();
+      backsoundMusicAudio.pause();
+      snoreAudio.pause();
       stage.remove();
     },
   };

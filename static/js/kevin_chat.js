@@ -84,6 +84,11 @@
       );
       await kevinChat.init();
       state.kevinReady = !!(kevinChat.isReady && kevinChat.isReady());
+      // Congela o 1º frame da entrada atrás da tela de espera (#call-standby)
+      // em vez de deixar o Kevin em standby já visível por trás do popup.
+      if (state.kevinReady && kevinChat.freezeEntrada && window.KEVIN_RIG_CONFIG.entradaVideoUrl) {
+        kevinChat.freezeEntrada(window.KEVIN_RIG_CONFIG.entradaVideoUrl);
+      }
     } catch (error) {
       console.error('[Chat] Erro ao inicializar Kevin:', error);
     } finally {
@@ -260,15 +265,18 @@
         .then((r) => r.json())
         .then((data) => {
           const msgs = data.mensagens || [];
-          if (msgs.length && msgs[msgs.length - 1].role === 'assistant') {
+          const ultima = msgs[msgs.length - 1];
+          if (ultima && ultima.role === 'assistant') {
             clearInterval(id);
             hideTyping();
-            const resposta = msgs[msgs.length - 1].conteudo;
-            appendMessage('assistant', resposta);
+            appendMessage('assistant', ultima.conteudo);
 
-            // Kevin fala enquanto responde
-            if (kevinChat) {
-              kevinChat.onAssistantMessage(resposta);
+            if (ultima.celebrar) {
+              // Não chama onAssistantMessage aqui: ele forçaria "standby" e
+              // cortaria o gesto do celebrate no meio.
+              celebrarSeNecessario(true);
+            } else if (kevinChat) {
+              kevinChat.onAssistantMessage(ultima.conteudo);
             }
           }
         });
@@ -421,8 +429,10 @@
       state.isSending = false;
       hideTyping();
       const resp = data.resposta && data.resposta.conteudo;
+      const celebrar = !!(data.resposta && data.resposta.celebrar);
       if (resp) {
         appendMessage('assistant', resp);
+        await celebrarSeNecessario(celebrar);
         await playTTS(resp);
       }
       setMicBtnState(state.liveMode ? 'live' : 'idle');
@@ -490,6 +500,20 @@
     }
     // Tira o puppet do speaking.
     if (kevinChat && kevinChat.stopSpeaking) kevinChat.stopSpeaking();
+  }
+
+  /**
+   * Se a resposta pediu celebrate (Mensagem.celebrar, D38), dispara o gesto
+   * e dá tempo dele terminar antes de seguir pro TTS — o motor não expõe
+   * uma Promise que resolve ao fim do Celebrate (diferente de playEntrada/
+   * setBackground), então usamos um delay fixo generoso.
+   */
+  async function celebrarSeNecessario(celebrar) {
+    if (!celebrar || !kevinChat || !kevinChat.celebrate) return;
+    try {
+      await kevinChat.celebrate();
+      await new Promise((r) => setTimeout(r, 1800));
+    } catch (e) { /* segue sem celebrar */ }
   }
 
   /**
@@ -669,6 +693,7 @@
     showTyping();
 
     let resp = null;
+    let celebrar = false;
     try {
       if (window.KEVIN_DEMO_MODE) {
         await new Promise((r) => setTimeout(r, 1300 + Math.random() * 700));
@@ -676,6 +701,7 @@
       } else {
         const data = await enviarMensagemSync(texto);
         resp = data && data.resposta && data.resposta.conteudo;
+        celebrar = !!(data && data.resposta && data.resposta.celebrar);
       }
     } catch (err) {
       console.error('[Chat] sendTextAndSpeak:', err);
@@ -688,7 +714,11 @@
       return;
     }
     appendMessage('assistant', resp);
-    if (kevinChat) kevinChat.onAssistantMessage(resp);
+    if (celebrar) {
+      await celebrarSeNecessario(true);
+    } else if (kevinChat) {
+      kevinChat.onAssistantMessage(resp);
+    }
     try { await playTTS(resp); } catch (e) { /* TTS é opcional */ }
   }
 
@@ -700,6 +730,15 @@
       try { await kevinChat.unlockAudio(); } catch (e) {/* já logado */}
     }
     callRoot.dataset.state = 'live';
+    // Vídeo de entrada ("abre a cortina" e revela o Kevin) antes do kickoff.
+    if (kevinChat && kevinChat.playEntrada) {
+      try { await kevinChat.playEntrada(); } catch (e) {/* segue sem a entrada animada */}
+    }
+    // Aceno de "oi" — precisa terminar ANTES do kickoff entrar em "thinking"
+    // (sendTextAndSpeak → showTyping() já dispara o modo pensando).
+    if (kevinChat && kevinChat.waveHello) {
+      try { await kevinChat.waveHello(); } catch (e) {/* segue sem o aceno */}
+    }
     const kickoff = window.KEVIN_KICKOFF || 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?';
     sendTextAndSpeak(kickoff);
   }

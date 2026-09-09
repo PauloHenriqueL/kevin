@@ -8,9 +8,79 @@
   height: 100%;
   overflow: hidden;
   background-color: transparent;
+}
+
+/* Wrapper de câmera: leva o background + a camada de objeto + o puppet, e
+   recebe o transform de zoom/pan (aplicado via JS, ver applyCameraTransform).
+   `kevin-stage` continua sendo só o frame fixo que corta (overflow:hidden). */
+.kevin-stage-camera {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
+  transform-origin: center center;
+}
+
+/* Camada de objeto genérica (props posicionáveis dentro da câmera) - o
+   Teaching a usa pro quadro-negro, mas não é específica dele. Só um objeto
+   fica visível por vez; posição/escala/visibilidade são controladas via JS
+   (setActiveObjectId/setObjectPosition/applyObjectTransform). */
+.kevin-object-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  display: none;
+  transform-origin: center center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kevin-vocabulary-board {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 310px;
+  height: 208px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  /* Posição real é setada via JS (applyObjectTransform), sempre igual à do
+     objeto ativo - este é só um fallback antes do primeiro frame. */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.kevin-vocabulary-board.active {
+  display: flex;
+}
+
+.kevin-vocabulary-image {
+  display: none;
+  max-width: 84%;
+  max-height: 132px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.14));
+}
+
+.kevin-vocabulary-image[src] {
+  display: block;
+}
+
+.kevin-vocabulary-words {
+  max-width: 92%;
+  color: #f8fff0;
+  font-family: "Bungee", "Space Grotesk", sans-serif;
+  font-size: 1.55rem;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .kevin-puppet-mount {
@@ -21,11 +91,56 @@
   justify-items: center;
   padding-bottom: 3%;
   pointer-events: none;
+  z-index: 3;
 }
 
 .kevin-puppet-mount svg {
   width: min(92%, 760px);
   max-height: 100%;
+}
+
+/* Popup da sequência de abertura (autoOpening). Só posiciona - não escurece
+   nem desfoca a cena atrás (a cortina congelada já cobre tudo). */
+.kevin-opening-card {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kevin-opening-card-box {
+  width: min(340px, 80%);
+  text-align: center;
+  border: 1px solid rgba(185, 252, 226, 0.25);
+  border-radius: 20px;
+  padding: 26px 22px;
+  background: rgba(9, 22, 21, 0.78);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.kevin-opening-lesson-name {
+  margin: 0 0 20px;
+  font-family: "Bungee", "Space Grotesk", sans-serif;
+  font-weight: 400;
+  font-size: 1.3rem;
+  line-height: 1.2;
+  color: #f5f8ec;
+}
+
+.kevin-opening-start-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: #091a19;
+  background: #62e1b2;
 }
 
 .kevin-transition-overlay {
@@ -76,4 +191,31 @@
   14%  { opacity: 1;   transform: translateX(-50%) translateY(-18px)  scale(1)   rotate(6deg);   }
   75%  { opacity: 0.8; }
   100% { opacity: 0;   transform: translateX(-50%) translateY(-85px)  scale(1.2) rotate(-4deg);  }
+}
+
+/* Confetes do modo Celebrate - abaixo do puppet, acima do cenário/quadro */
+.kevin-celebrate-confetti {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  animation: kevin-celebrate-confetti-pop 1.4s cubic-bezier(0.14, 0.7, 0.18, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes kevin-celebrate-confetti-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.3);
+  }
+  12% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--confetti-x), var(--confetti-y)) rotate(var(--confetti-rot)) scale(1);
+  }
 }
