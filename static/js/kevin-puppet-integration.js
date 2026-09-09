@@ -16,7 +16,10 @@
  * Carregado como ES module (type="module") por aula_detail.html. Expõe-se em
  * window.KevinChatIntegration por compatibilidade.
  */
-import { createKevinPuppet } from './kevin-puppet/kevin-puppet.js';
+// Cache-buster no import: sem isso, o navegador pode continuar servindo o
+// kevin-puppet.js antigo mesmo depois de bumpar o ?v= deste arquivo (o
+// import do módulo é cacheado pela própria URL, sem query string por padrão).
+import { createKevinPuppet } from './kevin-puppet/kevin-puppet.js?v=2';
 
 /**
  * Adapter de áudio para HTMLAudioElement.
@@ -138,6 +141,7 @@ class KevinPuppetIntegration {
     this.audioInput = null;
     this.statusPill = document.getElementById('kevin-status-pill');
     this._statusTimer = null;
+    this._freezeEl = null;
     this._initialized = false;
     this._initError = null;
 
@@ -146,9 +150,15 @@ class KevinPuppetIntegration {
     // interage por ~5 min, ele dorme. Qualquer atividade (msg, fala) reseta.
     this._idleTimer = null;      // agenda a próxima mosca
     this._sleepTimer = null;     // agenda o sono
+    this._camuflageTimer = null; // agenda o próximo camuflage
     this._idleActive = false;    // loop rodando?
     this.MOSCA_MIN_MS = 40_000;
     this.MOSCA_MAX_MS = 90_000;
+    // Camuflage é a mesma ideia da mosca (variação de standby, mesma cadência)
+    // — só troca a cor do Kevin por alguns instantes, sem exigir nada do
+    // professor.
+    this.CAMUFLAGE_MIN_MS = 40_000;
+    this.CAMUFLAGE_MAX_MS = 90_000;
     this.SLEEP_AFTER_MS = 5 * 60_000;
   }
 
@@ -159,6 +169,7 @@ class KevinPuppetIntegration {
     if (!this._initialized || prefersReducedMotion()) return;
     this._idleActive = true;
     this._scheduleMosca();
+    this._scheduleCamuflage();
     this._scheduleSleep();
   }
 
@@ -167,8 +178,10 @@ class KevinPuppetIntegration {
     this._idleActive = false;
     clearTimeout(this._idleTimer);
     clearTimeout(this._sleepTimer);
+    clearTimeout(this._camuflageTimer);
     this._idleTimer = null;
     this._sleepTimer = null;
+    this._camuflageTimer = null;
   }
 
   _scheduleMosca() {
@@ -182,6 +195,22 @@ class KevinPuppetIntegration {
         this.kevin.startMosca();
       }
       if (this._idleActive) this._scheduleMosca();  // reagenda a próxima
+    }, espera);
+  }
+
+  /** Camuflage como variação de standby — mesma lógica da mosca (§9.2). */
+  _scheduleCamuflage() {
+    clearTimeout(this._camuflageTimer);
+    const espera = this.CAMUFLAGE_MIN_MS
+      + Math.floor((this.CAMUFLAGE_MAX_MS - this.CAMUFLAGE_MIN_MS) * Math.random());
+    this._camuflageTimer = setTimeout(() => {
+      // Só dispara se ainda estiver ocioso, acordado, e a mosca não estiver
+      // rolando (evita as duas variações competindo pela atenção ao mesmo tempo).
+      if (this._idleActive && this.kevin && this.kevin.getMode() === 'standby'
+          && !this.kevin.isMoscaActive() && this.kevin.playCamuflage) {
+        this.kevin.playCamuflage();
+      }
+      if (this._idleActive) this._scheduleCamuflage();  // reagenda o próximo
     }, espera);
   }
 
@@ -229,6 +258,14 @@ class KevinPuppetIntegration {
       this.kevin = await createKevinPuppet(container, {
         svgUrl: this.svgUrl,
         backgroundUrl: this.backgroundUrl,
+        // O motor (a partir desta versão do export) tem uma sequência de
+        // abertura própria (popup "Iniciar" + entrada + tchau automático),
+        // ligada por padrão. Aqui já existe a nossa própria tela de espera
+        // (#call-standby / #btn-iniciar-aula) e o próprio fluxo de abertura
+        // (iniciarAula() em kevin_chat.js), então DESATIVAMOS a do motor —
+        // sem isso, o popup interno dele nunca fecha (nada aqui clica nele)
+        // e fica preso por cima do Kevin depois que a nossa tela some.
+        autoOpening: false,
         onError: (msg) => console.error('[KevinPuppet]', msg),
       });
       // Plugar o áudio do TTS no lipsync (substituindo o mic default).
@@ -358,6 +395,88 @@ class KevinPuppetIntegration {
     this._startIdleLoop();
   }
 
+  /**
+   * Mostra o 1º frame do vídeo de entrada, CONGELADO, por cima do puppet —
+   * o mesmo truque que a sequência autoOpening nativa do motor faria sozinha
+   * (ver kevin-puppet.js), só que orquestrado por nós, já que rodamos com
+   * autoOpening:false. Chamado logo após init(), enquanto a nossa tela de
+   * espera (#call-standby) ainda cobre tudo — sem isso, o que aparece atrás
+   * do popup é o Kevin já animando em standby, em vez da "cortina fechada".
+   *
+   * Reaproveita a classe `kevin-transition-overlay` que o próprio motor usa
+   * pro vídeo de transição/entrada, então herda o mesmo posicionamento
+   * (position:absolute, inset:0, object-fit:cover) sem CSS novo.
+   */
+  freezeEntrada(entradaVideoUrl) {
+    if (!entradaVideoUrl || this._freezeEl) return;
+    const container = document.querySelector(this.containerSelector);
+    const stage = container && container.querySelector('.kevin-stage');
+    if (!stage) return;
+    const video = document.createElement('video');
+    video.className = 'kevin-transition-overlay';
+    video.muted = true;
+    video.setAttribute('playsinline', '');
+    video.preload = 'auto';
+    video.style.display = 'block';
+    const source = document.createElement('source');
+    source.src = entradaVideoUrl;
+    source.type = 'video/webm';
+    video.appendChild(source);
+    stage.appendChild(video);
+    video.currentTime = 0;
+    this._freezeEl = video;
+  }
+
+  /** Remove o quadro congelado. playEntrada() chama isso antes de tocar. */
+  dismissFreeze() {
+    if (this._freezeEl) {
+      this._freezeEl.remove();
+      this._freezeEl = null;
+    }
+  }
+
+  /**
+   * Toca a animação de entrada ("abre a cortina" e revela o Kevin), chamada
+   * no clique de "Iniciar aula". O Kevin já deve estar no modo desejado por
+   * baixo do vídeo — init() já deixa em "standby", então não precisa setar
+   * nada aqui antes de chamar.
+   */
+  async playEntrada() {
+    if (!this._initialized || !this.kevin.playEntrada) return false;
+    // Tira o congelado bem no instante em que o vídeo de verdade vai tocar —
+    // como é o MESMO frame (frame 0 do mesmo arquivo), a troca é invisível.
+    this.dismissFreeze();
+    return this.kevin.playEntrada();
+  }
+
+  /**
+   * Aceno de "oi" ao entrar na aula — chamado depois do vídeo de entrada e
+   * ANTES do kickoff, pra o Kevin acenar antes de entrar em "thinking". O
+   * motor só tem um gesto de aceno de disparo único (o modo "tchau" — serve
+   * igual pra cumprimentar). Não há Promise que resolva ao fim do aceno (3
+   * ciclos a 1.5Hz + entrada/saída, ~2.6s no total — ver TCHAU_WAVE_* em
+   * kevin-puppet.js), então usamos um delay fixo, como no celebrate.
+   */
+  async waveHello() {
+    if (!this._initialized) return false;
+    this._kickActivity();
+    const ok = await this.kevin.setMode('tchau');
+    if (!ok) return false;
+    await new Promise((r) => setTimeout(r, 2600));
+    return true;
+  }
+
+  /**
+   * Dispara o pulo comemorativo (D38, docs/demandas.md) — chamado quando a
+   * IA sinaliza (via tool-calling) que a resposta celebra um acerto do
+   * Teacher/turma. Disparo único; o motor volta pra "standby" sozinho.
+   */
+  async celebrate() {
+    if (!this._initialized) return false;
+    this._kickActivity();
+    return this.kevin.setMode('celebrate');
+  }
+
   // ── Música (Demanda 9A / D17, fase 1: botão manual) ──────────────────────
 
   /**
@@ -429,6 +548,7 @@ class KevinPuppetIntegration {
   destroy() {
     this._stopIdleLoop();
     clearTimeout(this._statusTimer);
+    this.dismissFreeze();
     if (this.kevin) this.kevin.destroy();
     if (this.audioEl && this.audioEl.parentNode) {
       this.audioEl.parentNode.removeChild(this.audioEl);

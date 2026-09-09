@@ -103,7 +103,7 @@ def responder_ia_sync(conversa_id):
         modelo=plano.ia_modelo,
     )
 
-    resposta = provider.chat(
+    resposta, celebrar = provider.chat(
         system_prompt=system_prompt,
         mensagens=historico,
     )
@@ -113,6 +113,7 @@ def responder_ia_sync(conversa_id):
         role='assistant',
         tipo='texto',
         conteudo=resposta,
+        celebrar=celebrar,
     )
 
 
@@ -173,7 +174,7 @@ def processar_audio_ia(self, conversa_id, mensagem_id, audio_bytes_list):
             modelo=plano.ia_modelo,
         )
 
-        resposta = ia.chat(
+        resposta, celebrar = ia.chat(
             system_prompt=system_prompt,
             mensagens=historico,
         )
@@ -184,6 +185,7 @@ def processar_audio_ia(self, conversa_id, mensagem_id, audio_bytes_list):
             role='assistant',
             tipo='texto',
             conteudo=resposta,
+            celebrar=celebrar,
         )
 
         logger.info(

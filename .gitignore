@@ -56,10 +56,14 @@ kevin_animador/
 *.mov
 
 # ── Mídia pesada do puppet ──
-# Backgrounds e vídeo de transição vão para storage externo (S3/R2), não Git.
-# Só código (JS/CSS/SVG) fica versionado. Ver CLAUDE.md → "Assets do Kevin".
+# Backgrounds, vídeos, áudio ambiente, quadro-negro e imagens de vocabulário
+# vão para storage externo (S3/R2), não Git. Só código (JS/CSS/SVG) fica
+# versionado. Ver CLAUDE.md → "Assets do Kevin".
 static/js/kevin-puppet/assets/backgrounds/
 static/js/kevin-puppet/assets/videos/
+static/js/kevin-puppet/assets/audio/
+static/js/kevin-puppet/assets/obj/
+static/js/kevin-puppet/assets/img/
 
 # ── Material bruto do cliente ──
 # docx/pdf/mp3 da Bebelingue — apoio, não faz parte do app.
