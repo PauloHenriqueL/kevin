@@ -48,6 +48,7 @@ package-lock.json
 
 # ── Entregas do animador ──
 # Os .zip nunca entram no repo. Extraia e mova só os arquivos usados.
+export.zip
 export_*.zip
 export_*/
 # Projeto do animador (centenas de MB — masters .mov, node_modules)
