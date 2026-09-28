@@ -14,7 +14,10 @@ services:
   - type: web
     name: kevin
     runtime: docker
-    plan: free   # o free hiberna após 15 min; serve para teste, não para demo
+    # starter, não free, por dois motivos: o free hiberna após 15 min (~30s
+    # para acordar, ruim na frente do cliente) e o Render NÃO aceita
+    # preDeployCommand em serviço free — o migrate abaixo seria recusado.
+    plan: starter
     # Mesma região do projeto no Neon (AWS US East 2 / Ohio). O padrão do Render
     # é oregon (US West) — com o banco em Ohio, toda query atravessaria o país.
     # A região NÃO pode ser alterada depois que o serviço é criado.
