@@ -34,10 +34,14 @@ services:
       # ?sslmode=require no fim — o Neon exige SSL.
       - key: DATABASE_URL
         sync: false
+      # O domínio real que o Render atribuiu: "kevin.onrender.com" já estava
+      # tomado por outro serviço, então o nosso ganhou o sufixo. Errar isto
+      # devolve 400 em toda página (ALLOWED_HOSTS) e 403 em todo POST
+      # (CSRF_TRUSTED_ORIGINS), sem mensagem que explique.
       - key: ALLOWED_HOSTS
-        value: kevin.onrender.com   # ajustar se o domínio final for outro
+        value: kevin-qv84.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://kevin.onrender.com
+        value: https://kevin-qv84.onrender.com
       # Chaves de IA/voz — opcionais; o chat cai em modo demo sem elas.
       - key: ANTHROPIC_API_KEY
         sync: false
