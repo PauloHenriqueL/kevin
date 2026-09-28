@@ -17,10 +17,10 @@ class SerieAdmin(admin.ModelAdmin):
 
 @admin.register(Plano)
 class PlanoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'valor_mensal', 'ia_provider', 'ia_modelo', 'tts_provider', 'stt_provider')
+    list_display = ('nome', 'valor_mensal', 'ia_provider', 'ia_modelo', 'ia_effort', 'tts_provider', 'stt_provider')
     fieldsets = (
         (None, {'fields': ('nome', 'valor_mensal')}),
-        ('IA (Chat Kevin)', {'fields': ('ia_provider', 'ia_modelo', 'ia_api_key')}),
+        ('IA (Chat Kevin)', {'fields': ('ia_provider', 'ia_modelo', 'ia_api_key', 'ia_effort')}),
         ('TTS (Texto → Áudio)', {'fields': ('tts_provider', 'tts_api_key', 'tts_voice_id', 'tts_modelo')}),
         ('STT (Áudio → Texto)', {'fields': ('stt_provider', 'stt_api_key')}),
     )

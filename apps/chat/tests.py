@@ -131,3 +131,87 @@ class OpenAIProviderCelebrarTests(TestCase):
         mensagens_enviadas = segunda_chamada.kwargs['messages']
         tool_result = mensagens_enviadas[-1]
         self.assertEqual(tool_result['tool_call_id'], 'call_9')
+
+
+class IAEffortTests(TestCase):
+    """Esforço de raciocínio por Plano (D39).
+
+    O ponto delicado não é enviar o parâmetro — é NÃO enviar quando o Plano
+    não define nenhum: modelos sem suporte (gpt-4o, por exemplo) recusam
+    `reasoning_effort`, e mandar sempre quebraria quem ainda não migrou.
+    """
+
+    def _client_mock(self, respostas):
+        client = MagicMock()
+        client.chat.completions.create.side_effect = respostas
+        return client
+
+    @patch('apps.chat.providers.ia.openai.OpenAI')
+    def test_effort_vai_na_chamada_quando_configurado(self, OpenAIMock):
+        OpenAIMock.return_value = self._client_mock([_openai_response('Hi!')])
+        provider = OpenAIProvider(api_key='fake', modelo='gpt-5.6-terra', effort='max')
+
+        provider.chat('system', [{'role': 'user', 'content': 'oi'}])
+
+        kwargs = OpenAIMock.return_value.chat.completions.create.call_args.kwargs
+        self.assertEqual(kwargs['reasoning_effort'], 'max')
+        self.assertEqual(kwargs['model'], 'gpt-5.6-terra')
+
+    @patch('apps.chat.providers.ia.openai.OpenAI')
+    def test_effort_vazio_nao_envia_o_parametro(self, OpenAIMock):
+        OpenAIMock.return_value = self._client_mock([_openai_response('Hi!')])
+        provider = OpenAIProvider(api_key='fake', modelo='gpt-4o', effort='')
+
+        provider.chat('system', [{'role': 'user', 'content': 'oi'}])
+
+        kwargs = OpenAIMock.return_value.chat.completions.create.call_args.kwargs
+        self.assertNotIn('reasoning_effort', kwargs)
+
+    @patch('apps.chat.providers.ia.openai.OpenAI')
+    def test_effort_repetido_na_continuacao_do_celebrate(self, OpenAIMock):
+        """A 2ª chamada (tool sem texto, D38) precisa do mesmo effort —
+        senão a fala que o professor ouve sai de outra configuração."""
+        OpenAIMock.return_value = self._client_mock([
+            _openai_response(None, tool_calls=[_openai_tool_call()]),
+            _openai_response('Very good!'),
+        ])
+        provider = OpenAIProvider(api_key='fake', modelo='gpt-5.6-terra', effort='high')
+
+        provider.chat('system', [{'role': 'user', 'content': 'dog'}])
+
+        chamadas = OpenAIMock.return_value.chat.completions.create.call_args_list
+        self.assertEqual(len(chamadas), 2)
+        self.assertEqual(chamadas[1].kwargs['reasoning_effort'], 'high')
+
+    @patch('apps.chat.providers.ia.anthropic.Anthropic')
+    def test_anthropic_ignora_o_effort(self, AnthropicMock):
+        """O Anthropic não expõe esse controle: o campo existe no Plano, mas
+        não pode vazar para a chamada — seria um parâmetro desconhecido."""
+        client = MagicMock()
+        client.messages.create.return_value = SimpleNamespace(
+            content=[SimpleNamespace(type='text', text='Hello!')]
+        )
+        AnthropicMock.return_value = client
+        provider = AnthropicProvider(api_key='fake', modelo='claude-fake', effort='max')
+
+        texto, celebrar = provider.chat('system', [{'role': 'user', 'content': 'oi'}])
+
+        self.assertEqual(texto, 'Hello!')
+        self.assertNotIn('reasoning_effort', client.messages.create.call_args.kwargs)
+
+    def test_factory_repassa_o_effort(self):
+        from apps.chat.providers import get_ia_provider
+
+        provider = get_ia_provider(
+            provider_name='openai', api_key='fake',
+            modelo='gpt-5.6-terra', effort='xhigh',
+        )
+
+        self.assertEqual(provider.effort, 'xhigh')
+
+    def test_plano_nasce_com_medium(self):
+        from apps.escolas.models import Plano
+
+        plano = Plano.objects.create(nome='Teste', valor_mensal=1)
+
+        self.assertEqual(plano.ia_effort, 'medium')

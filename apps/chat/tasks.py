@@ -101,6 +101,7 @@ def responder_ia_sync(conversa_id):
         provider_name=plano.ia_provider,
         api_key=plano.ia_api_key,
         modelo=plano.ia_modelo,
+        effort=plano.ia_effort,
     )
 
     resposta, celebrar = provider.chat(
@@ -172,6 +173,7 @@ def processar_audio_ia(self, conversa_id, mensagem_id, audio_bytes_list):
             provider_name=plano.ia_provider,
             api_key=plano.ia_api_key,
             modelo=plano.ia_modelo,
+            effort=plano.ia_effort,
         )
 
         resposta, celebrar = ia.chat(

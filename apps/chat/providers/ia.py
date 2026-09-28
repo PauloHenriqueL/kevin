@@ -92,10 +92,16 @@ class OpenAIProvider(BaseIAProvider):
         conversa = [{'role': 'system', 'content': system_prompt}]
         conversa.extend(mensagens)
 
+        # reasoning_effort só vai quando configurado no Plano: modelos sem
+        # suporte (ex: gpt-4o) recusam o parâmetro, então enviar sempre
+        # quebraria quem não migrou. Ver D39.
+        extra = {'reasoning_effort': self.effort} if self.effort else {}
+
         response = client.chat.completions.create(
             model=self.modelo,
             messages=conversa,
             tools=tools,
+            **extra,
         )
         message = response.choices[0].message
         texto = (message.content or '').strip()
@@ -115,6 +121,7 @@ class OpenAIProvider(BaseIAProvider):
             followup = client.chat.completions.create(
                 model=self.modelo,
                 messages=conversa,
+                **extra,
             )
             texto = (followup.choices[0].message.content or '').strip()
 
@@ -133,8 +140,10 @@ PROVIDERS = {
 }
 
 
-def get_ia_provider(provider_name: str, api_key: str, modelo: str) -> BaseIAProvider:
+def get_ia_provider(
+    provider_name: str, api_key: str, modelo: str, effort: str = '',
+) -> BaseIAProvider:
     provider_class = PROVIDERS.get(provider_name)
     if not provider_class:
         raise ValueError(f'Provedor de IA desconhecido: {provider_name}')
-    return provider_class(api_key=api_key, modelo=modelo)
+    return provider_class(api_key=api_key, modelo=modelo, effort=effort)

@@ -7,6 +7,19 @@ class Plano(models.Model):
         ANTHROPIC = 'anthropic', 'Anthropic (Claude)'
         OPENAI = 'openai', 'OpenAI (GPT)'
 
+    class IAEffort(models.TextChoices):
+        """Esforço de raciocínio dos modelos que suportam (GPT-5.6+).
+
+        Vazio = não envia o parâmetro, deixando o padrão do provedor valer.
+        Quanto maior, mais tokens de raciocínio e mais latência — e o Kevin
+        responde com o professor esperando na frente da turma (D39)."""
+        NONE = 'none', 'none — sem raciocínio'
+        LOW = 'low', 'low'
+        MEDIUM = 'medium', 'medium (padrão)'
+        HIGH = 'high', 'high'
+        XHIGH = 'xhigh', 'xhigh'
+        MAX = 'max', 'max — mais lento e mais caro'
+
     class TTSProvider(models.TextChoices):
         ELEVENLABS = 'elevenlabs', 'ElevenLabs'
         OPENAI_TTS = 'openai_tts', 'OpenAI TTS'
@@ -34,6 +47,17 @@ class Plano(models.Model):
         max_length=255,
         default='',
         help_text='API key do provedor de IA',
+    )
+    ia_effort = models.CharField(
+        max_length=10,
+        choices=IAEffort.choices,
+        default=IAEffort.MEDIUM,
+        blank=True,
+        help_text=(
+            'Esforço de raciocínio, para modelos que suportam (ex: '
+            'gpt-5.6-terra). Vazio = não envia o parâmetro. Ignorado pelo '
+            'Anthropic, que não expõe esse controle.'
+        ),
     )
 
     # TTS (Texto → Áudio)
