@@ -2,6 +2,8 @@
 
 Roda com: docker compose exec web python manage.py test apps.curriculo
 """
+from unittest.mock import patch
+
 from django.test import TestCase
 
 from apps.accounts.models import User
@@ -508,3 +510,32 @@ class KevinAssetTagTest(TestCase):
 
         self.assertIn('take-a-shower%20.png', url)
         self.assertNotIn(' ', url)
+
+
+class KevinAssetFallbackTest(TestCase):
+    """Asset ausente não pode derrubar a página (regressão de 28/09/2026).
+
+    Com DEBUG=False o storage de manifesto levanta ValueError para arquivo
+    não coletado. Como a mídia do Kevin é gitignored, em produção NENHUM
+    cenário está no manifesto — e a aula inteira devolvia 500.
+    """
+
+    def _render(self):
+        from django.template import Context, Template
+        t = Template("{% load kevin_assets %}{% kevin_asset 'backgrounds/floresta.webp' %}")
+        return t.render(Context({}))
+
+    def test_manifesto_sem_o_arquivo_nao_levanta(self):
+        # Simula o manifesto de produção, que não tem a mídia: o `static` do
+        # Django levanta ValueError. Aqui isso é forçado porque em dev os
+        # arquivos existem e são coletados normalmente.
+        erro = ValueError(
+            "Missing staticfiles manifest entry for "
+            "'js/kevin-puppet/assets/backgrounds/floresta.webp'")
+        with self.settings(KEVIN_ASSETS_BASE_URL=''):
+            with patch('apps.curriculo.templatetags.kevin_assets.static',
+                       side_effect=erro):
+                url = self._render()   # não pode propagar o ValueError
+
+        self.assertIn('backgrounds/floresta.webp', url)
+        self.assertTrue(url.startswith('/static/'), url)

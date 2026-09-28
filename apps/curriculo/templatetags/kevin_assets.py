@@ -28,4 +28,16 @@ def kevin_asset(caminho):
     base = getattr(settings, 'KEVIN_ASSETS_BASE_URL', '')
     if base:
         return f"{base.rstrip('/')}/{quote(caminho)}"
-    return static(PREFIXO_STATIC + caminho)
+
+    # Fallback para static/. Com DEBUG=False o Django usa o storage de
+    # manifesto, que LEVANTA ValueError quando o arquivo não foi coletado —
+    # e a mídia do Kevin é gitignored, logo nunca é coletada em produção.
+    #
+    # Isso derrubou a página inteira da aula com 500 (28/09/2026): um cenário
+    # ausente virava erro de servidor. Degradar é melhor: devolvemos o
+    # caminho cru, o navegador dá 404 naquele asset, e a aula abre — o Kevin
+    # aparece sem fundo em vez de a tela não abrir.
+    try:
+        return static(PREFIXO_STATIC + caminho)
+    except ValueError:
+        return f'{settings.STATIC_URL}{PREFIXO_STATIC}{quote(caminho)}'
