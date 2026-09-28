@@ -401,3 +401,73 @@ class ListeningAulaTest(TestCase):
         BlocoAula.objects.create(aula=self.aula, fase='warm_up', ordem=1, atividade=song)
         self.assertTrue(self.aula.tem_musica)
         self.assertFalse(self.aula.tem_listening)
+
+
+class CoordenacaoPermissaoEndpointsTest(TestCase):
+    """As views em FUNÇÃO da coordenação também exigem papel (D40).
+
+    Elas não herdam o CoordenadorRequiredMixin (não são classes), e por um
+    tempo ficaram com apenas @require_POST — que valida o método, não quem
+    chama. Qualquer usuário autenticado podia editar o TG oficial, que é
+    global e serve todas as escolas. Estes testes existem para isso não
+    voltar.
+    """
+
+    def setUp(self):
+        from django.test import Client
+        from .models import TG
+        User.objects.create_user('coord2', password='x', role='coordenador')
+        User.objects.create_user('prof2', password='x', role='professor')
+        User.objects.create_user('dir2', password='x', role='diretor')
+
+        self.tg = TG.objects.create(nome='TG 3x — Year 5', year=5, frequencia=3)
+        self.aula = Aula.objects.create(
+            tg=self.tg, unit='U1', semana=1, numero_aula=1, titulo='Aula 1')
+        self.atividade = Atividade.objects.create(
+            tipo='jogo', nome='Simon Says', como_conduzir='Dê comandos.')
+        self.bloco = BlocoAula.objects.create(
+            aula=self.aula, fase='warm_up', ordem=1, atividade=self.atividade)
+
+        self.como_prof = Client(); self.como_prof.login(username='prof2', password='x')
+        self.como_dir = Client(); self.como_dir.login(username='dir2', password='x')
+        self.como_coord = Client(); self.como_coord.login(username='coord2', password='x')
+
+    def _endpoints(self):
+        return [
+            ('post', f'/coordenacao/aula/{self.aula.pk}/blocos/reordenar/'),
+            ('post', f'/coordenacao/aula/{self.aula.pk}/blocos/adicionar/'),
+            ('post', f'/coordenacao/bloco/{self.bloco.pk}/atualizar/'),
+            ('post', f'/coordenacao/bloco/{self.bloco.pk}/remover/'),
+            ('get', '/coordenacao/atividades/buscar/?q='),
+        ]
+
+    def test_professor_recebe_403_em_todos_os_endpoints(self):
+        for metodo, url in self._endpoints():
+            with self.subTest(url=url):
+                r = getattr(self.como_prof, metodo)(url)
+                self.assertEqual(r.status_code, 403, f'{url} deixou o professor passar')
+
+    def test_diretor_recebe_403_em_todos_os_endpoints(self):
+        """O diretor é da escola cliente: também não mexe no TG global."""
+        for metodo, url in self._endpoints():
+            with self.subTest(url=url):
+                r = getattr(self.como_dir, metodo)(url)
+                self.assertEqual(r.status_code, 403, f'{url} deixou o diretor passar')
+
+    def test_professor_nao_consegue_apagar_bloco(self):
+        """Além do status, o efeito: o bloco precisa continuar existindo."""
+        self.como_prof.post(f'/coordenacao/bloco/{self.bloco.pk}/remover/')
+
+        self.assertTrue(BlocoAula.objects.filter(pk=self.bloco.pk).exists())
+
+    def test_coordenador_continua_passando(self):
+        """A trava não pode ter fechado a porta para quem é dono do TG."""
+        r = self.como_coord.get('/coordenacao/atividades/buscar/?q=')
+
+        self.assertEqual(r.status_code, 200)
+
+    def test_anonimo_nao_passa(self):
+        from django.test import Client
+        r = Client().get('/coordenacao/atividades/buscar/?q=')
+
+        self.assertIn(r.status_code, (302, 403))

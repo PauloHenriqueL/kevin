@@ -18,6 +18,7 @@ from django.views.generic import (
     CreateView, ListView, TemplateView, UpdateView, View,
 )
 
+from apps.accounts.decorators import coordenador_required
 from apps.accounts.mixins import CoordenadorRequiredMixin
 from apps.escolas.models import Escola, Professor
 from apps.escolas.relatorios import montar_relatorio_professores, PERIODOS
@@ -273,6 +274,7 @@ def _bloco_json(bloco):
     }
 
 
+@coordenador_required
 @require_POST
 def reordenar_blocos(request, pk):
     """Persiste a nova ordem e fase dos blocos após arrastar.
@@ -297,6 +299,7 @@ def reordenar_blocos(request, pk):
     return JsonResponse({'ok': True})
 
 
+@coordenador_required
 @require_POST
 def adicionar_bloco(request, pk):
     """Cria um bloco novo numa fase — de atividade do catálogo ou título livre."""
@@ -335,6 +338,7 @@ def adicionar_bloco(request, pk):
     return JsonResponse({'ok': True, 'bloco': _bloco_json(bloco)})
 
 
+@coordenador_required
 @require_POST
 def atualizar_bloco(request, pk):
     """Edita título livre, instruções ou referência de um bloco."""
@@ -348,6 +352,7 @@ def atualizar_bloco(request, pk):
     return JsonResponse({'ok': True, 'bloco': _bloco_json(bloco)})
 
 
+@coordenador_required
 @require_POST
 def remover_bloco(request, pk):
     bloco = get_object_or_404(BlocoAula, pk=pk)
@@ -355,6 +360,7 @@ def remover_bloco(request, pk):
     return JsonResponse({'ok': True})
 
 
+@coordenador_required
 def buscar_atividades(request):
     """Autocomplete de atividade no editor de blocos (D25).
 
