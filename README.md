@@ -1,125 +1,210 @@
 # Bebelingue / Kevin
 
-Plataforma SaaS de ensino de idiomas para crianças, vendida para franqueados ("Escolas"). Inclui gestão de turmas, currículo fixo de aulas, biblioteca comunitária de conteúdos e um assistente de IA chamado **Kevin** que conversa com os professores por texto e voz.
+Plataforma SaaS de ensino de inglês para crianças, vendida para escolas
+franqueadas. A **Bebelingue** é a fornecedora (metodologia, currículo e
+material); a **escola** é a cliente. O **Kevin** é um personagem animado,
+projetado no telão da sala, que conversa com o professor por texto e voz.
 
-## Stack
+**Produção:** https://kevin-qv84.onrender.com
 
-- **Backend:** Django 6 + Django REST Framework
-- **Banco:** PostgreSQL 16
-- **Fila:** Celery + Redis
-- **Auth:** SimpleJWT + Session (login redireciona por role)
-- **IA / Voz:** providers plugáveis — Anthropic / OpenAI (chat), ElevenLabs / OpenAI (TTS), Whisper / Google (STT)
-- **Infra dev:** Docker Compose (4 containers: `db`, `redis`, `web`, `celery`)
+---
 
-## Estrutura
-
-```
-apps/
-  accounts/    # User custom (AbstractUser + role), auth, middleware
-  escolas/     # Escola, Plano, Diretor, Professor, Turma, Aluno + áreas /gestao/ e /professor/
-  curriculo/   # Aula, Conteudo, AulaConteudo, ProgressoTurma, Homework
-  chat/        # Conversa, Mensagem, providers de IA/TTS/STT, tasks Celery
-config/        # settings, urls, celery, wsgi/asgi
-templates/     # templates Django
-static/        # css, js, imagens
-exemplo/       # referência visual (paleta/estilo) usada como base do design
-```
-
-### Roles e áreas
-
-| Role        | URL          | O que faz                                                                 |
-|-------------|--------------|---------------------------------------------------------------------------|
-| Admin       | `/admin/`    | Django admin completo (apenas superusuário)                              |
-| Diretor     | `/gestao/`   | CRUD de professor/turma/aluno (sem delete), relatórios de progresso       |
-| Professor   | `/professor/`| Year → Turma → Aula + chat lateral com Kevin, marcar aula concluída, áudio |
-
-## Como rodar (Docker — recomendado)
+## Rodar na sua máquina (Docker)
 
 ```bash
-git clone <repo>
-cd Kevin
-cp .env.example .env          # ajuste se necessário
-docker compose up --build     # sobe db, redis, web, celery
+git clone https://github.com/PauloHenriqueL/kevin.git
+cd kevin
+cp .env.example .env
+docker compose up --build      # sobe db, redis, web, celery
 ```
 
 Em outro terminal, na primeira vez:
 
 ```bash
 docker compose exec web python manage.py migrate
-docker compose exec web python manage.py seed_demo   # dados de teste
+docker compose exec web python manage.py seed_demo
 ```
 
 App em http://localhost:8000
 
-### Usuários de teste (após `seed_demo`)
+### Usuários criados pelo `seed_demo`
 
-| Usuário  | Senha     | Role      |
-|----------|-----------|-----------|
-| admin    | admin123  | superuser |
-| carlos   | dir123    | diretor   |
-| maria    | prof123   | professor |
+| Usuário | Senha | Papel | Onde cai |
+|---|---|---|---|
+| `admin` | `admin123` | superusuário | `/admin/` |
+| `coord` | `coord123` | coordenador Bebelingue | `/coordenacao/` |
+| `carlos` | `dir123` | diretor da escola | `/gestao/` |
+| `maria` | `prof123` | professor | `/professor/` |
 
-## Como rodar sem Docker
+Entre como **`maria`** para ver o Kevin: Year 5 → turma → uma das 4 aulas de
+vitrine → **Iniciar aula**.
+
+> Mudou só CSS ou JS? Não precisa reiniciar nada — **Ctrl+Shift+R** no
+> navegador. Mudou Python? `docker compose restart web`.
+
+---
+
+## ⚠️ O Kevin vai aparecer sem cenário — e isso é esperado
+
+A mídia do Kevin (cenários, vídeos, áudios, imagens de vocabulário — 29 MB)
+**não está no Git**, de propósito: o Git guarda cada versão de binário para
+sempre, sem delta, e três entregas do animador virariam ~60 MB permanentes no
+histórico mesmo depois de apagados.
+
+Então, depois do `git clone`, estes diretórios vêm **vazios**:
+
+```
+static/js/kevin-puppet/assets/backgrounds/     7 cenários .webp
+static/js/kevin-puppet/assets/videos/          entrada e transição .webm
+static/js/kevin-puppet/assets/audio/           trilha, celebrate, ronco .mp3
+static/js/kevin-puppet/assets/obj/             quadro-negro .png
+static/js/kevin-puppet/assets/img/vocabulario/ 15 cartões .png
+```
+
+O sistema **sobe e funciona sem eles** — o Kevin anima, o chat responde, a aula
+abre. O que falta é o visual: fundo branco, sem trilha, sem animação de entrada.
+
+**Para ter a mídia:** peça o `export_N.zip` do animador ao Paulo, extraia, e
+copie as pastas `assets/` para o caminho acima. O procedimento completo está no
+[CLAUDE.md](CLAUDE.md), seção "Como INSTALAR um export novo".
+
+> Em breve isso deixa de ser manual: os assets vão para um bucket público
+> (Demanda 19 em [docs/demandas.md](docs/demandas.md)).
+
+---
+
+## Sem Docker
 
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Em .env: descomente as linhas DB_ENGINE=sqlite e comente as do PostgreSQL,
-# ou aponte DB_HOST=localhost para um Postgres local.
+# No .env: descomente DB_ENGINE=sqlite, ou aponte DB_HOST=localhost
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
 ```
 
-Para o chat assíncrono funcionar localmente é preciso Redis + um worker Celery:
+O chat assíncrono precisa de Redis e de um worker:
 
 ```bash
 celery -A config worker -l info
 ```
 
+Sem Celery o chat ainda funciona em modo síncrono (`?sync=1` na chamada).
+
+---
+
+## Stack
+
+| | |
+|---|---|
+| Backend | Django 6 + Django REST Framework |
+| Banco | PostgreSQL (16 em dev, 18 em produção no Neon) |
+| Fila | Celery + Redis |
+| Auth | Sessão + SimpleJWT, redirect por papel no login |
+| IA / Voz | Providers plugáveis: Anthropic ou OpenAI (chat), ElevenLabs ou OpenAI (TTS), Whisper ou Google (STT) |
+| Frontend | Templates Django + CSS próprio + JS vanilla (sem framework) |
+| Animação | SVG riggado + motor próprio (`static/js/kevin-puppet/`) |
+| Infra dev | Docker Compose: `db`, `redis`, `web`, `celery` |
+| Produção | Render (web, plano Starter, região Ohio) + Neon (Postgres serverless) |
+
+---
+
+## Papéis e áreas
+
+| Papel | Quem é | Área | Pode |
+|---|---|---|---|
+| `admin` | Bebelingue (técnico) | `/admin/` | Tudo, inclusive chaves de API e planos |
+| `coordenador` | Bebelingue (pedagógico) | `/coordenacao/` | Cadastrar TG, aulas e catálogo oficial; ver todas as escolas |
+| `diretor` | Escola cliente | `/gestao/` | Professores e turmas **da própria escola** |
+| `professor` | Escola cliente | `/professor/` | Suas turmas, usar o Kevin, criar atividade **local** |
+
+**Quem cria aula e catálogo é a coordenação da Bebelingue.** O professor só vê
+e executa — não edita o currículo. Isso é regra de negócio, não detalhe de
+implementação: o TG é global e a mesma aula serve todas as escolas.
+
+O aluno **não tem login** e não existe como entidade — a turma guarda só o
+`qtd_alunos`.
+
+---
+
+## Modelo de dados
+
+```
+Plano 1─N Escola 1─N Serie N─1 TG 1─N Aula 1─N BlocoAula N─1 Atividade
+                     │                    │
+                     └─N Turma ───────────┴─N AulaTurma   (execução: data, professor)
+                          │
+Professor 1─N Turma       └─ qtd_alunos (headcount; não há modelo Aluno)
+
+Professor 1─N Conversa 0─1 Aula
+Conversa 1─N Mensagem
+```
+
+- **`TG`** é o cronograma global da Bebelingue (ex: "TG 3x — Year 5"). 3x, 4x e
+  5x são TGs **diferentes**, não variações do mesmo.
+- **`Serie`** é o segmento da escola (nome livre, ex: "Fundamental") e aponta
+  para um TG. A turma segue o TG da série.
+- **`Aula`** é endereçada por `Year + Unit + Semana + Aula` — o código
+  `Y5-U1W1C1`, que é o impresso no TG.
+- **`Aula` é o plano; `AulaTurma` é a execução.** Tabelas separadas porque
+  feriado e reposição são normais.
+- **`Atividade`** é o catálogo. `escola = NULL` significa catálogo oficial da
+  Bebelingue; preenchido, é atividade local daquela escola.
+- **Progresso é da turma, nunca do aluno.**
+
+---
+
+## Comandos do dia a dia
+
+```bash
+docker compose up -d                                        # sobe tudo
+docker compose restart web                                  # após mudar Python
+docker compose exec web python manage.py test               # 72 testes
+docker compose exec web python manage.py seed_demo          # dados de vitrine
+docker compose exec web python manage.py flush --no-input   # zera o banco
+python3 scripts/validar_export.py <pasta-export>/           # valida entrega do animador
+```
+
+Antes de commitar: `manage.py check` limpo e a suíte passando.
+
+---
+
 ## Variáveis de ambiente
 
-Veja `.env.example`. As chaves de IA (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`) são opcionais em dev — sem elas o chat do Kevin sobe mas não responde de verdade.
+Tudo em `.env` (não versionado — copie de `.env.example`).
 
-## Modelo de dados (resumo)
+As chaves de IA (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`)
+são **opcionais em dev**: sem elas o chat sobe e responde em modo demo, sem IA
+real nem voz.
 
-```
-Plano 1─N Escola 1─N Professor 1─N Turma 1─N Aluno
-                    └─N Turma 1─N ProgressoTurma N─1 Aula
-Aula N─N Conteudo (via AulaConteudo, com ordem)
-Aula 1─N Homework
-Professor 1─N Conversa 0─1 Aula
-Conversa 1─N Mensagem (role user/assistant, tipo texto/audio)
-```
+⚠️ Se você definir `DATABASE_URL`, ela tem **prioridade** sobre as `DB_*` — é
+assim que se aponta para o banco de produção. Cuidado: com ela preenchida,
+todo `manage.py` que você rodar mexe em produção.
 
-Decisões já fechadas:
-- Currículo é **fixo**, definido pela Bebelingue (não pelo professor).
-- Aluno pertence a **uma** turma (sem M:N).
-- Conteúdo é **comunitário** — qualquer professor cria, qualquer aula pode incluir.
-- Progresso é **por turma**, não por aluno.
-- Chat é **só de professor**; alunos não interagem com o Kevin.
-- Modelo de IA e provedor de TTS ficam no `Plano` da escola, não em entidades separadas.
+---
 
-## O que está pronto
+## Onde está cada coisa
 
-- Models, migrations e admin de todas as entidades acima
-- Auth com 3 roles e redirect por role no login
-- Áreas `/gestao/` (diretor) e `/professor/` completas
-- Página da aula com conteúdos + chat Kevin lateral + gravação de áudio
-- Providers plugáveis de IA / TTS / STT
-- Celery tasks `processar_mensagem_ia`, `processar_audio_ia`
-- Seed de dados de teste
+| Arquivo | O que é |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | **Leia antes de mexer.** Regras de negócio, workflow, armadilhas conhecidas |
+| [docs/demandas.md](docs/demandas.md) | Fonte de verdade do escopo: demandas e decisões (D1–D41) |
+| [docs/MOTOR_KEVIN.md](docs/MOTOR_KEVIN.md) | Como o motor de animação funciona |
+| [docs/mensagem.md](docs/mensagem.md) | Contrato com o animador (o que o export precisa ter) |
+| [docs/ROTEIRO_APRESENTACAO.md](docs/ROTEIRO_APRESENTACAO.md) | Roteiro para demonstrar o sistema |
+| `scripts/validar_export.py` | Valida um export do animador antes de instalar |
+| `exemplo/` | Protótipo descartável — **não é produção, não é referência** |
 
-## O que falta
-
-- [ ] Plugar chaves reais e testar o chat do Kevin ponta-a-ponta
-- [ ] Resposta do Kevin com TTS (botão "ouvir")
-- [ ] Deploy de produção (HTTPS, domínio, S3/R2 para mídia)
-- [ ] Polimentos de UI conforme feedback
+---
 
 ## Convenções
 
-- Mensagens de commit e código em **português** (UI inclusive).
-- Visual: paleta azul Kevin `#2B7DE9`, fonte Nunito, estilo infantil — referência em [exemplo/](exemplo/).
-- Não mexer em integração de IA sem chaves reais em mãos.
+- **Português** em código, comentários, UI e mensagens de commit
+- CSS próprio com variáveis em `:root`, sem framework
+- **O prompt do Kevin vive só em `apps/chat/`** (`SYSTEM_PROMPT_BASE` em
+  `tasks.py`). Nunca em `exemplo/`
+- **Nunca renomeie os IDs do `kevin-rigged.svg`** — o motor encontra cada parte
+  do personagem por `id`. Se rodar SVGO, use `cleanupIds: false`
+- Não commitar: `export_*.zip`, backgrounds, vídeos, `documento_escola/`

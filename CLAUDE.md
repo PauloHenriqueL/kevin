@@ -104,10 +104,15 @@ dívida** e cobrar a correção na origem.
 
 ### Git
 
-- Branch por frente de trabalho (`feat/remodelagem-curriculo`)
-- PR no template do Paulo: Descrição / Como Testar / Observações
-- **Nunca** commitar: `export_*.zip`, backgrounds, vídeos, `documento_escola/`
-  (todos no `.gitignore`)
+- **Commit direto na `main`** (decisão do Paulo, 28/09/2026). A regra anterior
+  era branch por frente de trabalho + PR; mudou porque ele é o único revisor e
+  o blueprint do Render acompanha a `main` — trabalho em branch não chega ao
+  ambiente até o merge. Se ele pedir PR num caso específico, use o template
+  dele: Descrição / Como Testar / Observações
+- **Um commit temático por demanda**, mensagem em português explicando o
+  *porquê*, com `Co-Authored-By`
+- **Nunca** commitar: `export_*.zip`, `export.zip`, backgrounds, vídeos,
+  `documento_escola/` (todos no `.gitignore`)
 - O `CLAUDE.md` **é versionado** — o time todo lê. Mantenha-o atualizado quando
   uma decisão mudar; é a fonte de contexto de quem chega no projeto
 
@@ -380,14 +385,39 @@ iniciativa de se dirigir às crianças.
     em inglês. Deve ficar num trecho **isolado e substituível** do prompt
     (vira configuração na Demanda 8).
 
-## 🚧 Deploy em produção — PENDENTE, precisa de ajuda
+## 🚀 Produção — NO AR desde 28/09/2026
 
-> **Estado atual:** o projeto só roda local (Docker Compose) e é versionado no
-> GitHub. **Nunca foi para produção.** Quando for a hora, este é um trabalho a
-> ser feito com apoio — não assuma que está resolvido.
+> **https://kevin-qv84.onrender.com**
 
-**Plataformas cogitadas:** Render ou Railway (ambas fazem deploy direto do
-GitHub, sem servidor manual).
+| Peça | Onde | Detalhe |
+|---|---|---|
+| App | **Render**, plano **Starter** ($7/mês), região **ohio** | Blueprint `render.yaml`; `preDeployCommand` roda o `migrate` a cada deploy |
+| Banco | **Neon** (Postgres 18 serverless), região Ohio | Conexão **direta**, não pooled — o pooler é PgBouncer em modo transação e não suporta o que uma migration precisa |
+| Estáticos | WhiteNoise, `collectstatic` no Dockerfile | Funcionando (confirmado: `/static/` responde 200) |
+| Mídia do Kevin | ❌ **ainda não** — bucket `public` no Neon Object Storage | Demanda 19, etapa 1 |
+| Celery/Redis | ❌ não existe em produção | Chat roda em modo síncrono (`?sync=1`) |
+
+**Armadilhas que já custaram tempo — não repita:**
+
+- O nome `kevin.onrender.com` **já estava tomado** por outro serviço. O Render
+  atribuiu `kevin-qv84`. `ALLOWED_HOSTS` errado devolve **400 em toda página**;
+  `CSRF_TRUSTED_ORIGINS` errado derruba **todo POST com 403** — e nenhum dos
+  dois diz o motivo na tela. Se o domínio mudar, os dois mudam junto.
+- O `preDeployCommand` **não existe no plano free** do Render. Foi o que forçou
+  o Starter.
+- A região do Render **não pode ser alterada** depois que o serviço é criado.
+- O valor de `DATABASE_URL` no `.env` pode vir **entre aspas** do console do
+  Neon. O Docker Compose remove as aspas ao ler o arquivo, mas colar com aspas
+  no painel do Render quebra o `migrate` com `No support for ''`.
+- **Código no GitHub ≠ código rodando.** O Render serve uma imagem Docker; até
+  haver build novo, ele executa o código antigo mesmo com o banco já migrado.
+  Sintoma típico: campo novo não aparece no admin.
+
+**Contas de produção:** `paulo`, `arthur`, `victor` (superusuários), mais
+`coord` / `carlos` / `maria` (um por papel, para teste).
+
+**Histórico:** as plataformas cogitadas eram Render ou Railway. Escolhido o
+Render pelo `render.yaml` — configuração versionada em vez de cliques.
 
 ### O que já está pronto
 
@@ -684,7 +714,10 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | — | Chave por Unit | `Y5-MAR-W1C1` → `Y5-U1W1C1` (D27); `CLIL` vira tipo (D28) |
 | — | Catálogo importado | Games Bank do TG: 91 jogos + técnicas via `importar_catalogo_tg` (D30) |
 | — | Áudio de aula | Música e listening por atividade: o botão só aparece se a aula tem o conteúdo. Faixa em `static/audio/`; `arquivo_url` da atividade aponta ao R2 em produção |
-| — | Deploy | whitenoise + collectstatic + render.yaml + hardening prontos (não subiu ainda) |
+| — | Deploy | whitenoise + collectstatic + render.yaml + hardening |
+| 18 | Produção | **No ar**: Render (Starter, ohio) + Neon (Postgres 18). Ver seção Produção |
+| — | Effort da IA | `Plano.ia_effort` (`none`…`max`), enviado como `reasoning_effort` só pelo OpenAI e só quando preenchido (D39) |
+| — | Correção de segurança | As 5 views em função de `coordenacao_views.py` estavam sem guarda de papel — qualquer usuário logado podia editar o TG oficial. `role_required` em `apps/accounts/decorators.py` (D40) |
 
 ---
 
@@ -735,11 +768,23 @@ window.KEVIN_CHAT_CONFIG = { ... };
 
 ### Onde retomar
 
-Com a Demanda 7 entregue, as frentes livres são **subir para produção**
-(código pronto; falta plataforma + bucket R2 + env vars) e **marcar o PR como
-ready**. Do lado do domínio, o próximo passo natural é **cadastrar os TGs dos
-outros Years** pela grade nova, e **confirmar a D29** com o cliente (3x vs 5x)
-antes de assumir o modelo de frequência.
+**Atualizado em 28/09/2026.** O sistema está **no ar** (ver seção Produção).
+
+A frente ativa é a **Demanda 19, etapa 1**: subir os 29 MB de mídia do Kevin
+para o bucket público do Neon e apontar as URLs no `KEVIN_RIG_CONFIG` do
+`aula_detail.html`. O motor aceita override de todos os assets, então nenhuma
+linha do `kevin-puppet.js` muda. Bloqueado nas credenciais do bucket
+(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`,
+`AWS_REGION` no `.env`).
+
+Depois disso, o gargalo passa a ser **conteúdo**: produção tem 0 TGs, 0 séries,
+0 turmas e 0 aulas. Sem aula cadastrada não há tela de aula, e o Kevin não
+aparece — por mais que os assets estejam no lugar. Quem cadastra é a
+coordenação, em `/coordenacao/`.
+
+No domínio, continuam abertos: **cadastrar os TGs dos Years 1–4** pela grade, e
+**confirmar a D29** com o cliente (3x vs 5x) antes de assumir o modelo de
+frequência.
 
 Para popular o catálogo a partir de um TG novo:
 ```bash
