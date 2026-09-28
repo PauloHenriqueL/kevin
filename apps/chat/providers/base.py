@@ -2,9 +2,12 @@ from abc import ABC, abstractmethod
 
 
 class BaseIAProvider(ABC):
-    def __init__(self, api_key: str, modelo: str):
+    def __init__(self, api_key: str, modelo: str, effort: str = ''):
         self.api_key = api_key
         self.modelo = modelo
+        # Esforço de raciocínio (D39). Vazio = não envia o parâmetro, deixando
+        # o padrão do provedor valer. Só o OpenAI usa; o Anthropic ignora.
+        self.effort = effort
 
     @abstractmethod
     def chat(self, system_prompt: str, mensagens: list[dict]) -> tuple[str, bool]:
