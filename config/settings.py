@@ -103,6 +103,13 @@ TEMPLATES = [
     },
 ]
 
+# Mídia do Kevin (cenários, vídeos, áudios, vocabulário): fica FORA do Git —
+# binário não faz delta, e cada entrega do animador viraria dezenas de MB
+# permanentes no histórico. Em produção vem de um bucket público; vazio, o
+# template cai em static/ e quem tem os arquivos localmente segue trabalhando.
+# Ver Demanda 19 em docs/demandas.md.
+KEVIN_ASSETS_BASE_URL = config('KEVIN_ASSETS_BASE_URL', default='')
+
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ──────────────────────────────────────────────

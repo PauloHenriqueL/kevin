@@ -471,3 +471,40 @@ class CoordenacaoPermissaoEndpointsTest(TestCase):
         r = Client().get('/coordenacao/atividades/buscar/?q=')
 
         self.assertIn(r.status_code, (302, 403))
+
+
+class KevinAssetTagTest(TestCase):
+    """Resolução de URL dos assets do Kevin (Demanda 19, etapa 1)."""
+
+    def _render(self, caminho):
+        from django.template import Context, Template
+        t = Template("{% load kevin_assets %}{% kevin_asset caminho %}")
+        return t.render(Context({'caminho': caminho}))
+
+    def test_sem_base_configurada_cai_em_static(self):
+        with self.settings(KEVIN_ASSETS_BASE_URL=''):
+            url = self._render('backgrounds/floresta.webp')
+
+        self.assertIn('js/kevin-puppet/assets/backgrounds/floresta.webp', url)
+
+    def test_com_base_configurada_aponta_para_o_bucket(self):
+        with self.settings(KEVIN_ASSETS_BASE_URL='https://bucket.exemplo/kevin-assets'):
+            url = self._render('audio/backsound/trilha-padrao.mp3')
+
+        self.assertEqual(
+            url, 'https://bucket.exemplo/kevin-assets/audio/backsound/trilha-padrao.mp3')
+
+    def test_barra_final_na_base_nao_duplica(self):
+        with self.settings(KEVIN_ASSETS_BASE_URL='https://bucket.exemplo/kevin-assets/'):
+            url = self._render('obj/quadro-negro.png')
+
+        self.assertNotIn('//obj/', url)
+
+    def test_espaco_no_nome_do_arquivo_e_escapado(self):
+        """Um arquivo do export tem espaço no nome e o motor o referencia
+        assim. Sem escapar, a URL quebra no navegador."""
+        with self.settings(KEVIN_ASSETS_BASE_URL='https://bucket.exemplo/kevin-assets'):
+            url = self._render('img/vocabulario/take-a-shower .png')
+
+        self.assertIn('take-a-shower%20.png', url)
+        self.assertNotIn(' ', url)

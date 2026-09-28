@@ -42,6 +42,12 @@ services:
         value: kevin-qv84.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
         value: https://kevin-qv84.onrender.com
+      # Mídia do Kevin no bucket público do Neon (Demanda 19). Não é segredo:
+      # o bucket é public_read, é o navegador do professor que baixa. Sem esta
+      # var o template cai em static/, que em produção está vazio — o Kevin
+      # aparece sem cenário, sem trilha e sem animação de entrada.
+      - key: KEVIN_ASSETS_BASE_URL
+        value: https://br-snowy-night-b5sa910i.storage.c-7.us-east-2.aws.neon.tech/kevin-assets
       # Chaves de IA/voz — opcionais; o chat cai em modo demo sem elas.
       - key: ANTHROPIC_API_KEY
         sync: false

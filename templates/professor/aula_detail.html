@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static kevin_assets %}
 {% block title %}{{ aula.titulo }} — Turma {{ turma.year }}{{ turma.nome }}{% endblock %}
 
 {% block content %}
@@ -279,17 +279,38 @@ window.KEVIN_CHAT_CONFIG = {
     }
 };
 // Mapa de cenários → URL do asset (Demanda 12). A chave vem de Aula.background.
-// Enquanto os assets não estão no R2, servimos de static/. Fallback: floresta.
+// {% templatetag openblock %} kevin_asset {% templatetag closeblock %} resolve para o bucket público em produção e para
+// static/ em dev — ver Demanda 19 e config.settings.KEVIN_ASSETS_BASE_URL.
 window.KEVIN_BACKGROUNDS = {
-    "floresta":     "{% static 'js/kevin-puppet/assets/backgrounds/floresta.webp' %}",
-    "quarto":       "{% static 'js/kevin-puppet/assets/backgrounds/quarto.webp' %}",
-    "banheiro":     "{% static 'js/kevin-puppet/assets/backgrounds/banheiro.webp' %}",
-    "escola-int":   "{% static 'js/kevin-puppet/assets/backgrounds/escola-int.webp' %}",
-    "escola-ext":   "{% static 'js/kevin-puppet/assets/backgrounds/escola-ext.webp' %}",
-    "hospital":     "{% static 'js/kevin-puppet/assets/backgrounds/hospital.webp' %}",
-    "hospital-int": "{% static 'js/kevin-puppet/assets/backgrounds/hospital-int.webp' %}",
+    "floresta":     "{% kevin_asset 'backgrounds/floresta.webp' %}",
+    "quarto":       "{% kevin_asset 'backgrounds/quarto.webp' %}",
+    "banheiro":     "{% kevin_asset 'backgrounds/banheiro.webp' %}",
+    "escola-int":   "{% kevin_asset 'backgrounds/escola-int.webp' %}",
+    "escola-ext":   "{% kevin_asset 'backgrounds/escola-ext.webp' %}",
+    "hospital":     "{% kevin_asset 'backgrounds/hospital.webp' %}",
+    "hospital-int": "{% kevin_asset 'backgrounds/hospital-int.webp' %}",
 };
 window.KEVIN_BACKGROUND = "{{ aula.background }}";
+// Imagens de vocabulário: o motor tem a lista embutida com caminhos relativos
+// ao módulo JS, que não existem quando os assets moram no bucket. Passamos a
+// lista explícita (options.vocabularyItems) com as URLs resolvidas — o id e o
+// texto precisam bater com DEFAULT_VOCABULARY_ITEMS do kevin-puppet.js.
+window.KEVIN_VOCABULARIO = [
+    { id: "wake-up",        words: "wake up",        imageSrc: "{% kevin_asset 'img/vocabulario/wake-up.png' %}" },
+    { id: "take-a-shower",  words: "take a shower",  imageSrc: "{% kevin_asset 'img/vocabulario/take-a-shower .png' %}" },
+    { id: "get-dressed",    words: "get dressed",    imageSrc: "{% kevin_asset 'img/vocabulario/get-dressed.png' %}" },
+    { id: "brush-my-hair",  words: "brush my hair",  imageSrc: "{% kevin_asset 'img/vocabulario/brush-my-hair.png' %}" },
+    { id: "wash-my-face",   words: "wash my face",   imageSrc: "{% kevin_asset 'img/vocabulario/wahs-my-face.png' %}" },
+    { id: "have-breakfast", words: "have breakfast", imageSrc: "{% kevin_asset 'img/vocabulario/have-breakfast.png' %}" },
+    { id: "make-breakfast", words: "make breakfast", imageSrc: "{% kevin_asset 'img/vocabulario/make-breakfast.png' %}" },
+    { id: "go-to-school",   words: "go to school",   imageSrc: "{% kevin_asset 'img/vocabulario/go-to-school.png' %}" },
+    { id: "take-a-taxi",    words: "take a taxi",    imageSrc: "{% kevin_asset 'img/vocabulario/take-a-taxi.png' %}" },
+    { id: "take-the-bus",   words: "take the bus",   imageSrc: "{% kevin_asset 'img/vocabulario/take-the-bus.png' %}" },
+    { id: "take-the-subway",words: "take the subway",imageSrc: "{% kevin_asset 'img/vocabulario/take-the-subway.png' %}" },
+    { id: "take-the-train", words: "take the train", imageSrc: "{% kevin_asset 'img/vocabulario/take-the-train.png' %}" },
+    { id: "ride-a-bicycle", words: "ride a bicycle", imageSrc: "{% kevin_asset 'img/vocabulario/ride-a-bicycle.png' %}" },
+    { id: "walk",           words: "walk",           imageSrc: "{% kevin_asset 'img/vocabulario/walk.png' %}" },
+];
 window.KEVIN_RIG_CONFIG = {
     svgUrl:           "{% static 'js/kevin-puppet/kevin-rigged.svg' %}",
     // fundo desta aula, com fallback para floresta se a chave não existir
@@ -298,7 +319,15 @@ window.KEVIN_RIG_CONFIG = {
     // Vídeo de entrada, usado pra congelar o 1º frame atrás da tela de espera
     // (#call-standby) antes do "Iniciar aula" — em vez do Kevin em standby
     // já visível por trás do popup.
-    entradaVideoUrl:  "{% static 'js/kevin-puppet/assets/videos/entrada-kevin.webm' %}",
+    entradaVideoUrl:  "{% kevin_asset 'videos/entrada-kevin.webm' %}",
+    // Os demais assets do motor. Sem estes overrides o motor usa caminhos
+    // relativos ao próprio .js, que não existem quando a mídia está no bucket.
+    transitionVideoUrl: "{% kevin_asset 'videos/mudanca-cenario.webm' %}",
+    backsoundMusicUrl:  "{% kevin_asset 'audio/backsound/trilha-padrao.mp3' %}",
+    celebrateAudioUrl:  "{% kevin_asset 'audio/efeitos-sonoros/celebrate.mp3' %}",
+    snoreAudioUrl:      "{% kevin_asset 'audio/voz-kevin/ronco-kevin.mp3' %}",
+    teachingBoardUrl:   "{% kevin_asset 'obj/quadro-negro.png' %}",
+    vocabularyItems:    window.KEVIN_VOCABULARIO,
 };
 // Áudio de música desta aula: vem do arquivo_url da atividade de música (ex:
 // faixa no R2). Vazio = o botão só anima o ukulele, sem tocar som. Sem fallback
