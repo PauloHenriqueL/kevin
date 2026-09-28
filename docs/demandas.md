@@ -1679,6 +1679,65 @@ teste, ruim para demo ao vivo. Para uso real, subir o web para o plano
 
 ---
 
+## Demanda 19 — Assets do Kevin: bucket agora, cadastro depois
+
+**Status:** 🟡 Etapa 1 em execução; etapa 2 registrada, não iniciada.
+
+Os 29 MB de mídia do Kevin (cenários, vídeos, áudios, quadro-negro, imagens de
+vocabulário) estão no `.gitignore` — não vão para o GitHub, logo não entram na
+imagem do Render. Em produção o Kevin abre sem cenário, sem trilha e sem
+animação de entrada.
+
+**O problema de fundo** não é só "subir arquivo". Hoje, adicionar um cenário
+novo exige **três** mudanças de código e um deploy: copiar o arquivo, registrar
+a chave em `BACKGROUND_CHOICES` (`apps/curriculo/models.py`) e adicionar a linha
+em `KEVIN_BACKGROUNDS` (`templates/professor/aula_detail.html`). Cenário é
+**conteúdo**, não código — não deveria custar um deploy.
+
+**A decisão (D41):** separar os assets por acoplamento ao motor, não tratá-los
+como um bloco só.
+
+| Grupo | Muda quando | Onde vive |
+|---|---|---|
+| Backgrounds, imagens de vocabulário | a cada aula nova — sempre | Banco + upload no admin (etapa 2) |
+| Vídeos de entrada/transição, áudios do motor, quadro-negro | quando o animador reescreve o motor — raro | Configuração no template (etapa 1) |
+
+O critério: o `celebrate.mp3` só existe porque o motor tem um modo `celebrate`.
+Se o Vitor mudar o motor, os dois mudam juntos — mesma lógica que já manda
+versionar o `kevin-rigged.svg` junto do `kevin-puppet.js`. Um cenário de padaria
+não tem relação nenhuma com o motor.
+
+### Etapa 1 — bucket + configuração (destrava produção)
+
+1. Criar credenciais de storage no Neon (`storage:read` + `storage:write`) e
+   pôr as 4 vars no `.env`: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+   `AWS_ENDPOINT_URL_S3`, `AWS_REGION`
+2. Subir os 28 arquivos preservando a estrutura de pastas
+3. Descobrir o formato da URL pública (a documentação do Neon não diz) e
+   validar com `curl` anônimo
+4. Ligar as URLs no `KEVIN_RIG_CONFIG` — o motor aceita override de tudo
+   (`backgroundUrl`, `entradaVideoUrl`, `transitionVideoUrl`,
+   `backsoundMusicUrl`, `celebrateAudioUrl`, `snoreAudioUrl`,
+   `teachingBoardUrl`, `vocabularyItems`), então **nenhuma linha do
+   `kevin-puppet.js` muda**
+
+### Etapa 2 — cadastro pelo admin (mata o deploy por conteúdo)
+
+1. `django-storages` + `boto3`, com o bucket como storage de mídia
+2. Modelo `Cenario` (nome, arquivo, descrição) com upload no admin
+3. `Aula.background` deixa de ser `CharField` com `BACKGROUND_CHOICES` e vira
+   FK para `Cenario` — **migração de dados**, não só de schema
+4. `KEVIN_BACKGROUNDS` passa a sair do banco
+5. Mesmo tratamento para as imagens de vocabulário
+6. Remover o passo "registrar a chave em `BACKGROUND_CHOICES`" do ritual de
+   instalação de export no `CLAUDE.md`
+
+**Por que nesta ordem:** a etapa 2 atrasaria produção em dias e mexe em dados
+(`CharField` → FK não é reversível de graça). A etapa 1 não piora nada: hoje
+cenário novo já exige deploy.
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1725,6 +1784,8 @@ uma tem consequência em cascata sobre as demais.
 | **D37** | **Banco em produção: Neon** (Postgres serverless), não o Postgres do Render | Postgres gerenciado do próprio Render | O free do Render expira em 90 dias; o do Neon não. O código já lê `DATABASE_URL`, então trocar o provedor é só colar outra URL — nenhuma mudança de código. `render.yaml` deixa de declarar o banco; a URL do Neon entra como env var. Ver Demanda 18 |
 | **D38** | `celebrate` do Kevin dispara **quando a IA sinaliza um acerto do Teacher/turma no chat**, via **tool-calling** (`celebrar_acerto`, sem parâmetros) nos providers Anthropic/OpenAI — `Mensagem.celebrar` grava o sinal, o frontend dispara `setMode('celebrate')` | Heurística por palavra-chave no texto da resposta; ou deixar sem gatilho automático por enquanto | Reunião 07/09/2026 (export novo do animador trouxe o modo `celebrate`). Paulo escolheu tool-calling por ser mais robusto que procurar frase de elogio no texto. Custo aceito: 1 chamada extra à API quando o modelo chama a tool sem texto na mesma rodada (precisa da continuação pra não celebrar com mensagem vazia) |
 | **D39** | **Esforço de raciocínio por Plano** (`Plano.ia_effort`), enviado como `reasoning_effort` só pelo provider OpenAI e só quando preenchido. Default `medium` | Fixar o effort no código; ou não ter o controle | Pedido do Paulo em 28/09/2026 para usar `gpt-5.6-terra`, que aceita `none`…`max`. Fica no Plano (e não global) porque o efeito é comercial: uma escola pode pagar por mais raciocínio. Default `medium`, não `max`, porque o Kevin responde com o professor esperando na frente da turma — effort alto vira latência visível e custo por resposta. Vazio = não envia o parâmetro, senão modelos sem suporte (gpt-4o) recusam a chamada. O Anthropic ignora: não expõe esse controle |
+| **D40** | **Views em função também precisam de guarda de papel** — `role_required` em `apps/accounts/decorators.py`, espelhando os mixins | Confiar que estar sob `/coordenacao/` já protege | Bug encontrado em 28/09/2026 com o sistema já em produção: as cinco views em função de `coordenacao_views.py` não herdam o `CoordenadorRequiredMixin` e estavam sem decorator. Qualquer usuário autenticado podia editar o TG oficial, que é global. Confirmado em produção (professora recebia 403 na grade mas 200 no autocomplete). Levanta 403 em vez de redirecionar: os endpoints respondem a `fetch`, e um 302 chegaria ao JS como sucesso com HTML |
+| **D41** | **Assets separados por acoplamento ao motor**: cenário e vocabulário viram cadastro no admin; vídeo, áudio e quadro-negro ficam em configuração | Tudo no admin; ou tudo em código | Ver Demanda 19. Cenário é conteúdo e muda a cada aula — não pode custar deploy. Os assets do motor mudam junto com o `kevin-puppet.js`, mesma razão que já mantém o `kevin-rigged.svg` versionado ao lado dele; cadastrá-los no admin criaria registro que ninguém edita e permitiria apagar por engano um arquivo de que o motor depende |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)
