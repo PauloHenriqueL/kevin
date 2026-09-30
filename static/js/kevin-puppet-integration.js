@@ -433,15 +433,21 @@ class KevinPuppetIntegration {
     video.muted = true;
     video.setAttribute('playsinline', '');
     video.preload = 'auto';
-    // Nasce OCULTO e só aparece quando há quadro para mostrar. Servido do
-    // bucket (produção), o vídeo leva cerca de um segundo para chegar;
-    // exibindo antes disso, o que o professor vê é um retângulo branco por
-    // cima do cenário — o "pisca branco" relatado em 30/09/2026. Local o
-    // arquivo vem do disco e o problema não aparece.
-    video.style.display = 'none';
+    // Aparece DE IMEDIATO, com o cenário da aula como `poster`. Enquanto o
+    // vídeo não chega (~1s vindo do bucket), o poster é o que se vê — e ele
+    // já está em cache, porque é o mesmo arquivo que o palco usa de fundo.
+    //
+    // Duas tentativas anteriores falharam por não cobrir o palco desde o
+    // primeiro quadro: exibir o <video> vazio dava um retângulo BRANCO;
+    // esperar o `loadeddata` deixava o Kevin de pé aparecer por baixo e
+    // depois ser tapado — o "pisca" relatado em 30/09/2026. Com o poster
+    // não há instante nenhum em que o palco fique à mostra.
+    if (this.backgroundUrl) video.poster = this.backgroundUrl;
+    video.style.display = 'block';
+    // Assim que houver dados, mostra o quadro 0 de verdade (a "cortina
+    // fechada"), que substitui o poster sem troca perceptível.
     video.addEventListener('loadeddata', () => {
       video.currentTime = 0;
-      video.style.display = 'block';
     }, { once: true });
     const source = document.createElement('source');
     source.src = entradaVideoUrl;
