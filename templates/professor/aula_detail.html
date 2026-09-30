@@ -221,8 +221,16 @@
         </div>
     </aside>
 
-    <!-- Standby sépia — tela inicial antes de começar -->
-    <div class="call-standby" id="call-standby">
+    <!-- Standby sépia — tela inicial antes de começar.
+         O cenário entra como background INLINE, renderizado pelo servidor: o
+         overlay precisa ser opaco desde o primeiro quadro. O quadro congelado
+         da entrada é criado por JS, e só depois do init() do motor (~1,5s em
+         rede lenta) — até lá o palco com o Kevin de pé ficava à mostra e era
+         tapado em seguida, o "pisca" de 30/09/2026. Com o fundo aqui, não há
+         instante em que o palco apareça. O gradiente sépia fica por cima. -->
+    {% kevin_asset "backgrounds/"|add:aula.background|add:".webp" as cenario_url %}
+    <div class="call-standby" id="call-standby"
+         style="background-image: radial-gradient(120% 90% at 50% 28%, rgba(120,72,20,0.16), rgba(55,38,14,0.5)), url('{{ cenario_url }}'); background-size: cover; background-position: center;">
         <div class="standby-card">
             <div class="standby-kevin">
                 <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
