@@ -130,12 +130,26 @@ class KevinPuppetIntegration {
    *
    * @param {string} containerSelector — onde o motor cria a stage (ex: "#kevin-rig-mount")
    * @param {string} svgUrl            — URL do SVG do Kevin (via Django static)
-   * @param {object} options           — { backgroundUrl? }
+   * @param {object} options           — o KEVIN_RIG_CONFIG inteiro
    */
   constructor(containerSelector, svgUrl, options = {}) {
     this.containerSelector = containerSelector;
     this.svgUrl = svgUrl;
     this.backgroundUrl = options.backgroundUrl || null;
+    // URLs dos demais assets do motor. Precisam ser REPASSADAS: sem elas o
+    // motor cai em caminho relativo ao próprio .js, que aponta para
+    // static/js/kevin-puppet/assets/ — pasta que não existe em produção,
+    // porque a mídia é gitignored e mora no bucket. Eram 5 arquivos em 404
+    // (entrada, transição, trilha, ronco e celebrate) e, por tabela, nem a
+    // animação de entrada nem a música aconteciam.
+    this.assetOptions = {};
+    for (const chave of [
+      'entradaVideoUrl', 'transitionVideoUrl', 'backsoundMusicUrl',
+      'celebrateAudioUrl', 'snoreAudioUrl', 'teachingBoardUrl',
+      'vocabularyItems',
+    ]) {
+      if (options[chave]) this.assetOptions[chave] = options[chave];
+    }
     this.kevin = null;
     this.audioEl = null;
     this.audioInput = null;
@@ -259,6 +273,7 @@ class KevinPuppetIntegration {
       this.kevin = await createKevinPuppet(container, {
         svgUrl: this.svgUrl,
         backgroundUrl: this.backgroundUrl,
+        ...this.assetOptions,
         // O motor (a partir desta versão do export) tem uma sequência de
         // abertura própria (popup "Iniciar" + entrada + tchau automático),
         // ligada por padrão. Aqui já existe a nossa própria tela de espera

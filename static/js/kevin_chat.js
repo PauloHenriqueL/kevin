@@ -80,7 +80,9 @@
       kevinChat = new KevinChatIntegration(
         window.KEVIN_RIG_CONFIG.rigMountSelector,
         window.KEVIN_RIG_CONFIG.svgUrl,
-        { backgroundUrl: window.KEVIN_RIG_CONFIG.backgroundUrl }
+        // O config inteiro, não só o background: o motor precisa das URLs
+        // de vídeo, áudio, quadro-negro e vocabulário (ver assetOptions).
+        window.KEVIN_RIG_CONFIG
       );
       await kevinChat.init();
       state.kevinReady = !!(kevinChat.isReady && kevinChat.isReady());
