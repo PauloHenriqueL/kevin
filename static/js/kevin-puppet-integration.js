@@ -142,6 +142,7 @@ class KevinPuppetIntegration {
     this.statusPill = document.getElementById('kevin-status-pill');
     this._statusTimer = null;
     this._freezeEl = null;
+    this._entradaPronta = null;   // pré-carregamento do vídeo de entrada
     this._initialized = false;
     this._initError = null;
 
@@ -417,14 +418,31 @@ class KevinPuppetIntegration {
     video.muted = true;
     video.setAttribute('playsinline', '');
     video.preload = 'auto';
-    video.style.display = 'block';
+    // Nasce OCULTO e só aparece quando há quadro para mostrar. Servido do
+    // bucket (produção), o vídeo leva cerca de um segundo para chegar;
+    // exibindo antes disso, o que o professor vê é um retângulo branco por
+    // cima do cenário — o "pisca branco" relatado em 30/09/2026. Local o
+    // arquivo vem do disco e o problema não aparece.
+    video.style.display = 'none';
+    video.addEventListener('loadeddata', () => {
+      video.currentTime = 0;
+      video.style.display = 'block';
+    }, { once: true });
     const source = document.createElement('source');
     source.src = entradaVideoUrl;
     source.type = 'video/webm';
     video.appendChild(source);
     stage.appendChild(video);
-    video.currentTime = 0;
     this._freezeEl = video;
+
+    // Aquece o cache HTTP para o elemento de vídeo do MOTOR, que é outro
+    // elemento com a mesma URL. O motor chama play() sem esperar buffer
+    // (runEntradaAnimation em kevin-puppet.js), então sem o arquivo em cache
+    // no clique de "Iniciar aula" a animação simplesmente não acontece — e
+    // a música de fundo, que começa dentro dela, também não.
+    this._entradaPronta = fetch(entradaVideoUrl, { cache: 'force-cache' })
+      .then((r) => r.blob())
+      .catch(() => null);
   }
 
   /** Remove o quadro congelado. playEntrada() chama isso antes de tocar. */
@@ -443,6 +461,15 @@ class KevinPuppetIntegration {
    */
   async playEntrada() {
     if (!this._initialized || !this.kevin.playEntrada) return false;
+    // Espera o vídeo estar em cache antes de entregar ao motor, que toca sem
+    // verificar buffer. Teto de 3s: passou disso, segue sem a animação em vez
+    // de deixar o professor esperando na frente da turma.
+    if (this._entradaPronta) {
+      await Promise.race([
+        this._entradaPronta,
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    }
     // Tira o congelado bem no instante em que o vídeo de verdade vai tocar —
     // como é o MESMO frame (frame 0 do mesmo arquivo), a troca é invisível.
     this.dismissFreeze();
