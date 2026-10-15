@@ -19,7 +19,7 @@
 // Cache-buster no import: sem isso, o navegador pode continuar servindo o
 // kevin-puppet.js antigo mesmo depois de bumpar o ?v= deste arquivo (o
 // import do módulo é cacheado pela própria URL, sem query string por padrão).
-import { createKevinPuppet } from './kevin-puppet/kevin-puppet.js?v=2';
+import { createKevinPuppet } from './kevin-puppet/kevin-puppet.js?v=3';
 
 /**
  * Adapter de áudio para HTMLAudioElement.
@@ -136,6 +136,8 @@ class KevinPuppetIntegration {
     this.containerSelector = containerSelector;
     this.svgUrl = svgUrl;
     this.backgroundUrl = options.backgroundUrl || null;
+    // 1º frame do vídeo de entrada como imagem (poster do quadro congelado).
+    this.entradaPosterUrl = options.entradaPosterUrl || null;
     // URLs dos demais assets do motor. Precisam ser REPASSADAS: sem elas o
     // motor cai em caminho relativo ao próprio .js, que aponta para
     // static/js/kevin-puppet/assets/ — pasta que não existe em produção,
@@ -147,6 +149,11 @@ class KevinPuppetIntegration {
       'entradaVideoUrl', 'transitionVideoUrl', 'backsoundMusicUrl',
       'celebrateAudioUrl', 'snoreAudioUrl', 'teachingBoardUrl',
       'vocabularyItems',
+      // Falas gravadas (export de 15/10/2026): "hi kids", "bye/kids bye" e o
+      // "yeah, you got it" do celebrate. As falas de playOpenClass() e
+      // playPayAttention() NÃO são configuráveis no motor — ver
+      // DIARIO_EXPORT.md, Entrada 10.
+      'hiVoiceUrls', 'byeVoiceUrls', 'celebrateVoiceUrl',
     ]) {
       if (options[chave]) this.assetOptions[chave] = options[chave];
     }
@@ -433,16 +440,18 @@ class KevinPuppetIntegration {
     video.muted = true;
     video.setAttribute('playsinline', '');
     video.preload = 'auto';
-    // Aparece DE IMEDIATO, com o cenário da aula como `poster`. Enquanto o
-    // vídeo não chega (~1s vindo do bucket), o poster é o que se vê — e ele
-    // já está em cache, porque é o mesmo arquivo que o palco usa de fundo.
+    // Aparece DE IMEDIATO, com o 1º frame da entrada como `poster` (a mesma
+    // imagem da tela de espera, já em cache). Enquanto o vídeo não chega
+    // (~1s vindo do bucket), o poster é o que se vê. Sem o poster, usa o
+    // cenário da aula, como antes.
     //
     // Duas tentativas anteriores falharam por não cobrir o palco desde o
     // primeiro quadro: exibir o <video> vazio dava um retângulo BRANCO;
     // esperar o `loadeddata` deixava o Kevin de pé aparecer por baixo e
     // depois ser tapado — o "pisca" relatado em 30/09/2026. Com o poster
     // não há instante nenhum em que o palco fique à mostra.
-    if (this.backgroundUrl) video.poster = this.backgroundUrl;
+    const poster = this.entradaPosterUrl || this.backgroundUrl;
+    if (poster) video.poster = poster;
     video.style.display = 'block';
     // Assim que houver dados, mostra o quadro 0 de verdade (a "cortina
     // fechada"), que substitui o poster sem troca perceptível.
@@ -499,15 +508,15 @@ class KevinPuppetIntegration {
 
   /**
    * Aceno de "oi" ao entrar na aula — chamado depois do vídeo de entrada e
-   * ANTES do kickoff, pra o Kevin acenar antes de entrar em "thinking". O
-   * motor só tem um gesto de aceno de disparo único (o modo "tchau" — serve
-   * igual pra cumprimentar). Não há Promise que resolva ao fim do aceno (3
-   * ciclos a 1.5Hz + entrada/saída, ~2.6s no total — ver TCHAU_WAVE_* em
-   * kevin-puppet.js), então usamos um delay fixo, como no celebrate.
+   * ANTES do kickoff, pra o Kevin acenar antes de entrar em "thinking".
+   * Usa playHi() (aceno + fala "hi kids", resolve ao terminar). Motor antigo,
+   * sem playHi: cai no aceno mudo do "tchau" com delay fixo (~2.6s, ver
+   * TCHAU_WAVE_* em kevin-puppet.js).
    */
   async waveHello() {
     if (!this._initialized) return false;
     this._kickActivity();
+    if (this.kevin.playHi) return this.kevin.playHi();
     const ok = await this.kevin.setMode('tchau');
     if (!ok) return false;
     await new Promise((r) => setTimeout(r, 2600));
@@ -515,14 +524,93 @@ class KevinPuppetIntegration {
   }
 
   /**
+   * Abertura de aula do motor (playOpenClass): aceno com "hi kids" + "todos
+   * dizem hi Kevin", depois "como estão se sentindo" e "how are you
+   * feeling", com pausas de escuta para a turma responder (~25s). Resolve
+   * true ao terminar, false se cancelada — qualquer interação do professor
+   * (mic, mensagem) chama setMode e interrompe. Motor sem a sequência: cai
+   * no aceno do waveHello().
+   */
+  async openClass() {
+    if (!this._initialized) return false;
+    if (!this.kevin.playOpenClass) {
+      await this.waveHello();
+      return true;  // aceno que falha não deve impedir o kickoff
+    }
+    this._kickActivity();
+    this.setStatus('speaking', 'Abrindo a aula 👋');
+    const ok = await this.kevin.playOpenClass();
+    this.setStatus('idle', 'Pronto pra conversar');
+    return ok;
+  }
+
+  /**
    * Dispara o pulo comemorativo (D38, docs/demandas.md) — chamado quando a
    * IA sinaliza (via tool-calling) que a resposta celebra um acerto do
-   * Teacher/turma. Disparo único; o motor volta pra "standby" sozinho.
+   * Teacher/turma. Resolve só quando o Kevin termina o pulo E a fala "yeah,
+   * you got it" — quem chama pode tocar o TTS em seguida sem sobrepor as
+   * duas falas. Motor antigo, sem playCelebrate: delay fixo.
    */
   async celebrate() {
     if (!this._initialized) return false;
     this._kickActivity();
-    return this.kevin.setMode('celebrate');
+    if (this.kevin.playCelebrate) return this.kevin.playCelebrate();
+    const ok = await this.kevin.setMode('celebrate');
+    if (ok) await new Promise((r) => setTimeout(r, 1800));
+    return ok;
+  }
+
+  /**
+   * Pose de ouvir (modo "listening") enquanto o professor grava pelo mic.
+   * Não mexe na pill — o startRecording já põe "Te gravando…".
+   */
+  startListeningPose() {
+    if (!this._initialized || !this.kevin.playHi) return;  // motor sem "listening"
+    this._kickActivity();
+    this.kevin.setMode('listening');
+  }
+
+  /** Gravação terminou sem nada a enviar — volta pro standby ocioso. */
+  endListeningPose() {
+    if (!this._initialized) return;
+    this.kevin.setMode('standby');
+    this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();
+  }
+
+  /**
+   * Sequência "Pay attention" (chamar a atenção da turma): falas gravadas
+   * intercaladas com pausas de escuta, terminando em celebrate. Resolve true
+   * ao terminar, false se for cancelada (cancelSequence ou outro setMode).
+   */
+  async payAttention() {
+    if (!this._initialized || !this.kevin.playPayAttention) return false;
+    this._kickActivity();
+    this.stopAudio();
+    this.setStatus('speaking', 'Chamando a atenção 👀');
+    const ok = await this.kevin.playPayAttention();
+    this.setStatus('idle', 'Pronto pra conversar');
+    this._startIdleLoop();
+    return ok;
+  }
+
+  /** Interrompe o Pay attention (ou qualquer sequência) em andamento. */
+  cancelSequence() {
+    if (this._initialized && this.kevin.cancelSequence) this.kevin.cancelSequence();
+  }
+
+  /**
+   * Despedida ao concluir a aula: aceno + "bye" / "kids bye". Teto de 6s —
+   * passou disso, segue (o professor está esperando a página fechar).
+   */
+  async sayBye() {
+    if (!this._initialized || !this.kevin.playBye) return false;
+    this._stopIdleLoop();
+    this.stopAudio();
+    return Promise.race([
+      this.kevin.playBye(),
+      new Promise((r) => setTimeout(() => r(false), 6000)),
+    ]);
   }
 
   // ── Música (Demanda 9A / D17, fase 1: botão manual) ──────────────────────

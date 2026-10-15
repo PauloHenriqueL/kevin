@@ -7,7 +7,7 @@
 //     backgroundUrl: "./background.png", // opcional
 //     onError: (msg) => console.error(msg),
 //   });
-//   await kevin.setMode("standby" | "thinking" | "speaking" | "sleeping" | "musica" | "celebrate" | "tchau" | "off");
+//   await kevin.setMode("standby" | "thinking" | "speaking" | "listening" | "sleeping" | "musica" | "celebrate" | "tchau" | "hi" | "bye" | "off");
 //   await kevin.setAudioInput(outraFonteDeAudio); // troca o microfone por outra fonte
 //   kevin.destroy();
 //
@@ -76,14 +76,14 @@ const DEFAULT_VOCABULARY_ITEMS = [
   { id: "brush-my-hair", words: "brush my hair", imageSrc: "./assets/img/vocabulario/brush-my-hair.png" },
   { id: "wash-my-face", words: "wash my face", imageSrc: "./assets/img/vocabulario/wahs-my-face.png" },
   { id: "have-breakfast", words: "have breakfast", imageSrc: "./assets/img/vocabulario/have-breakfast.png" },
-  { id: "make-breakfast", words: "make breakfast" },
-  { id: "go-to-school", words: "go to school" },
-  { id: "take-a-taxi", words: "take a taxi" },
-  { id: "take-the-bus", words: "take the bus" },
-  { id: "take-the-train", words: "take the train" },
-  { id: "take-the-subway", words: "take the subway" },
-  { id: "walk", words: "walk" },
-  { id: "ride-a-bicycle", words: "ride a bicycle" },
+  { id: "make-breakfast", words: "make breakfast", imageSrc: "./assets/img/vocabulario/make-breakfast.png" },
+  { id: "go-to-school", words: "go to school", imageSrc: "./assets/img/vocabulario/go-to-school.png" },
+  { id: "take-a-taxi", words: "take a taxi", imageSrc: "./assets/img/vocabulario/take-a-taxi.png" },
+  { id: "take-the-bus", words: "take the bus", imageSrc: "./assets/img/vocabulario/take-the-bus.png" },
+  { id: "take-the-train", words: "take the train", imageSrc: "./assets/img/vocabulario/take-the-train.png" },
+  { id: "take-the-subway", words: "take the subway", imageSrc: "./assets/img/vocabulario/take-the-subway.png" },
+  { id: "walk", words: "walk", imageSrc: "./assets/img/vocabulario/walk.png" },
+  { id: "ride-a-bicycle", words: "ride a bicycle", imageSrc: "./assets/img/vocabulario/ride-a-bicycle.png" },
 ];
 
 const TAIL_BOB_AMPLITUDE = 6.2;
@@ -168,8 +168,46 @@ const CELEBRATE_ARM_LERP  = 0.1;
 const CELEBRATE_BODY_LERP = 0.08;
 const CELEBRATE_JUMP_LERP = 0.16;
 const CELEBRATE_CONFETTI_COLORS = ["#ffd470", "#2ef2bb", "#ff6b8a", "#6aa7ff", "#ffffff", "#ff9f43"];
-const DEFAULT_CELEBRATE_AUDIO_VOLUME = 0.1;
-const DEFAULT_CELEBRATE_AUDIO_PLAY_DELAY_MS = 500;
+const DEFAULT_CELEBRATE_AUDIO_VOLUME = 0.7;
+const DEFAULT_CELEBRATE_AUDIO_PLAY_DELAY_MS = 0;
+// Modos que usam o gesto de aceno. "silent" é interno (sequências).
+const WAVE_MODES = ["tchau", "hi", "bye", "silent"];
+const DEFAULT_CELEBRATE_VOICE_URL = "./assets/audio/voz-kevin/yeah-you-got-it.mp3";
+
+// ── Modo Listening (ouvindo) ─────────────────────────────────────────────────
+const LISTENING_ARM_TARGET_LEFT  = { shoulder: -41, elbow: -102 };
+const LISTENING_ARM_TARGET_RIGHT = { shoulder: 21,  elbow: -86 };
+const LISTENING_HAND_TILT_LEFT  = 0;
+const LISTENING_HAND_TILT_RIGHT = -2;
+const LISTENING_HAND_MIRROR_TOLERANCE = 3; // graus: mão esq inverte ao chegar na pose
+const LISTENING_ARM_LERP_SPEED = 0.02;
+const LISTENING_SQUAT_AMPLITUDE = 30;      // descer body oscila 0-30px
+const LISTENING_SQUAT_SPEED = 1.0;         // rad/s → ciclo ~6s
+
+// ── Falas gravadas (Hi / Bye / sequências) ───────────────────────────────────
+const VOICE_DIR = "./assets/audio/voz-kevin/";
+const DEFAULT_HI_VOICE   = ["hi-kids.mp3"];
+const DEFAULT_BYE_VOICE  = ["kevin-bye.mp3", "kids-bye.mp3"];
+// Sequências de vários passos. Cada passo: {wave} aceno (com ou sem fala
+// própria), {speech} fala na pose do Falando, {listen} Listening por N ms,
+// {celebrate} dispara o Celebrate e espera terminar.
+const OPEN_CLASS_STEPS = [
+  { wave: ["hi-kids.mp3", "todos-dizem-hi-kevin.mp3"] },
+  { listen: 3000 },
+  { speech: ["como-estao-se-sentindo.mp3"] },
+  { listen: 4000 },
+  { speech: ["agora-em-inlges.mp3", "how-are-you-feeling.mp3"] },
+  { listen: 4000 },
+];
+const PAY_ATTENTION_STEPS = [
+  { wave: [], speech: ["pay-atention.mp3", "pay-atention-eyes-on-me.mp3", "eyes-on-me.mp3"] },
+  { listen: 4000 },
+  { speech: ["pay-atention-hello.mp3", "when-i-say-kevin.mp3"] },
+  { listen: 4000 },
+  { speech: ["pay-atention-ready-kids.mp3", "ready-kids.mp3"] },
+  { listen: 4000 },
+  { celebrate: true },
+];
 
 // ── Mod Teaching (aditivo: zoom de câmera + objeto "quadro-negro" deslizando) ──
 // Sequência: camera-in (câmera aproxima) → object-in (quadro entra e desce até
@@ -281,6 +319,92 @@ export function createMicAudioInput() {
       }
       this.level = Math.sqrt(sumSquares / this._dataArray.length);
       return this.level;
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Player de falas gravadas: toca uma lista de mp3 em sequência e expõe o
+// nível de volume (mesma interface `update()` do mic) pra dirigir o lipsync.
+// O AudioContext só é criado no primeiro play (precisa de gesto do usuário).
+// ---------------------------------------------------------------------------
+function createVoiceClipPlayer(volume = 1) {
+  return {
+    playing: false,
+    _audio: null,
+    _ctx: null,
+    _analyser: null,
+    _dataArray: null,
+    _token: 0,
+
+    _ensureGraph() {
+      if (this._audio) return;
+      this._audio = new Audio();
+      this._audio.preload = "auto";
+      this._audio.volume = volume;
+      this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = this._ctx.createMediaElementSource(this._audio);
+      this._analyser = this._ctx.createAnalyser();
+      this._analyser.fftSize = 512;
+      this._analyser.smoothingTimeConstant = 0.6;
+      source.connect(this._analyser);
+      this._analyser.connect(this._ctx.destination);
+      this._dataArray = new Uint8Array(this._analyser.fftSize);
+    },
+
+    // Resolve quando a lista termina (ou é interrompida por stop()).
+    async playSequence(urls) {
+      if (!urls || !urls.length) return;
+      this._ensureGraph();
+      const token = ++this._token;
+      this.playing = true;
+      if (this._ctx.state === "suspended") await this._ctx.resume().catch(() => {});
+      for (const url of urls) {
+        if (token !== this._token) return;
+        this._audio.src = url;
+        try {
+          await this._audio.play();
+          // "pause" cobre stop() no meio (senão a promise nunca resolve)
+          await new Promise((resolve) => {
+            const done = () => {
+              this._audio.removeEventListener("ended", done);
+              this._audio.removeEventListener("pause", done);
+              resolve();
+            };
+            this._audio.addEventListener("ended", done);
+            this._audio.addEventListener("pause", done);
+          });
+        } catch (err) {
+          console.warn("KevinPuppet: nao foi possivel tocar a fala.", url, err);
+        }
+      }
+      if (token === this._token) this.playing = false;
+    },
+
+    stop() {
+      this._token++;
+      this.playing = false;
+      if (this._audio) {
+        this._audio.pause();
+        this._audio.currentTime = 0;
+      }
+    },
+
+    update() {
+      if (!this.playing || !this._analyser) return 0;
+      this._analyser.getByteTimeDomainData(this._dataArray);
+      let sumSquares = 0;
+      for (let i = 0; i < this._dataArray.length; i++) {
+        const v = (this._dataArray[i] - 128) / 128;
+        sumSquares += v * v;
+      }
+      return Math.sqrt(sumSquares / this._dataArray.length);
+    },
+
+    destroy() {
+      this.stop();
+      if (this._ctx) this._ctx.close();
+      this._ctx = null;
     },
   };
 }
@@ -634,6 +758,13 @@ export async function createKevinPuppet(container, options = {}) {
   const celebrateAudioUrl = options.celebrateAudioUrl ?? resolveAsset("./assets/audio/efeitos-sonoros/celebrate.mp3");
   const celebrateAudioVolume = options.celebrateAudioVolume ?? DEFAULT_CELEBRATE_AUDIO_VOLUME;
   const celebrateAudioPlayDelayMs = options.celebrateAudioPlayDelayMs ?? DEFAULT_CELEBRATE_AUDIO_PLAY_DELAY_MS;
+  // Fala do Celebrate ("yeah you got it"). null desliga.
+  const celebrateVoiceUrl = options.celebrateVoiceUrl === null ? null
+    : (options.celebrateVoiceUrl ?? resolveAsset(DEFAULT_CELEBRATE_VOICE_URL));
+  const voiceUrl = (file) => resolveAsset(VOICE_DIR + file);
+  const hiVoiceUrls = options.hiVoiceUrls ?? DEFAULT_HI_VOICE.map(voiceUrl);
+  const byeVoiceUrls = options.byeVoiceUrls ?? DEFAULT_BYE_VOICE.map(voiceUrl);
+  const voiceVolume = options.voiceVolume ?? 1;
   const teachingCameraZoom = options.teachingCameraZoom ?? DEFAULT_TEACHING_CAMERA_ZOOM;
   const teachingCameraPanX = options.teachingCameraPanX ?? DEFAULT_TEACHING_CAMERA_PAN_X;
   const teachingCameraPanY = options.teachingCameraPanY ?? DEFAULT_TEACHING_CAMERA_PAN_Y;
@@ -1039,6 +1170,15 @@ export async function createKevinPuppet(container, options = {}) {
   let bodyDropY = 0;
   let idleTiltExtra = 0;
   let activeAudioInput = createMicAudioInput();
+  const voicePlayer = createVoiceClipPlayer(voiceVolume);
+  // Variante do gesto de aceno: "tchau" (original, lipsync pelo mic, sem fala
+  // gravada), "hi"/"bye" (fala gravada), "silent" (só o gesto - sequências).
+  let waveVariant = "tchau";
+  let waveVoiceUrls = [];
+  // Sequências (Open class / Pay attention): token de cancelamento
+  let sequenceToken = 0;
+  let sequenceActive = false;
+  const listeningArmState = { left: { curS: 0, curE: 0 }, right: { curS: 0, curE: 0 } };
   let vocabularyItems = (options.vocabularyItems || DEFAULT_VOCABULARY_ITEMS).map(resolveVocabularyItemAsset).filter(Boolean);
   let activeVocabularyId = null;
   let vocabularyVisible = false;
@@ -1056,14 +1196,12 @@ export async function createKevinPuppet(container, options = {}) {
   // --- Mod Teaching ---
   let teachingPhase = "off"; // "off" | "camera-in" | "object-in" | "active" | "object-out" | "camera-out"
 
-  // --- Sequência de abertura (autoOpening) ---
-  let openingPendingSpeaking = false;
 
   // --- Mod Camuflage ---
   let camuflagePhase = "off"; // "off" | "m1" | "m2"
   let hueRotateDeg = 0; // 0-360, gira o matiz de todas as cores do SVG (usado só pelo Camuflage)
 
-  // currentMode: "off" | "standby" | "speaking" | "thinking" | "sleeping" | "musica" | "celebrate" | "tchau"
+  // currentMode: "off" | "standby" | "speaking" | "thinking" | "listening" | "sleeping" | "musica" | "celebrate" | "tchau" | "hi" | "bye" | "silent"
   // É o modo pedido via setMode(). O modo efetivamente renderizado a cada frame
   // (effectiveMode, calculado em animate()) pode divergir temporariamente: a
   // saída do modo Musica é animada (M4 → exit_m2 → exit_m1) e Celebrate/Tchau
@@ -2218,6 +2356,52 @@ export async function createKevinPuppet(container, options = {}) {
     }
   }
 
+  // --- preset: Listening (ouvindo) ---
+  function initListeningState() {
+    if (!rig) return;
+    // Parte de onde os braços estavam (transição suave de qualquer modo)
+    listeningArmState.left.curS = rig.leftArm?.lastShoulder ?? 0;
+    listeningArmState.left.curE = rig.leftArm?.lastElbow ?? 0;
+    listeningArmState.right.curS = rig.rightArm?.lastShoulder ?? 0;
+    listeningArmState.right.curE = rig.rightArm?.lastElbow ?? 0;
+  }
+
+  function animateListeningPose(now) {
+    if (!rig) return;
+    const t = now * 0.001;
+    const squatTarget = LISTENING_SQUAT_AMPLITUDE * (0.5 - Math.cos(t * LISTENING_SQUAT_SPEED) * 0.5);
+    setBodyDropValue(lerp(bodyDropY, squatTarget, 0.06));
+    animateBodyWithSway(rig.body, 0);
+    animateTail(now);
+    idleTiltExtra = lerp(idleTiltExtra, 0, 0.03);
+
+    for (const side of ["left", "right"]) {
+      const state = listeningArmState[side];
+      const target = side === "left" ? LISTENING_ARM_TARGET_LEFT : LISTENING_ARM_TARGET_RIGHT;
+      const tiltTarget = side === "left" ? LISTENING_HAND_TILT_LEFT : LISTENING_HAND_TILT_RIGHT;
+      const arm = side === "left" ? rig.leftArm : rig.rightArm;
+      if (!arm) continue;
+      state.curS = lerp(state.curS, target.shoulder, LISTENING_ARM_LERP_SPEED);
+      state.curE = lerp(state.curE, target.elbow, LISTENING_ARM_LERP_SPEED);
+      arm.handManualTiltDeg = lerp(arm.handManualTiltDeg ?? 0, tiltTarget, 0.05);
+      // Mão esq inverte só quando o braço chega na pose
+      if (side === "left"
+        && Math.abs(state.curS - target.shoulder) < LISTENING_HAND_MIRROR_TOLERANCE
+        && Math.abs(state.curE - target.elbow) < LISTENING_HAND_MIRROR_TOLERANCE) {
+        arm.musicaHandMirrorOverride = true;
+      }
+      animateArmWithValues(arm, state.curS, state.curE);
+    }
+  }
+
+  function cleanupListening() {
+    if (rig?.leftArm) {
+      rig.leftArm.musicaHandMirrorOverride = null;
+      rig.leftArm.handManualTiltDeg = 0;
+    }
+    if (rig?.rightArm) rig.rightArm.handManualTiltDeg = 0;
+  }
+
   // --- preset: Dormindo ---
   function initSleepingState(now) {
     if (!rig) return;
@@ -2354,6 +2538,7 @@ export async function createKevinPuppet(container, options = {}) {
   }
 
   function initCelebrateState() {
+    if (celebrateVoiceUrl) voicePlayer.playSequence([celebrateVoiceUrl]);
     celebratePhase = "enter";
     celebrateJumpStage = "none";
     celebrateLandingStage = "bounceDown";
@@ -2723,10 +2908,14 @@ export async function createKevinPuppet(container, options = {}) {
     tchauLeftArmState.curS = rig?.leftArm?.lastShoulder ?? 0;
     tchauLeftArmState.curE = rig?.leftArm?.lastElbow   ?? 0;
     tchauWaveStart = 0;
+    if (waveVoiceUrls.length) voicePlayer.playSequence(waveVoiceUrls);
   }
 
   function cleanupTchau() {
     tchauPhase = "off";
+    // Só corta a fala se ela pertence ao gesto (Hi/Bye) - nas sequências a
+    // fala continua depois do aceno.
+    if (waveVoiceUrls.length) voicePlayer.stop();
     const arm = rig?.rightArm;
     if (arm) {
       if (arm.handGroup)  arm.handGroup.style.display  = "";
@@ -2769,7 +2958,9 @@ export async function createKevinPuppet(container, options = {}) {
     } else if (tchauPhase === "waving") {
       const t = (now - tchauWaveStart) / 1000;
       const cycles = t * TCHAU_WAVE_FREQ;
-      if (cycles >= TCHAU_WAVE_CYCLES) {
+      // Hi/Bye: acena no mínimo os ciclos normais e continua enquanto a fala toca
+      const holdForVoice = waveVoiceUrls.length > 0 && voicePlayer.playing;
+      if (cycles >= TCHAU_WAVE_CYCLES && !holdForVoice) {
         tchauPhase = "exiting";
       } else {
         const waveSin = Math.sin(cycles * Math.PI * 2);
@@ -2783,10 +2974,6 @@ export async function createKevinPuppet(container, options = {}) {
       if (Math.abs(tchauArmState.curS) < 2 && Math.abs(tchauArmState.curE) < 2) {
         cleanupTchau();
         currentMode = "standby";
-        if (openingPendingSpeaking) {
-          openingPendingSpeaking = false;
-          setModeInternal("speaking");
-        }
         return;
       }
       // Restaura mão padrão assim que o braço estiver descendo
@@ -3196,15 +3383,21 @@ export async function createKevinPuppet(container, options = {}) {
       return false;
     }
 
-    if (mode === "tchau" && currentMode === "tchau" && tchauPhase !== "off") {
+    const isWave = WAVE_MODES.includes(mode);
+    if (isWave && WAVE_MODES.includes(currentMode) && tchauPhase !== "off") {
       cleanupTchau();
       currentMode = "off";
       return true;
     }
-    if (mode === "tchau" && (currentMode === "musica" || musicaExiting || currentMode === "celebrate" || celebratePhase !== "off")) {
+    if (isWave && (currentMode === "musica" || musicaExiting || currentMode === "celebrate" || celebratePhase !== "off")) {
       return false;
     }
     if (mode === currentMode) return true;
+
+    if (isWave) {
+      waveVariant = mode;
+      waveVoiceUrls = mode === "hi" ? hiVoiceUrls : mode === "bye" ? byeVoiceUrls : [];
+    }
 
     if (mode === "speaking" || mode === "musica" || mode === "tchau") {
       const ok = await activeAudioInput.start();
@@ -3225,11 +3418,11 @@ export async function createKevinPuppet(container, options = {}) {
     }
 
     if (mode === "celebrate") {
-      if (currentMode === "tchau" || tchauPhase !== "off") cleanupTchau();
+      if (WAVE_MODES.includes(currentMode) || tchauPhase !== "off") cleanupTchau();
       scheduleCelebrateAudio();
     }
 
-    if (moscaActive && (mode === "musica" || mode === "sleeping" || mode === "thinking" || mode === "celebrate" || mode === "tchau")) {
+    if (moscaActive && (mode === "musica" || mode === "sleeping" || mode === "thinking" || mode === "listening" || mode === "celebrate" || isWave)) {
       dismissMoscaInternal();
     }
 
@@ -3237,11 +3430,92 @@ export async function createKevinPuppet(container, options = {}) {
     return true;
   }
 
+  // Pose do Falando sem ligar o mic - usada pelas sequências, onde a boca
+  // segue a fala gravada (voicePlayer), não o microfone.
+  function setSpeakingPoseWithoutMic() {
+    if (currentMode === "musica") startMusicaExit(null);
+    currentMode = "speaking";
+  }
+
+  const waitMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function waitWhile(cond, alive) {
+    while (alive() && cond()) await waitMs(50);
+    return alive();
+  }
+
+  function isWaveRunning() {
+    return WAVE_MODES.includes(currentMode) || tchauPhase !== "off";
+  }
+
+  function isCelebrateRunning() {
+    return currentMode === "celebrate" || celebratePhase !== "off";
+  }
+
+  // Cancela qualquer sequência em andamento (Open class / Pay attention).
+  function cancelSequenceInternal() {
+    if (!sequenceActive) return;
+    sequenceToken++;
+    sequenceActive = false;
+    voicePlayer.stop();
+  }
+
+  // Motor das sequências. Resolve true se terminou, false se foi cancelada.
+  async function runSequence(steps) {
+    cancelSequenceInternal();
+    const token = ++sequenceToken;
+    const alive = () => token === sequenceToken;
+    sequenceActive = true;
+
+    for (const step of steps) {
+      if (!alive()) return false;
+      if (step.wave) {
+        // Aceno: com fala própria (fala acompanha o gesto) ou mudo + fala
+        // que segue depois do gesto, já na pose do Falando
+        if (isWaveRunning()) cleanupTchau();
+        const speech = step.speech ? voicePlayer.playSequence(step.speech.map(voiceUrl)) : null;
+        waveVariant = "silent";
+        waveVoiceUrls = step.wave.map(voiceUrl);
+        if (step.speech) waveVoiceUrls = [];
+        if (currentMode === "musica") startMusicaExit(null);
+        currentMode = "silent";
+        if (moscaActive) dismissMoscaInternal();
+        if (!await waitWhile(isWaveRunning, alive)) return false;
+        if (speech) {
+          setSpeakingPoseWithoutMic();
+          await speech;
+        }
+      } else if (step.speech) {
+        setSpeakingPoseWithoutMic();
+        await voicePlayer.playSequence(step.speech.map(voiceUrl));
+      } else if (step.listen) {
+        await setModeInternal("listening");
+        await waitMs(step.listen);
+      } else if (step.celebrate) {
+        await setModeInternal("celebrate");
+        await waitMs(100); // deixa o loop iniciar o gesto
+        if (!await waitWhile(isCelebrateRunning, alive)) return false;
+      }
+    }
+    if (!alive()) return false;
+    sequenceActive = false;
+    if (currentMode !== "standby") await setModeInternal("standby");
+    return true;
+  }
+
+  // Promise que resolve quando o gesto de aceno (tchau/hi/bye) termina.
+  async function playWave(mode) {
+    const ok = await setModeInternal(mode);
+    if (!ok) return false;
+    await waitMs(100);
+    return waitWhile(isWaveRunning, () => true);
+  }
+
   // Mic deve continuar rodando enquanto qualquer modo que o usa estiver ativo
   // (inclui a saída animada da Musica e o gesto do Tchau em andamento).
   function isMicNeeded() {
     return currentMode === "speaking" || currentMode === "musica" || musicaExiting
-      || currentMode === "tchau" || tchauPhase !== "off";
+      || currentMode === "tchau" || (tchauPhase !== "off" && waveVariant === "tchau");
   }
 
   // --- loop principal ---
@@ -3252,8 +3526,8 @@ export async function createKevinPuppet(container, options = {}) {
 
     activeMode = (currentMode === "musica" || musicaExiting) ? "musica"
       : (currentMode === "celebrate" || celebratePhase !== "off") ? "celebrate"
-      : (currentMode === "tchau" || tchauPhase !== "off") ? "tchau"
-      : currentMode; // off | standby | speaking | thinking | sleeping
+      : (WAVE_MODES.includes(currentMode) || tchauPhase !== "off") ? "tchau"
+      : currentMode; // off | standby | speaking | thinking | listening | sleeping
 
     // Musica e Celebrate têm prioridade sobre o Tchau se houver uma corrida
     // entre chamadas programáticas.
@@ -3270,6 +3544,9 @@ export async function createKevinPuppet(container, options = {}) {
     } else if (activeMode === "tchau") {
       if (previousMode !== "tchau") initTchauState(now);
       animateTchauMode(now);
+    } else if (activeMode === "listening") {
+      if (previousMode !== "listening") initListeningState();
+      animateListeningPose(now);
     } else if (activeMode === "thinking") {
       if (previousMode !== "thinking") initThinkingState(now);
       animateThinkingPose(now);
@@ -3293,6 +3570,9 @@ export async function createKevinPuppet(container, options = {}) {
       snoreAudio.currentTime = 0;
     }
 
+    // Ao sair do listening, desfaz a mão invertida e a inclinação das mãos
+    if (previousMode === "listening" && activeMode !== "listening") cleanupListening();
+
     previousMode = activeMode;
 
     if (!moscaActive || moscaState.entering) {
@@ -3305,9 +3585,12 @@ export async function createKevinPuppet(container, options = {}) {
 
     if ((currentMode === "musica" || musicaExiting) && musicaPhase === "m4") {
       setMouthByAudioLevel(now, activeAudioInput.update());
+    } else if (voicePlayer.playing) {
+      // Fala gravada (Hi/Bye, Celebrate, sequências) sempre dirige a boca
+      setMouthByAudioLevel(now, voicePlayer.update());
     } else if (activeMode === "celebrate") {
       setMouthShape("Aa");
-    } else if (activeMode === "standby" || activeMode === "thinking" || activeMode === "sleeping" || activeMode === "musica") {
+    } else if (activeMode === "standby" || activeMode === "thinking" || activeMode === "listening" || activeMode === "sleeping" || activeMode === "musica") {
       setMouthShape("Neutral");
     } else if (activeMode === "speaking" || activeMode === "tchau") {
       setMouthByAudioLevel(now, activeAudioInput.update());
@@ -3351,15 +3634,15 @@ export async function createKevinPuppet(container, options = {}) {
     entradaVideo.currentTime = 0;
     openingStartBtn.addEventListener("click", () => {
       openingCard.style.display = "none";
-      runEntradaAnimation().then(() => {
-        openingPendingSpeaking = true;
-        setModeInternal("tchau");
-      });
+      // Cortina → Open class → Falando (com mic)
+      runEntradaAnimation()
+        .then(() => runSequence(OPEN_CLASS_STEPS))
+        .then((completed) => { if (completed) setModeInternal("speaking"); });
     });
   }
 
   // --- API pública ---
-  const VALID_MODES = ["off", "standby", "speaking", "thinking", "sleeping", "musica", "celebrate", "tchau"];
+  const VALID_MODES = ["off", "standby", "speaking", "thinking", "listening", "sleeping", "musica", "celebrate", "tchau", "hi", "bye", "silent"];
 
   return {
     /**
@@ -3381,7 +3664,66 @@ export async function createKevinPuppet(container, options = {}) {
      * ativo retorna `false` (esses modos têm prioridade).
      */
     setMode(mode) {
+      // Um setMode externo interrompe Open class / Pay attention e qualquer
+      // fala gravada em andamento (o modo novo inicia a própria, se tiver)
+      cancelSequenceInternal();
+      voicePlayer.stop();
+      if (mode === "silent") {
+        console.warn('KevinPuppet: modo "silent" e interno.');
+        return Promise.resolve(false);
+      }
       return setModeInternal(mode);
+    },
+
+    /** Aceno com "hi kids". Resolve quando o gesto (e a fala) termina. */
+    playHi() {
+      cancelSequenceInternal();
+      return playWave("hi");
+    },
+
+    /** Aceno com "bye" + "kids bye". Resolve quando o gesto termina. */
+    playBye() {
+      cancelSequenceInternal();
+      return playWave("bye");
+    },
+
+    /**
+     * Celebrate (pulo + confete + efeito + fala). Resolve quando o Kevin
+     * termina e volta pro standby - substitui delays fixos de espera.
+     */
+    async playCelebrate() {
+      cancelSequenceInternal();
+      const ok = await setModeInternal("celebrate");
+      if (!ok) return false;
+      await waitMs(100);
+      return waitWhile(isCelebrateRunning, () => true);
+    },
+
+    /**
+     * Abertura de aula: aceno (hi kids + todos dizem hi Kevin) → Listening 3s
+     * → "como estão se sentindo" → Listening 4s → "agora em inglês" + "how
+     * are you feeling" → Listening 4s → standby. Resolve true ao terminar,
+     * false se for cancelada (cancelSequence, setMode ou outra sequência).
+     */
+    playOpenClass() {
+      return runSequence(OPEN_CLASS_STEPS);
+    },
+
+    /**
+     * Pay attention: aceno + 3 blocos de fala, cada um seguido de Listening
+     * 4s, e Celebrate no fim. Mesmo contrato de Promise do playOpenClass().
+     */
+    playPayAttention() {
+      return runSequence(PAY_ATTENTION_STEPS);
+    },
+
+    /** Interrompe Open class / Pay attention (corta a fala). */
+    cancelSequence() {
+      cancelSequenceInternal();
+    },
+
+    isSequenceActive() {
+      return sequenceActive;
     },
 
     getMode() {
@@ -3539,6 +3881,8 @@ export async function createKevinPuppet(container, options = {}) {
       activeAudioInput.stop();
       backsoundMusicAudio.pause();
       snoreAudio.pause();
+      cancelSequenceInternal();
+      voicePlayer.destroy();
       stage.remove();
     },
   };

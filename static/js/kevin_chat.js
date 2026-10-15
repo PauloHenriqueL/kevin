@@ -316,6 +316,9 @@
       state.isRecording = true;
       setMicBtnState('recording');
       if (kevinChat) kevinChat.setStatus('listening', 'Te gravando…');
+      // Pose de ouvir enquanto grava; showTyping() troca pra "thinking"
+      // quando o áudio sai, e endListeningPose() desfaz se não houver fala.
+      if (kevinChat && kevinChat.startListeningPose) kevinChat.startListeningPose();
 
       ensureAudioContext();
       const src = state.audioContext.createMediaStreamSource(stream);
@@ -392,6 +395,7 @@
     const hasSpeech = !!state.mediaRecorder._hasSpeech;
 
     if (!hasSpeech) {
+      if (kevinChat && kevinChat.endListeningPose) kevinChat.endListeningPose();
       setMicBtnState(state.liveMode ? 'live' : 'idle');
       if (state.liveMode && !state.isSending) {
         setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 500);
@@ -416,6 +420,8 @@
       const texto = (sttData.text || '').trim();
       if (!texto) {
         hideTyping();
+        // showTyping() deixou o Kevin em "thinking"; sem texto, nada responde.
+        if (kevinChat && kevinChat.endListeningPose) kevinChat.endListeningPose();
         setMicBtnState(state.liveMode ? 'live' : 'idle');
         // Re-checa liveMode DENTRO do callback: usuário pode ter desligado
         // live mode no meio do flow (privacy: senão o mic abre de novo sem permissão).
@@ -506,15 +512,14 @@
 
   /**
    * Se a resposta pediu celebrate (Mensagem.celebrar, D38), dispara o gesto
-   * e dá tempo dele terminar antes de seguir pro TTS — o motor não expõe
-   * uma Promise que resolve ao fim do Celebrate (diferente de playEntrada/
-   * setBackground), então usamos um delay fixo generoso.
+   * e espera ele terminar antes de seguir pro TTS — o celebrate agora fala
+   * "yeah, you got it", e a resposta da IA por cima embolaria as duas falas.
+   * kevinChat.celebrate() só resolve quando o Kevin volta ao standby.
    */
   async function celebrarSeNecessario(celebrar) {
     if (!celebrar || !kevinChat || !kevinChat.celebrate) return;
     try {
       await kevinChat.celebrate();
-      await new Promise((r) => setTimeout(r, 1800));
     } catch (e) { /* segue sem celebrar */ }
   }
 
@@ -736,10 +741,15 @@
     if (kevinChat && kevinChat.playEntrada) {
       try { await kevinChat.playEntrada(); } catch (e) {/* segue sem a entrada animada */}
     }
-    // Aceno de "oi" — precisa terminar ANTES do kickoff entrar em "thinking"
+    // Open class (cumprimento + "como estão se sentindo" com a turma) —
+    // precisa terminar ANTES do kickoff entrar em "thinking"
     // (sendTextAndSpeak → showTyping() já dispara o modo pensando).
-    if (kevinChat && kevinChat.waveHello) {
-      try { await kevinChat.waveHello(); } catch (e) {/* segue sem o aceno */}
+    // Se o professor interromper (mic/mensagem), a sequência resolve false
+    // e o kickoff não roda por cima da interação dele.
+    if (kevinChat && kevinChat.openClass) {
+      let completa = true;
+      try { completa = await kevinChat.openClass(); } catch (e) {/* segue sem a abertura */}
+      if (completa === false) return;
     }
     const kickoff = window.KEVIN_KICKOFF || 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?';
     sendTextAndSpeak(kickoff);
@@ -780,6 +790,42 @@
     modalConcluir.addEventListener('click', (e) => { if (e.target === modalConcluir) toggleModalConcluir(false); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modalConcluir.hidden) toggleModalConcluir(false);
+    });
+
+    // Despedida: com a aula em andamento, o Kevin diz "bye / kids bye"
+    // acenando antes de a página sair. Aula nem iniciada = envia direto.
+    const formConcluir = modalConcluir.querySelector('form');
+    let despedindo = false;
+    if (formConcluir) {
+      formConcluir.addEventListener('submit', async (e) => {
+        const aoVivo = callRoot && callRoot.dataset.state === 'live';
+        if (despedindo || !aoVivo || !kevinChat || !kevinChat.sayBye) return;
+        e.preventDefault();
+        despedindo = true;
+        toggleModalConcluir(false);
+        try { await kevinChat.sayBye(); } catch (err) { /* sai mesmo assim */ }
+        formConcluir.submit();
+      });
+    }
+  }
+
+  // ── Botão Pay attention ──
+  // Sequência gravada para chamar a atenção da turma. Clicar de novo enquanto
+  // roda interrompe.
+  const btnPayAttention = document.getElementById('btn-pay-attention');
+  if (btnPayAttention && kevinChat) {
+    btnPayAttention.addEventListener('click', async () => {
+      if (btnPayAttention.dataset.playing === 'true') {
+        kevinChat.cancelSequence();
+        return;
+      }
+      if (!kevinChat.payAttention) return;
+      if (kevinChat.unlockAudio) {
+        try { await kevinChat.unlockAudio(); } catch (e) { /* já logado */ }
+      }
+      btnPayAttention.dataset.playing = 'true';
+      try { await kevinChat.payAttention(); } catch (e) { /* segue */ }
+      btnPayAttention.dataset.playing = 'false';
     });
   }
 

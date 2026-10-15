@@ -57,6 +57,13 @@ export, seguir esta ordem em vez de reanalisar tudo do zero:
    o app já tem. Não basta olhar "o que tem de novo"; olhar também "o que
    mudou de comportamento *sem* eu pedir".
 
+6b. **Toda URL de asset que o motor monta sozinho precisa de override.**
+   Em produção a mídia está no bucket e o `.js` no static: qualquer caminho
+   que o motor resolva relativo a si mesmo dá 404. Para cada asset novo,
+   conferir se existe opção na "API completa" do README — se não existir,
+   pedir ao Vitor (ver Entrada 10 §6). Se o vídeo de entrada mudou,
+   regenerar o poster (Entrada 10 §4.4).
+
 7. **Bump do `?v=N`** em `templates/professor/aula_detail.html` — sem isso o
    navegador mantém o cache antigo e "não muda nada" continua sendo a causa
    nº 1 de confusão.
@@ -498,3 +505,148 @@ cumprimentar; README do export não menciona um "hello" separado). Reusei
 **Testado:** `node --check` nos 2 arquivos, `curl` confirmando
 `kevin-puppet-integration.js?v=6` e `kevin_chat.js?v=22` servindo com
 `waveHello` presente no corpo.
+
+---
+
+## Entrada 10 — 15/10/2026 — Export com falas gravadas (Open class, Pay attention, hi, bye, listening)
+
+**Contexto:** clone novo (`kevin-clone`), atualizado com `git pull` no `main`
+(`b42ab64`). Banco local vazio → `migrate` + `seed_demo`. A porta 8000
+estava ocupada por outro projeto (`django-leads`) — parado com `docker stop`
+para o `web` do Kevin conseguir publicar a porta. Branch de trabalho:
+`feat/export-falas-kevin`.
+
+### 1. O que chegou
+
+- **Validador:** passou, com 1 aviso — os `.mov` (masters, ~280 MB) vieram
+  junto. Não copiados (já são `*.mov` no `.gitignore`).
+- **`kevin-rigged.svg` e `kevin-puppet.css`: idênticos** (mesmo MD5) → risco
+  zero de quebra de ID.
+- **`kevin-puppet.js`:** 141 KB → 156 KB.
+- **Novos:** modos `hi`, `bye`, `listening`; sequências `playOpenClass()` e
+  `playPayAttention()`; `playHi()`/`playBye()`/`playCelebrate()` que
+  resolvem ao terminar; `cancelSequence()`/`isSequenceActive()`; 15 falas em
+  `assets/audio/voz-kevin/`.
+
+### 2. Mudou comportamento sem pedir (playbook §0.6)
+
+| Mudança | Efeito na nossa integração | Tratamento |
+|---|---|---|
+| `celebrate` agora **fala** "yeah, you got it" | Com o delay fixo de 1800ms, a fala dele e o TTS da IA se sobrepunham | `celebrate()` passou a usar `await playCelebrate()` |
+| Celebrate mais alto (vol. 0.1 → 0.7, delay 500 → 0ms) | Nenhum | Aceito o novo default |
+| `setMode(...)` externo corta fala gravada e sequências | Compatível: qualquer interação do professor interrompe | Usado a nosso favor (ver Open class) |
+| `autoOpening` passou a tocar Open class | Nenhum — rodamos com `autoOpening: false` | Nada |
+
+### 3. Decisões (registradas como **D42** em `docs/demandas.md`)
+
+| Recurso | Gatilho escolhido | Alternativas descartadas |
+|---|---|---|
+| Abertura | **`playOpenClass()`** após a entrada; kickoff da IA depois | Aceno mudo (`tchau`); só `hi` — foi a 1ª escolha, trocada depois de ver rodando |
+| Celebrate | Fala do Kevin primeiro, resposta da IA depois | `celebrateVoiceUrl: null` (pulo mudo) |
+| Listening | Pose de ouvir enquanto o professor grava pelo mic | Só na API |
+| Pay attention | Botão **Atenção** no telão (clicar de novo cancela) | Só na API |
+| Bye | Ao concluir a aula, antes de sair da página | Só na API |
+| Tela de espera | **1º frame da animação de entrada** como fundo | Cenário da aula (como era) |
+
+### 4. Instalação local — passo a passo do que foi feito
+
+1. **Motor:** `export/kevin-puppet.js` → `static/js/kevin-puppet/`. SVG e CSS
+   não copiados (idênticos).
+2. **Mídia** (gitignored, só local): `rsync` de `export/assets/` para
+   `static/js/kevin-puppet/assets/`, **sem** `.mov`, `.DS_Store` e
+   `backgrounds/`.
+3. **Cenários:** o template usa `.webp`, o export entrega `.png` →
+   convertidos com `cwebp -q 85` (7 arquivos, 78–270 KB cada).
+4. **Poster da entrada:** o `entrada-kevin.webm` é VP9 **com alpha**, mas o
+   frame 0 (cortina de floresta fechada) é 99,9% opaco. Extraído para
+   `assets/videos/entrada-kevin-poster.webp` (88 KB):
+   ```bash
+   ffmpeg -c:v libvpx-vp9 -i static/js/kevin-puppet/assets/videos/entrada-kevin.webm -frames:v 1 /tmp/f0.png
+   cwebp -q 85 /tmp/f0.png -o static/js/kevin-puppet/assets/videos/entrada-kevin-poster.webp
+   ```
+   O `-c:v libvpx-vp9` **antes** do `-i` é o que preserva o alpha.
+   **Regenerar sempre que o vídeo de entrada mudar.**
+5. **`aula_detail.html`:**
+   - `#call-standby` com fundo `url(poster), url(cenário)` — o cenário fica
+     por baixo como fallback se o poster não carregar;
+   - `KEVIN_RIG_CONFIG` ganhou `entradaPosterUrl`, `hiVoiceUrls`,
+     `byeVoiceUrls`, `celebrateVoiceUrl` (todos via `kevin_asset`);
+   - botão **Atenção** (`#btn-pay-attention`, reusa `.btn-musica`).
+6. **`kevin-puppet-integration.js`:** repassa as opções novas ao motor;
+   `openClass()` (Open class, cai no aceno se o motor não tiver);
+   `waveHello()` via `playHi()`; `celebrate()` via `playCelebrate()`;
+   `startListeningPose()`/`endListeningPose()`; `payAttention()`/
+   `cancelSequence()`; `sayBye()` (teto de 6s); poster do vídeo congelado
+   vem de `entradaPosterUrl`.
+7. **`kevin_chat.js`:**
+   - `iniciarAula()`: entrada → Open class → kickoff. Se o professor
+     interagir no meio, a sequência resolve `false` e o kickoff **não** roda
+     por cima;
+   - celebrate sem delay fixo;
+   - pose de ouvir no `startRecording`, desfeita quando a gravação não tem
+     fala ou o STT volta vazio (esse caso deixava o Kevin preso em
+     "thinking" — bug antigo, corrigido de passagem);
+   - botão Atenção; submit do "Concluir" espera o `bye` se a aula está ao vivo.
+8. **Cache-busters:** import interno do motor `?v=3`, integração `?v=11`,
+   chat `?v=25`.
+9. **`.gitignore`:** `export/` (a pasta do animador nunca entra no repo).
+
+### 5. Validação
+
+- `manage.py check` limpo; **77/77 testes**.
+- Playwright (Chrome do Mac, `playwright-core`), olhando os screenshots:
+  - popup "Iniciar aula" já com o frame da entrada aos 300ms;
+  - Open class ~22s, as 5 falas com 200, kickoff na sequência;
+  - Atenção toca e cancela; mic → pose listening; Concluir → bye toca,
+    página sai em ~6s.
+- Único erro: **TTS 502** — sem chave de IA no `.env` local. Esperado.
+- ⚠️ O teste concluiu a aula **Y5-U1W2C1** no banco local (efeito colateral;
+  "Desfazer" na tela ou `seed_demo` resolve).
+- **Não** comparado lado a lado com o `demo.html`, e o celebrate **não** foi
+  testado com IA real (continua pendente desde a Entrada 5).
+
+### 6. ⚠️ Produção: subir no bucket NÃO basta para Open class / Pay attention
+
+Os assets passados por opção (`hiVoiceUrls`, `byeVoiceUrls`,
+`celebrateVoiceUrl`, `entradaPosterUrl` etc.) passam pelo `kevin_asset` e
+vão pro bucket — basta subir os arquivos.
+
+**Mas as falas de `playOpenClass()` e `playPayAttention()` não têm opção.**
+O motor monta a URL assim (`kevin-puppet.js:764`):
+
+```js
+const voiceUrl = (file) => resolveAsset(VOICE_DIR + file);  // relativo ao .js
+```
+
+Em produção o `.js` é servido do **static** (whitenoise), não do bucket →
+o navegador pede `/static/js/kevin-puppet/assets/audio/voz-kevin/*.mp3`,
+que não existe na imagem (mídia é gitignored). Resultado: **abertura e botão
+Atenção animam, mas mudos (404)**, mesmo com as falas no bucket.
+
+**Correção na origem (pedir ao Vitor), uma linha no motor:**
+
+```js
+const voiceBaseUrl = options.voiceBaseUrl ?? null;
+const voiceUrl = (file) => voiceBaseUrl
+  ? voiceBaseUrl.replace(/\/?$/, "/") + encodeURIComponent(file)
+  : resolveAsset(VOICE_DIR + file);
+```
+
+Do nosso lado, depois disso: `voiceBaseUrl: "{% kevin_asset 'audio/voz-kevin/' %}"`
+no `KEVIN_RIG_CONFIG` + `'voiceBaseUrl'` na lista de `assetOptions` da
+integração. **Não** corrigir só no `kevin-puppet.js` daqui: o próximo
+export sobrescreve.
+
+### 7. Pendente
+
+- [ ] **Vitor:** opção `voiceBaseUrl` no motor (§6) — bloqueia o som da
+      abertura em produção.
+- [ ] **Vitor:** entregar o poster da entrada no export (hoje é gerado aqui).
+- [ ] **Nós, depois do item acima:** ligar `voiceBaseUrl` no template +
+      integração, bump de cache-buster.
+- [ ] **Subir pro bucket** (`kevin-assets/`): `audio/voz-kevin/*` (15 falas
+      novas + `ronco-kevin.mp3` se faltar) e `videos/entrada-kevin-poster.webp`.
+- [ ] Testar celebrate com chave real (Entrada 5).
+- [ ] Commit + PR do branch `feat/export-falas-kevin`.
+
+---
