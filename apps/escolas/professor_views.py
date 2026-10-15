@@ -164,6 +164,12 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
         ctx['mensagens'] = mensagens
         ctx['progresso_status'] = progresso.status
 
+        # Modo demo (respostas locais, sem IA) SÓ quando o plano não tem chave
+        # de IA — em produção, com a chave preenchida, o chat usa o Kevin real.
+        # Era hardcoded `true` e vazava para produção (Kevin "robótico").
+        plano = getattr(turma.escola, 'plano', None)
+        ctx['kevin_demo_mode'] = not bool(plano and plano.ia_api_key)
+
         return ctx
 
 

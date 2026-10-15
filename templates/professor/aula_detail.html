@@ -346,8 +346,9 @@ window.KEVIN_MUSICA_URL = "{{ aula.musica_url|default:''|escapejs }}";
 window.KEVIN_LISTENING_URL = "{{ aula.listening_url|default:''|escapejs }}";
 // Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
 window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
-// Modo demo: respostas locais para testar animações (desativar em produção)
-window.KEVIN_DEMO_MODE = true;
+// Modo demo: respostas locais (sem IA), só quando o plano não tem chave de IA.
+// Com chave preenchida (produção), usa o Kevin real. Controlado pela view.
+window.KEVIN_DEMO_MODE = {{ kevin_demo_mode|yesno:"true,false" }};
 </script>
 <!-- Adapter do kevin-puppet (ES module) — registra window.KevinChatIntegration.
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
