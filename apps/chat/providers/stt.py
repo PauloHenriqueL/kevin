@@ -6,26 +6,20 @@ import openai
 from .base import BaseSTTProvider
 
 
-# Prompt do Whisper: SÓ dica de vocabulário/estilo, NUNCA instrução.
+# Sem `prompt` no Whisper DE PROPÓSITO.
 #
-# O Whisper não é um modelo instrucional — o `prompt` apenas enviesa o
-# vocabulário do reconhecimento. Frases imperativas ("transcreva exatamente…")
-# não fazem nada útil E são exatamente o que vaza como "transcrição" quando o
-# áudio é silencioso/curto (alucinação conhecida do Whisper). Por isso aqui só
-# entram palavras esperadas numa sala bilíngue.
-_WHISPER_PROMPT = (
-    'Aula de ingles para criancas, bilingue (portugues e ingles). '
-    'Vocabulario comum: hello, goodbye, teacher, student, music, homework, '
-    'professor, aluno, musica, vamos, let\'s go.'
-)
+# O Whisper não é instrucional — o `prompt` só enviesa o vocabulário. Pior: em
+# áudio silencioso/curto ele DEVOLVE o prompt (verbatim ou repetido em loop,
+# "bilingue, bilingue, bilingue…") como se fosse a transcrição. Medido na prática.
+# Sem prompt, o silêncio ainda alucina ("you", "Legendas pela comunidade…"), mas
+# aí NÃO é o nosso texto, e o filtro abaixo derruba por `no_speech_prob` + o
+# detector de repetição. Correção > o ganho marginal de vocabulário em falas
+# curtas de sala. Se algum dia reintroduzir prompt, os filtros abaixo seguem valendo.
 
-
-def _normalizar(texto: str) -> str:
-    """Minúsculas, só alfanumérico — para comparar transcrição com o prompt."""
-    return re.sub(r'[^a-z0-9]+', ' ', (texto or '').lower()).strip()
-
-
-_PROMPT_NORMALIZADO = _normalizar(_WHISPER_PROMPT)
+# Acima disso, o segmento é quase certamente silêncio/ruído — de onde vêm as
+# alucinações. Fala real fica bem abaixo (tipicamente < 0.2). Medido: silêncio
+# dá 0.85–0.95.
+_NO_SPEECH_MAX = 0.6
 
 
 def _attr(obj, nome, default=None):
@@ -35,21 +29,28 @@ def _attr(obj, nome, default=None):
     return getattr(obj, nome, default)
 
 
-def _texto_sem_alucinacao(response) -> str:
-    """Extrai a transcrição descartando silêncio e vazamento do prompt.
+def _parece_repeticao(texto: str) -> bool:
+    """Detecta alucinação repetitiva: uma palavra domina (ex: 'bilingue'×50)."""
+    palavras = re.findall(r'\w+', texto.lower())
+    if len(palavras) < 6:
+        return False
+    mais_comum = max(set(palavras), key=palavras.count)
+    return palavras.count(mais_comum) / len(palavras) > 0.5
 
-    Usa os segmentos do `verbose_json`: segmento com `no_speech_prob` alto e
-    `avg_logprob` baixo é silêncio/ruído (de onde vêm as alucinações). O que
-    sobra é texto de fala real. Como guarda final, se o resultado for um trecho
-    longo do prompt, foi vazamento — devolve vazio (o frontend reabre o mic no
-    modo ao vivo sem mandar nada).
+
+def _texto_sem_alucinacao(response) -> str:
+    """Extrai a transcrição descartando silêncio e alucinação.
+
+    Usa os segmentos do `verbose_json`: segmento com `no_speech_prob` alto é
+    silêncio/ruído e sai fora. O que sobra é fala real. Guarda final: texto
+    repetitivo é alucinação → devolve vazio (o frontend reabre o mic no modo ao
+    vivo sem mandar nada).
     """
     segmentos = _attr(response, 'segments', None) or []
     partes = []
     for seg in segmentos:
         nsp = _attr(seg, 'no_speech_prob', 0.0) or 0.0
-        alp = _attr(seg, 'avg_logprob', 0.0) or 0.0
-        if nsp > 0.6 and alp < -0.5:
+        if nsp > _NO_SPEECH_MAX:
             continue  # provável silêncio/ruído
         partes.append((_attr(seg, 'text', '') or '').strip())
 
@@ -59,11 +60,7 @@ def _texto_sem_alucinacao(response) -> str:
         # Formato inesperado (sem segments): usa o texto cru.
         texto = (_attr(response, 'text', '') or '').strip()
 
-    # Guarda contra vazamento: só descarta se for um trecho LONGO contido no
-    # prompt (4+ palavras), para não derrubar fala real curta como "hello
-    # teacher" que casa com o vocabulário do prompt.
-    norm = _normalizar(texto)
-    if len(norm.split()) >= 4 and norm in _PROMPT_NORMALIZADO:
+    if _parece_repeticao(texto):
         return ''
 
     return texto
@@ -80,7 +77,6 @@ class OpenAIWhisperProvider(BaseSTTProvider):
             model='whisper-1',
             file=audio_file,
             response_format='verbose_json',
-            prompt=_WHISPER_PROMPT,
             temperature=0,
         )
 
