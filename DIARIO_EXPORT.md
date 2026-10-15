@@ -637,16 +637,32 @@ no `KEVIN_RIG_CONFIG` + `'voiceBaseUrl'` na lista de `assetOptions` da
 integração. **Não** corrigir só no `kevin-puppet.js` daqui: o próximo
 export sobrescreve.
 
+**Solução adotada (15/10/2026): versionar `audio/voz-kevin/` no Git** —
+exceção à regra "mídia fora do Git" (`CLAUDE.md` → "Assets do Kevin"). Com
+as falas em `static/js/kevin-puppet/assets/audio/voz-kevin/`, elas entram na
+imagem Docker e o whitenoise serve exatamente o caminho que o motor pede —
+**a abertura e o botão Atenção funcionam em produção sem mudar o motor**.
+Por que a exceção compensa: são 16 arquivos, ~1,4 MB no total, mudam pouco,
+e o Git vira também o canal de entrega delas pro dev que cuida do bucket.
+Adicionados com `git add -f` (o `.gitignore` continua ignorando o resto de
+`audio/`; arquivo já rastreado não é afetado pelo ignore). Junto, o
+`videos/entrada-kevin-poster.webp` (88 KB), só para entrega — ele é lido do
+bucket via `kevin_asset`.
+
+O `voiceBaseUrl` vira melhoria, não bloqueio: quando o Vitor expuser, as
+falas podem voltar a morar só no bucket.
+
 ### 7. Pendente
 
-- [ ] **Vitor:** opção `voiceBaseUrl` no motor (§6) — bloqueia o som da
-      abertura em produção.
+- [x] ~~**Vitor:** opção `voiceBaseUrl` no motor~~ — deixou de bloquear
+      (falas versionadas, ver acima). Continua desejável.
 - [ ] **Vitor:** entregar o poster da entrada no export (hoje é gerado aqui).
-- [ ] **Nós, depois do item acima:** ligar `voiceBaseUrl` no template +
-      integração, bump de cache-buster.
-- [ ] **Subir pro bucket** (`kevin-assets/`): `audio/voz-kevin/*` (15 falas
-      novas + `ronco-kevin.mp3` se faltar) e `videos/entrada-kevin-poster.webp`.
+- [ ] **Dev do bucket:** subir pro `kevin-assets/` a partir do repo:
+      `audio/voz-kevin/*.mp3` (usadas por hi/bye/celebrate via
+      `kevin_asset`) e `videos/entrada-kevin-poster.webp`.
 - [ ] Testar celebrate com chave real (Entrada 5).
-- [ ] Commit + PR do branch `feat/export-falas-kevin`.
+- [x] ~~Commit + merge na `main`~~ — feito direto na `main` por orientação
+      do desenvolvedor (exceção ao fluxo de PR). Conflito de numeração em
+      `docs/demandas.md`: a `main` já tinha D42–D45, a nossa virou **D46**.
 
 ---

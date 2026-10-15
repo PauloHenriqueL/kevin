@@ -523,6 +523,8 @@ Decisão tomada (ver `docs/demandas.md`):
 | `kevin-rigged.svg` | ✅ Git | Acoplado ao motor — o JS identifica as partes **pelos `id`** do SVG. Os dois precisam versionar juntos |
 | Backgrounds (`.png`/`.webp`) | ☁️ Storage externo | Conteúdo, cresce a cada entrega do animador. `Aula.background` guarda a referência |
 | Vídeo de transição (`.webm`) | ☁️ Storage externo | 3,8 MB, muda raramente |
+| Falas gravadas (`audio/voz-kevin/*.mp3`) | ✅ Git **e** ☁️ bucket | **Exceção** (15/10/2026): o motor busca as falas do Open class/Pay attention relativas ao próprio `.js`, sem opção de URL — só funcionam em produção se estiverem no static. ~1,4 MB. Ver `DIARIO_EXPORT.md`, Entrada 10 §6 |
+| Poster da entrada (`videos/entrada-kevin-poster.webp`) | ✅ Git (entrega) + ☁️ bucket (uso) | 88 KB, gerado do 1º frame do `entrada-kevin.webm`; versionado só para o dev do bucket ter de onde subir |
 | `export_*.zip` | ❌ Nunca | Já no `.gitignore`. Extrair e mover só o que é usado |
 
 > ⚠️ **Git guarda cada versão de binário para sempre** (não faz delta como em
