@@ -322,6 +322,16 @@
 .usos-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .usos-card li { font-size: 0.85rem; }
 .usos-card a { color: var(--azul); font-weight: 700; }
+.usos-card p { font-size: 0.85rem; line-height: 1.5; color: var(--texto-muted); margin-bottom: 10px; }
+.usos-card p:last-child { margin-bottom: 0; }
+
+/* Editor de prompt do Kevin (Demanda 8) */
+.prompt-bloco { margin-bottom: 22px; }
+.prompt-bloco-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.prompt-bloco-head label { margin-bottom: 0; }
+.prompt-bloco-head .btn-restaurar { margin-left: auto; font-size: 0.78rem; padding: 4px 10px; }
+.prompt-ajuda { color: var(--texto-muted); font-size: 0.8rem; line-height: 1.45; margin: 0 0 8px; }
+.form-coord .prompt-bloco textarea { min-height: 150px; line-height: 1.55; }
 
 /* ── Relatório do professor (Demanda 16) ── */
 .rel-filtro { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; font-weight: 700; color: var(--texto-sec); }
