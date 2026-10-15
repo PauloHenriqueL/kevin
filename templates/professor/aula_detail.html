@@ -108,6 +108,15 @@
             <span class="call-btn-label">Listening</span>
         </div>
         {% endif %}
+        <div class="call-btn-wrap">
+            {# Sequência gravada do motor (playPayAttention). Mesmo estilo do btn-musica. #}
+            <button class="btn-musica" id="btn-pay-attention" type="button" aria-label="Kevin chama a atenção da turma" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Atenção</span>
+        </div>
     </div>
 
     <!-- FAB do chat (canto inferior direito) -->
@@ -229,8 +238,12 @@
          tapado em seguida, o "pisca" de 30/09/2026. Com o fundo aqui, não há
          instante em que o palco apareça. O gradiente sépia fica por cima. -->
     {% kevin_asset "backgrounds/"|add:aula.background|add:".webp" as cenario_url %}
+    {# 1º frame da animação de entrada (a "cortina" fechada), extraído do  #}
+    {# entrada-kevin.webm. O cenário fica por baixo: se o frame não        #}
+    {# carregar (ex.: ainda não subiu pro bucket), cai no cenário de antes. #}
+    {% kevin_asset "videos/entrada-kevin-poster.webp" as entrada_poster_url %}
     <div class="call-standby" id="call-standby"
-         style="background-image: radial-gradient(120% 90% at 50% 28%, rgba(120,72,20,0.16), rgba(55,38,14,0.5)), url('{{ cenario_url }}'); background-size: cover; background-position: center;">
+         style="background-image: radial-gradient(120% 90% at 50% 28%, rgba(120,72,20,0.16), rgba(55,38,14,0.5)), url('{{ entrada_poster_url }}'), url('{{ cenario_url }}'); background-size: cover; background-position: center;">
         <div class="standby-card">
             <div class="standby-kevin">
                 <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
@@ -328,6 +341,8 @@ window.KEVIN_RIG_CONFIG = {
     // (#call-standby) antes do "Iniciar aula" — em vez do Kevin em standby
     // já visível por trás do popup.
     entradaVideoUrl:  "{% kevin_asset 'videos/entrada-kevin.webm' %}",
+    // Mesmo 1º frame da tela de espera, como poster do vídeo congelado.
+    entradaPosterUrl: "{% kevin_asset 'videos/entrada-kevin-poster.webp' %}",
     // Os demais assets do motor. Sem estes overrides o motor usa caminhos
     // relativos ao próprio .js, que não existem quando a mídia está no bucket.
     transitionVideoUrl: "{% kevin_asset 'videos/mudanca-cenario.webm' %}",
@@ -336,6 +351,12 @@ window.KEVIN_RIG_CONFIG = {
     snoreAudioUrl:      "{% kevin_asset 'audio/voz-kevin/ronco-kevin.mp3' %}",
     teachingBoardUrl:   "{% kevin_asset 'obj/quadro-negro.png' %}",
     vocabularyItems:    window.KEVIN_VOCABULARIO,
+    // Falas gravadas configuráveis: hi (fallback da abertura), despedida ao
+    // concluir e o "yeah, you got it" do celebrate.
+    hiVoiceUrls:        ["{% kevin_asset 'audio/voz-kevin/hi-kids.mp3' %}"],
+    byeVoiceUrls:       ["{% kevin_asset 'audio/voz-kevin/kevin-bye.mp3' %}",
+                         "{% kevin_asset 'audio/voz-kevin/kids-bye.mp3' %}"],
+    celebrateVoiceUrl:  "{% kevin_asset 'audio/voz-kevin/yeah-you-got-it.mp3' %}",
 };
 // Áudio de música desta aula: vem do arquivo_url da atividade de música (ex:
 // faixa no R2). Vazio = o botão só anima o ukulele, sem tocar som. Sem fallback
@@ -353,6 +374,6 @@ window.KEVIN_DEMO_MODE = {{ kevin_demo_mode|yesno:"true,false" }};
 <!-- Adapter do kevin-puppet (ES module) — registra window.KevinChatIntegration.
      Módulos são defer por padrão e executam antes de DOMContentLoaded, então
      kevin_chat.js (classic + defer) abaixo encontra a integração já carregada. -->
-<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=9"></script>
-<script defer src="{% static 'js/kevin_chat.js' %}?v=23"></script>
+<script type="module" src="{% static 'js/kevin-puppet-integration.js' %}?v=11"></script>
+<script defer src="{% static 'js/kevin_chat.js' %}?v=25"></script>
 {% endblock %}

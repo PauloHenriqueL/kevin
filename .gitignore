@@ -51,6 +51,7 @@ package-lock.json
 export.zip
 export_*.zip
 export_*/
+export/
 # Projeto do animador (centenas de MB — masters .mov, node_modules)
 kevin_animador.zip
 kevin_animador/
