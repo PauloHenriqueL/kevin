@@ -1,3 +1,5 @@
+import logging
+
 from django.http import HttpResponse
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import MultiPartParser
@@ -14,6 +16,8 @@ from .serializers import (
     MensagemSerializer,
 )
 from .tasks import processar_mensagem_ia, processar_audio_ia, responder_ia_sync
+
+logger = logging.getLogger(__name__)
 
 
 class ConversaListCreateView(generics.ListCreateAPIView):
@@ -83,7 +87,18 @@ class EnviarMensagemView(APIView):
         )
 
         if sync:
-            resposta = responder_ia_sync(conversa.id)
+            # Modo voz: a resposta é aguardada aqui. Se a IA falhar (chave,
+            # modelo, rede, rate limit), devolve um erro tratado em vez de 500
+            # — o frontend trata o 502 sem quebrar o loop de conversa ao vivo.
+            try:
+                resposta = responder_ia_sync(conversa.id)
+            except Exception as exc:
+                logger.error('Falha na resposta síncrona da IA (conversa=%s): %s',
+                             conversa.id, exc)
+                return Response(
+                    {'detail': 'Kevin não conseguiu responder agora.'},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
             return Response(
                 {
                     'mensagem_user': MensagemSerializer(mensagem).data,
@@ -92,7 +107,17 @@ class EnviarMensagemView(APIView):
                 status=status.HTTP_201_CREATED,
             )
 
-        processar_mensagem_ia.delay(conversa.id, mensagem.conteudo)
+        # Modo texto (async). Em produção roda eager (sem worker), então uma
+        # falha da IA propaga até aqui — trata pra não virar 500.
+        try:
+            processar_mensagem_ia.delay(conversa.id, mensagem.conteudo)
+        except Exception as exc:
+            logger.error('Falha ao processar mensagem (conversa=%s): %s',
+                         conversa.id, exc)
+            return Response(
+                {'detail': 'Kevin não conseguiu responder agora.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response(
             MensagemSerializer(mensagem).data,
             status=status.HTTP_201_CREATED,

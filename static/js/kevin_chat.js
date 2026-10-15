@@ -37,6 +37,7 @@
     isRecording: false,
     isSending: false,
     liveMode: false,
+    liveErros: 0,               // erros consecutivos no modo ao vivo — desliga após o limite
     // TTS playback control:
     ttsSeq: 0,                  // incrementado a cada playTTS — invalida anteriores
     ttsAbortController: null,   // aborta o fetch do TTS atual
@@ -435,6 +436,7 @@
       appendMessage('user', '🎤 ' + texto);
       const data = await enviarMensagemSync(texto);
       state.isSending = false;
+      state.liveErros = 0;  // turno OK: zera a contagem de erros consecutivos
       hideTyping();
       const resp = data.resposta && data.resposta.conteudo;
       const celebrar = !!(data.resposta && data.resposta.celebrar);
@@ -447,11 +449,30 @@
       // Re-checa liveMode DENTRO do callback (privacy: ver acima).
       setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 400);
     } catch (err) {
+      // Erro transitório (rede/STT/IA/TTS). NÃO abrir alert bloqueante no meio
+      // de uma conversa hands-free, e NÃO deixar o loop morrer: no modo ao vivo
+      // reabre o mic pra continuar — igual aos caminhos de sucesso e de silêncio.
       console.error('Audio flow error:', err);
       hideTyping();
       state.isSending = false;
-      setMicBtnState(state.liveMode ? 'live' : 'idle');
-      alert('Erro no áudio: ' + err.message);
+      if (kevinChat) kevinChat.onError();
+
+      if (state.liveMode) {
+        state.liveErros += 1;
+        if (state.liveErros >= 3) {
+          // Falha persistente: desliga o modo ao vivo pra não ficar em loop mudo.
+          state.liveMode = false;
+          state.liveErros = 0;
+          setMicBtnState('idle');
+          appendMessage('assistant', 'Tive problemas seguidos pra te ouvir — desliguei a conversa ao vivo. Toque no microfone pra tentar de novo.');
+        } else {
+          setMicBtnState('live');
+          setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 600);
+        }
+      } else {
+        setMicBtnState('idle');
+        appendMessage('assistant', 'Tive um probleminha pra te ouvir. Pode tentar de novo?');
+      }
     }
   }
 
