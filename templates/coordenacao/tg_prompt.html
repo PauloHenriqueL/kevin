@@ -1,0 +1,65 @@
+{% extends "coordenacao/base_coord.html" %}
+{% block title %}Prompt do Kevin — {{ tg }}{% endblock %}
+
+{% block coord_heading %}Prompt do Kevin{% endblock %}
+{% block coord_subheading %}
+    <p><a href="{% url 'coordenacao:tg_index' %}" class="link-voltar">← grade do TG</a> ·
+    <strong>{{ tg }}</strong></p>
+{% endblock %}
+
+{% block coord_body %}
+<div class="form-coord">
+    <p style="margin:0 0 20px;color:var(--text-muted,#667);max-width:760px;">
+        Estes blocos definem como o Kevin se comporta nas aulas <strong>deste TG</strong>.
+        Cada campo começa com o texto padrão; edite o que precisar. O roteiro de cada
+        aula (warm up, atividades) <strong>não</strong> fica aqui — vem do cadastro da aula.
+        Deixar um bloco idêntico ao padrão faz ele voltar a herdar melhorias futuras do padrão.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for bloco in blocos %}
+        <div class="form-group" style="margin-bottom:24px;">
+            <label for="id_{{ bloco.campo }}" style="display:flex;align-items:center;gap:8px;">
+                {{ bloco.titulo }}
+                {% if bloco.customizado %}
+                    <span class="badge badge-green">personalizado</span>
+                {% else %}
+                    <span class="badge badge-muted">padrão</span>
+                {% endif %}
+                <button type="button" class="btn btn-ghost btn-restaurar"
+                        data-alvo="id_{{ bloco.campo }}"
+                        style="margin-left:auto;font-size:.82rem;padding:4px 10px;">
+                    Restaurar padrão
+                </button>
+            </label>
+            <small>{{ bloco.ajuda }}</small>
+            <textarea id="id_{{ bloco.campo }}" name="{{ bloco.campo }}" rows="7"
+                      data-padrao="{{ bloco.padrao }}"
+                      style="width:100%;font-family:inherit;line-height:1.5;">{{ bloco.valor }}</textarea>
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                Salvar prompt
+            </button>
+            <a href="{% url 'coordenacao:tg_index' %}" class="btn btn-ghost">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // "Restaurar padrão": devolve o textarea ao texto default (de data-padrao).
+  // Salvar em seguida grava vazio no banco, então o bloco volta a herdar o padrão.
+  document.querySelectorAll('.btn-restaurar').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var ta = document.getElementById(btn.dataset.alvo);
+      if (ta) { ta.value = ta.dataset.padrao; ta.focus(); }
+    });
+  });
+</script>
+{% endblock %}

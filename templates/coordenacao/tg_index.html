@@ -15,6 +15,11 @@
 
 {% for painel in painel_por_tg %}
 <div class="unit-panel" data-tg="{{ painel.tg.id }}" {% if not forloop.first %}hidden{% endif %}>
+    <div class="unit-panel-toolbar" style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <a href="{% url 'coordenacao:tg_prompt' tg_id=painel.tg.id %}" class="btn btn-outline">
+            🧠 Editar prompt do Kevin
+        </a>
+    </div>
     <div class="unit-grid">
         {% for u in painel.units %}
         <a href="{% url 'coordenacao:grade' tg_id=painel.tg.id unit=u.sigla %}"

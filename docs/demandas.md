@@ -854,11 +854,11 @@ definida pelo atrito observado, não por suposição.
 
 ## Demanda 8 — Configuração do comportamento do Kevin
 
-> ## 📌 DEMANDA FUTURA — registrada, não priorizada
+> ## 🚧 EM IMPLEMENTAÇÃO — priorizada em 15/10/2026
 >
-> Escopo anotado para não se perder. **Não implementar agora.** Entra depois da
-> Demanda 7 (área da coordenação), como parte das telas de gerência da
-> Bebelingue.
+> Reativada a pedido do Paulo. Decisões em aberto resolvidas abaixo (ver 8.3).
+> O escopo da v1 é editar os **3 blocos do prompt por TG**, pela área da
+> coordenação. Histórico e preview ficam para v2.
 
 **Objetivo:** permitir que o gerente da Bebelingue calibre o comportamento do
 Kevin sem depender de deploy de código.
@@ -889,14 +889,35 @@ Parâmetros candidatos a virarem configuráveis:
   crianças quando o professor abre esse momento.
 - **Textos de abertura** — a mensagem de kickoff da aula.
 
-### 8.3 Decisões em aberto
+### 8.3 Decisões em aberto — RESOLVIDAS (15/10/2026, Paulo)
 
-1. A configuração é **global** (uma para toda a Bebelingue), **por plano**, ou
-   **por Year**? Ver Decisão D11 — hoje provedor/chave de IA é por `Plano`.
-2. O diretor da escola pode ajustar alguma coisa, ou é exclusivo da Bebelingue?
-3. Precisa de histórico/auditoria de quem mudou o quê? (mudar o prompt afeta
-   todas as escolas ao mesmo tempo)
-4. Precisa de preview/teste antes de publicar uma mudança de prompt?
+1. **Granularidade: por TG** (D43). Nem global nem por plano nem por Year solto:
+   o prompt é um campo de cada `TG`. Como cada Year/frequência já é um TG
+   próprio (D31), isso cobre naturalmente o "Year 1 tolera mais português que
+   Year 5" — cada TG tem o seu. Todo TG **nasce com o prompt padrão** (campo em
+   branco = herda o default do código; ver 8.6).
+2. **Exclusivo da Bebelingue.** Só o `coordenador` edita; o diretor não vê o
+   editor. O prompt é metodologia, não configuração da escola.
+3. **Histórico fica para v2.** A v1 não audita quem mudou o quê.
+4. **Preview fica para v2.** A v1 salva direto; o coordenador testa abrindo uma
+   aula daquele TG como professor.
+
+### 8.4-res Escopo da v1 (o que entra agora)
+
+- Os **3 blocos** editáveis em campos separados (D44): **Papel**, **Idioma**
+  (Instant Translation) e **Execução**. O roteiro da aula (warm up, atividades)
+  **não** entra no editor — continua vindo do banco (`Aula → BlocoAula`).
+- Botão **"editar prompt"** por TG na grade (`/coordenacao/tg/`).
+- Em branco = herda o default. "Restaurar padrão" = limpar o campo.
+
+### 8.6 Onde o prompt vive (D42)
+
+- **Default** nos arquivos `apps/chat/prompts/{papel,idioma,execucao}.txt` —
+  continuam dentro de `apps/chat/` (regra do CLAUDE.md). É o seed/fallback.
+- **Valor vivo** nos campos do `TG` (`prompt_papel`, `prompt_idioma`,
+  `prompt_execucao`). Campo vazio → usa o arquivo. `TG.get_system_prompt()`
+  resolve isso; `_montar_contexto()` usa o do TG da aula em vez do
+  `SYSTEM_PROMPT_BASE` fixo.
 
 ### 8.4 Histórias de usuário (rascunho)
 
@@ -1786,6 +1807,10 @@ uma tem consequência em cascata sobre as demais.
 | **D39** | **Esforço de raciocínio por Plano** (`Plano.ia_effort`), enviado como `reasoning_effort` só pelo provider OpenAI e só quando preenchido. Default `medium` | Fixar o effort no código; ou não ter o controle | Pedido do Paulo em 28/09/2026 para usar `gpt-5.6-terra`, que aceita `none`…`max`. Fica no Plano (e não global) porque o efeito é comercial: uma escola pode pagar por mais raciocínio. Default `medium`, não `max`, porque o Kevin responde com o professor esperando na frente da turma — effort alto vira latência visível e custo por resposta. Vazio = não envia o parâmetro, senão modelos sem suporte (gpt-4o) recusam a chamada. O Anthropic ignora: não expõe esse controle |
 | **D40** | **Views em função também precisam de guarda de papel** — `role_required` em `apps/accounts/decorators.py`, espelhando os mixins | Confiar que estar sob `/coordenacao/` já protege | Bug encontrado em 28/09/2026 com o sistema já em produção: as cinco views em função de `coordenacao_views.py` não herdam o `CoordenadorRequiredMixin` e estavam sem decorator. Qualquer usuário autenticado podia editar o TG oficial, que é global. Confirmado em produção (professora recebia 403 na grade mas 200 no autocomplete). Levanta 403 em vez de redirecionar: os endpoints respondem a `fetch`, e um 302 chegaria ao JS como sucesso com HTML |
 | **D41** | **Assets separados por acoplamento ao motor**: cenário e vocabulário viram cadastro no admin; vídeo, áudio e quadro-negro ficam em configuração | Tudo no admin; ou tudo em código | Ver Demanda 19. Cenário é conteúdo e muda a cada aula — não pode custar deploy. Os assets do motor mudam junto com o `kevin-puppet.js`, mesma razão que já mantém o `kevin-rigged.svg` versionado ao lado dele; cadastrá-los no admin criaria registro que ninguém edita e permitiria apagar por engano um arquivo de que o motor depende |
+| **D42** | **Prompt do Kevin: default em arquivos `apps/chat/prompts/*.txt`, valor vivo nos campos do `TG`.** Campo vazio herda o arquivo | Manter as strings inline em `tasks.py`; ou um arquivo único | Pedido do Paulo (15/10/2026). Tira as strings de dentro de `tasks.py` sem violar a regra do CLAUDE.md (segue em `apps/chat/`). Arquivo como default + banco como override deixa o prompt editável sem deploy (Demanda 8) e ainda propaga melhorias do default para TGs que nunca foram editados |
+| **D43** | **Prompt é por TG**, não global | Global para toda a Bebelingue; ou por Plano; ou por Year | Paulo (15/10/2026) na tela da grade. Cada frequência/Year já é um TG (D31), então "por TG" é a granularidade natural e cobre o caso de Year 1 tolerar mais português que Year 5. Resolve a decisão em aberto 8.3.1 |
+| **D44** | **Editor expõe os 3 blocos separados** (Papel / Idioma / Execução), só para `coordenador` | Um campo de texto livre com o prompt inteiro; ou só o bloco de Idioma | Paulo (15/10/2026). Campos separados preservam a estrutura e dificultam quebrar o Kevin por engano (ex.: apagar a regra de "não ler o roteiro"). Diretor não vê — prompt é metodologia da Bebelingue |
+| **D45** | **Voz em sala: turn-based (Nível A).** Clica no botão ao vivo, VAD detecta fim da fala, STT→IA→TTS síncronos, reabre o mic. **Não** migrar para streaming/realtime (Nível B) agora | Realtime estilo GPT/Gemini (OpenAI Realtime API, WebSocket, barge-in) | Paulo (15/10/2026). O pipeline do Nível A já existe (`live mode` em `kevin_chat.js`) e as 3 chaves estão em produção. O Nível B (barge-in, baixa latência) é outra arquitetura; só se justifica com uso real. Infra: **não** subir Redis/Celery agora — o código já chama `.delay()` e só o flag `CELERY_TASK_ALWAYS_EAGER=True` roda inline, então migrar depois é config, não refactor. Concorrência se ataca primeiro tunando o gunicorn (trabalho é I/O-bound) |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)

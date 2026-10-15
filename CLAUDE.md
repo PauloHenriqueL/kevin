@@ -82,6 +82,14 @@ python3 scripts/validar_export.py <pasta-export>/       # valida entrega do anim
 
 > Mudou só CSS/JS? Não precisa reiniciar — **Ctrl+Shift+R** no navegador.
 
+> 🔴 **O Docker `web` conecta DIRETO no banco de PRODUÇÃO (Neon).** A
+> `DATABASE_URL` do `.env` aponta pro Neon e sobrepõe o `DB_HOST=db` local
+> (decisão do Paulo, 15/10/2026 — não há Postgres local). Consequência: `migrate`,
+> `seed_demo`, `manage.py shell` e o **test runner** (cria/derruba um test DB no
+> Neon) operam sobre **produção**. **NUNCA rode `flush --no-input`** — zera o
+> banco real. Mudança de schema = migration aplicada direto em prod; o código
+> novo só entra com `git push` (build no Render). Rode `manage.py check` antes.
+
 ### Fluxo com o animador (Vitor)
 
 ```
@@ -718,6 +726,8 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | 18 | Produção | **No ar**: Render (Starter, ohio) + Neon (Postgres 18). Ver seção Produção |
 | — | Effort da IA | `Plano.ia_effort` (`none`…`max`), enviado como `reasoning_effort` só pelo OpenAI e só quando preenchido (D39) |
 | — | Correção de segurança | As 5 views em função de `coordenacao_views.py` estavam sem guarda de papel — qualquer usuário logado podia editar o TG oficial. `role_required` em `apps/accounts/decorators.py` (D40) |
+| 8 | Prompt editável por TG | Prompt do Kevin em `apps/chat/prompts/*.txt` (default) + 3 campos no `TG` (`prompt_papel/idioma/execucao`). Editor em `/coordenacao/tg/<id>/prompt/` (só coordenador); bloco vazio herda o default (D42–D44) |
+| — | Fix Kevin "robótico" | Modo demo do chat de texto era `true` hardcoded e vazava pra produção. Agora liga ao plano ter chave de IA: com chave → Kevin real (D45) |
 
 ---
 

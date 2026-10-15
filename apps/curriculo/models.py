@@ -199,6 +199,24 @@ class TG(models.Model):
         blank=True, default='',
         help_text='Anotação opcional sobre este TG.',
     )
+
+    # ── Prompt do Kevin por TG (Demanda 8, D43/D44) ──
+    # Cada bloco sobrescreve o default de apps/chat/prompts/*.txt. VAZIO = herda
+    # o default (é assim que "todo TG nasce com o prompt padrão"). Editável pela
+    # coordenação, sem deploy. O roteiro da aula NÃO entra aqui — vem dos blocos.
+    prompt_papel = models.TextField(
+        blank=True, default='',
+        help_text='Quem é o Kevin e sua postura. Vazio = usa o padrão.',
+    )
+    prompt_idioma = models.TextField(
+        blank=True, default='',
+        help_text='Política de idioma (Instant Translation). Vazio = usa o padrão.',
+    )
+    prompt_execucao = models.TextField(
+        blank=True, default='',
+        help_text='Como conduzir a aula. Vazio = usa o padrão.',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -209,6 +227,15 @@ class TG(models.Model):
 
     def __str__(self):
         return self.nome or f'TG {self.frequencia}x — Year {self.year}'
+
+    def get_system_prompt(self):
+        """System prompt base deste TG: cada bloco custom ou o default do arquivo."""
+        from apps.chat.prompts import montar_prompt
+        return montar_prompt(
+            papel=self.prompt_papel,
+            idioma=self.prompt_idioma,
+            execucao=self.prompt_execucao,
+        )
 
 
 class Aula(models.Model):

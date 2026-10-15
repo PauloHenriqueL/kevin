@@ -100,6 +100,69 @@ class SelecionarUnitView(CoordBase, TemplateView):
         return ctx
 
 
+class EditarPromptTGView(CoordBase, TemplateView):
+    """Editor do prompt do Kevin de um TG (Demanda 8, D43/D44).
+
+    Os 3 blocos (Papel / Idioma / Execução) aparecem pré-preenchidos com o valor
+    efetivo: o texto customizado do TG, ou o default de apps/chat/prompts/*.txt
+    quando o bloco nunca foi mexido. Salvar um bloco idêntico ao default o grava
+    VAZIO, para o TG seguir herdando futuras melhorias do default (D42). Só o
+    coordenador acessa (CoordBase → CoordenadorRequiredMixin)."""
+    template_name = 'coordenacao/tg_prompt.html'
+    active_nav = 'tg'
+
+    def _get_tg(self):
+        from .models import TG
+        return get_object_or_404(TG, pk=self.kwargs['tg_id'])
+
+    def _defaults(self):
+        from apps.chat.prompts import (
+            PROMPT_PAPEL_PADRAO, PROMPT_IDIOMA_PADRAO, PROMPT_EXECUCAO_PADRAO,
+        )
+        return {
+            'prompt_papel': PROMPT_PAPEL_PADRAO,
+            'prompt_idioma': PROMPT_IDIOMA_PADRAO,
+            'prompt_execucao': PROMPT_EXECUCAO_PADRAO,
+        }
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        tg = self._get_tg()
+        defaults = self._defaults()
+        metadados = [
+            ('prompt_papel', 'Papel do Kevin',
+             'Quem o Kevin é e sua postura em sala (o professor é o interlocutor).'),
+            ('prompt_idioma', 'Idioma (Instant Translation)',
+             'Política de idioma: valida em português, responde em inglês.'),
+            ('prompt_execucao', 'Como conduzir a aula',
+             'Como o Kevin executa o roteiro sem lê-lo em voz alta.'),
+        ]
+        ctx['tg'] = tg
+        ctx['blocos'] = [
+            {
+                'campo': campo,
+                'titulo': titulo,
+                'ajuda': ajuda,
+                'valor': getattr(tg, campo) or defaults[campo],
+                'padrao': defaults[campo],
+                'customizado': bool(getattr(tg, campo)),
+            }
+            for campo, titulo, ajuda in metadados
+        ]
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        tg = self._get_tg()
+        defaults = self._defaults()
+        for campo, default in defaults.items():
+            enviado = request.POST.get(campo, '').strip()
+            # Igual ao default → grava vazio, pra continuar herdando o default.
+            setattr(tg, campo, '' if enviado == default.strip() else enviado)
+        tg.save(update_fields=list(defaults.keys()))
+        messages.success(request, 'Prompt do Kevin atualizado para este TG.')
+        return redirect('coordenacao:tg_prompt', tg_id=tg.id)
+
+
 class GradeView(CoordBase, TemplateView):
     """A grade semana × aula de uma Unit de um TG — a tela mais importante."""
     template_name = 'coordenacao/grade.html'

@@ -15,6 +15,7 @@ urlpatterns = [
 
     # ── Grade do TG (a tela central) ──
     path('tg/', v.SelecionarUnitView.as_view(), name='tg_index'),
+    path('tg/<int:tg_id>/prompt/', v.EditarPromptTGView.as_view(), name='tg_prompt'),
     path('tg/<int:tg_id>/<str:unit>/', v.GradeView.as_view(), name='grade'),
     path('tg/<int:tg_id>/<str:unit>/duplicar/', v.DuplicarUnitView.as_view(),
          name='duplicar_unit'),

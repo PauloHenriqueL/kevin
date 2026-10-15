@@ -9,52 +9,43 @@ logger = logging.getLogger(__name__)
 # ESTA E A FONTE UNICA DE VERDADE do prompt (ver CLAUDE.md). Nao duplique em
 # exemplo/ nem em template.
 #
-# O prompt e montado por blocos. Regras pedagogicas calibraveis (idioma, tom)
-# ficam em blocos ISOLADOS e substituiveis — a Demanda 8 vai transforma-los em
-# configuracao editavel pelo gerente da Bebelingue, entao NAO os dilua no texto.
+# O prompt e montado por blocos (Papel / Idioma / Execucao). Os DEFAULTS vivem
+# em apps/chat/prompts/*.txt (D42); o valor VIVO pode ser sobrescrito por TG
+# (campos TG.prompt_*), editavel pela coordenacao sem deploy (Demanda 8, D43).
+# Bloco vazio no TG = usa o default do arquivo.
 #
 # O roteiro concreto da aula (fases, atividades expandidas do catalogo) NAO vive
 # aqui: vem de Aula.get_contexto_completo(), anexado em _montar_contexto().
+from .prompts import (  # noqa: E402  (apos o logger, de proposito)
+    PROMPT_PAPEL_PADRAO, PROMPT_IDIOMA_PADRAO, PROMPT_EXECUCAO_PADRAO,
+    montar_prompt,
+)
 
-
-# Papel e postura. O professor e o interlocutor; a turma participa quando ELE
-# abre o momento (Decisao D11).
-PROMPT_PAPEL = """Voce e o Kevin, um assistente de I.A. animado que ajuda o professor a dar aulas de ingles para criancas (Elementary School). Voce aparece numa tela/TV na sala.
-
-Quem fala com voce e o PROFESSOR (chame-o de "Teacher"), principalmente por voz. Ele conduz a aula e dita o ritmo. As criancas so falam com voce quando o Teacher abre esse momento ("agora falem com o Kevin") — fora disso, fale com o Teacher, nao com a turma. Voce NAO substitui o professor e NAO toma a iniciativa de se dirigir as criancas sozinho."""
-
-
-# >>> BLOCO CALIBRAVEL: POLITICA DE IDIOMA (Instant Translation) <<<
-# Padrao da metodologia Bebelingue. A Demanda 8 troca este bloco por
-# configuracao. Mantenha-o autocontido — nao espalhe regras de idioma em outros
-# blocos.
-PROMPT_IDIOMA = """=== IDIOMA ===
-Priorize frases curtas e claras em INGLES. Quando o Teacher ou um aluno responder em portugues, use a tecnica Instant Translation: valide calorosamente em portugues e responda em seguida em ingles, mantendo o foco no idioma-alvo. Ex: aluno diz "cachorro" -> "Isso! Dog. Repeat with me: dog!". Evite gramatica e vocabulario dificeis numa aula de proposta simples."""
-# >>> FIM DO BLOCO CALIBRAVEL <<<
-
-
-# Como executar o roteiro que chega no contexto. Sem descrever fases fixas — elas
-# vem da aula.
-PROMPT_EXECUCAO = """=== COMO CONDUZIR A AULA ===
-O contexto abaixo traz o roteiro da aula de hoje, em blocos, com as atividades ja explicadas (como conduzir cada jogo e tecnica). Ele e o seu ROTEIRO INTERNO: descreve O QUE fazer, nao o que dizer literalmente.
-
-- NUNCA leia o roteiro em voz alta. Nunca diga "Warm Up", "Development", "Closure", "bloco 1" ou nomes de fase. Isso e invisivel para o Teacher.
-- EXECUTE cada passo de forma natural. Ex: o roteiro diz "cumprimente e peca a musica" -> voce diz "Hello everyone! Teacher, can you play our Hello song?".
-- UMA acao por vez. Depois, PARE e espere a resposta do Teacher (ou da turma, se o momento estiver aberto) antes de avancar.
-- Respostas CURTAS: 2-4 frases. Voce esta numa sala real com criancas. Nada de monologo."""
+# Nomes antigos mantidos como alias para quem importava daqui (testes, etc.).
+PROMPT_PAPEL = PROMPT_PAPEL_PADRAO
+PROMPT_IDIOMA = PROMPT_IDIOMA_PADRAO
+PROMPT_EXECUCAO = PROMPT_EXECUCAO_PADRAO
 
 
 def montar_system_prompt_base():
-    """Junta os blocos do prompt. Separado para facilitar teste e a Demanda 8."""
-    return '\n\n'.join([PROMPT_PAPEL, PROMPT_IDIOMA, PROMPT_EXECUCAO])
+    """Prompt base com os 3 blocos no default. Usado quando nao ha TG."""
+    return montar_prompt()
 
 
 SYSTEM_PROMPT_BASE = montar_system_prompt_base()
 
 
 def _montar_contexto(conversa):
-    """Monta system prompt com contexto completo da aula."""
-    system_prompt = SYSTEM_PROMPT_BASE
+    """Monta system prompt com contexto completo da aula.
+
+    O prompt base vem do TG da aula (campos editaveis por TG — D43), caindo no
+    default dos arquivos quando o TG nao customizou um bloco. Sem aula ou sem TG,
+    usa o SYSTEM_PROMPT_BASE (tudo default).
+    """
+    if conversa.aula and conversa.aula.tg_id:
+        system_prompt = conversa.aula.tg.get_system_prompt()
+    else:
+        system_prompt = SYSTEM_PROMPT_BASE
 
     if conversa.aula:
         system_prompt += '\n\n--- CONTEXTO DA AULA ---\n'
