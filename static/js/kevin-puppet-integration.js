@@ -154,8 +154,14 @@ class KevinPuppetIntegration {
       // playPayAttention() NÃO são configuráveis no motor — ver
       // DIARIO_EXPORT.md, Entrada 10.
       'hiVoiceUrls', 'byeVoiceUrls', 'celebrateVoiceUrl',
+      // Volume das falas gravadas. O Playground usa 0: lá o Kevin só fala
+      // pela ElevenLabs (D54).
+      'voiceVolume',
     ]) {
-      if (options[chave]) this.assetOptions[chave] = options[chave];
+      // null e 0 também passam: o motor usa `celebrateVoiceUrl: null` para
+      // desligar a fala do celebrate e `voiceVolume: 0` para silenciar as falas.
+      const valor = options[chave];
+      if (valor || valor === null || valor === 0) this.assetOptions[chave] = valor;
     }
     this.kevin = null;
     this.audioEl = null;

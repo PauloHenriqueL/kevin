@@ -9,8 +9,12 @@ Cada ferramenta declara em que modo da Conversa vale. No modo aula só existe
 `celebrar_acerto`: é isso que garante que a aula estruturada não muda.
 
 Nomes: o que é nome da metodologia fica em inglês, como o professor fala em
-sala (`pay_attention`, `everybody_whisper`, `no_portuguese_allowed`); o resto
-segue a convenção do projeto, em português.
+sala (`everybody_whisper`, `no_portuguese_allowed`); o resto segue a convenção
+do projeto, em português.
+
+Nenhuma ferramenta dispara fala gravada do motor (MP3 com outra voz, D54): o
+`pay_attention` faz só o GESTO; a frase de atenção é o texto da resposta,
+falado pela ElevenLabs como todo o resto.
 """
 import difflib
 import logging
@@ -292,8 +296,9 @@ REGISTRO = [
     Ferramenta(
         nome='pay_attention',
         descricao=(
-            'Toca a sequência gravada "Pay attention" do Kevin para chamar a '
-            'atenção da turma, antes da sua fala.'
+            'Pay attention: o Kevin acena chamando a atenção da turma, antes da '
+            'sua fala. É só o gesto — a frase de atenção é a sua resposta de '
+            'texto (ex: "Eyes on me, kids!").'
         ),
         parametros=_SEM_PARAMETROS,
         executar=_pay_attention,

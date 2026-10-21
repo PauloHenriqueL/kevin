@@ -55,6 +55,7 @@
     ),
     temContexto: !!window.KEVIN_TEM_CONTEXTO,
     respondendo: false,         // ações + fala de uma resposta em andamento
+    encerrando: false,          // Encerrar clicado: respostas pendentes não falam mais
     musicaTocando: false,
     musicaUrl: '',
     onMusicaEnded: null,
@@ -582,7 +583,19 @@
    * Serializa invocações concorrentes via state.ttsSeq (token); só a última
    * efetivamente toca — as anteriores são abortadas em qualquer await.
    */
-  async function playTTS(texto) {
+  /** Pede o áudio do texto ao TTS (ElevenLabs). Devolve o Blob, ou null se falhar. */
+  async function buscarTTS(texto, signal) {
+    const res = await fetch(cfg.urls.tts, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify(Object.assign({ text: texto }, pgEstiloVoz())),
+      signal,
+    });
+    if (!res.ok) { console.warn('TTS falhou:', res.status); return null; }
+    return res.blob();
+  }
+
+  async function playTTS(texto, blobPronto) {
     if (!kevinChat || !kevinChat.getAudioElement) {
       console.warn('[Chat] playTTS: adapter ainda não inicializado.');
       return;
@@ -598,16 +611,10 @@
 
     let url = null;
     try {
-      const res = await fetch(cfg.urls.tts, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(Object.assign({ text: texto }, pgEstiloVoz())),
-        signal: abortController.signal,
-      });
-      if (isStale()) return;
-      if (!res.ok) { console.warn('TTS falhou:', res.status); return; }
-      const blob = await res.blob();
-      if (isStale()) return;
+      // `blobPronto`: áudio já pedido antes (Playground pré-carrega a abertura
+      // durante a animação de entrada). Sem ele, busca agora — como sempre.
+      const blob = blobPronto ? await blobPronto : await buscarTTS(texto, abortController.signal);
+      if (isStale() || !blob) return;
 
       url = URL.createObjectURL(blob);
       state.currentTtsBlobUrl = url;
@@ -876,7 +883,9 @@
   // Sequência gravada para chamar a atenção da turma. Clicar de novo enquanto
   // roda interrompe.
   const btnPayAttention = document.getElementById('btn-pay-attention');
-  if (btnPayAttention && kevinChat) {
+  // No Playground o botão vira evento para a IA (ver bloco do Playground): a
+  // sequência gravada do motor fala com outra voz (D54).
+  if (btnPayAttention && kevinChat && !MODO_PLAYGROUND) {
     btnPayAttention.addEventListener('click', async () => {
       if (btnPayAttention.dataset.playing === 'true') {
         kevinChat.cancelSequence();
@@ -945,21 +954,17 @@
   }
 
   /**
-   * Envia a fala do Teacher. Na 1ª resposta (a que vira o contexto, D49), o
-   * Open class gravado (~22s) toca enquanto a IA pensa — a latência fica
-   * escondida atrás da abertura com as crianças. Se o professor interromper o
-   * Open class, segue normalmente para a resposta.
+   * Envia a fala do Teacher. A 1ª resposta vira o contexto da sessão (D49).
+   *
+   * Sem Open class aqui, de propósito (D54): as sequências do motor são MP3
+   * gravados com OUTRA voz. No Playground o Kevin só fala pela ElevenLabs.
    */
   async function pgEnviarTeacher(texto) {
-    const req = enviarMensagemSync(texto);
-    if (pg.temContexto) return req;
-    pg.temContexto = true;
-    pgMostrarContexto(texto);
-    if (!kevinChat || !kevinChat.openClass) return req;
-    const abertura = kevinChat.openClass().catch(() => false);
-    const [resultado] = await Promise.allSettled([req, abertura]);
-    if (resultado.status === 'rejected') throw resultado.reason;
-    return resultado.value;
+    if (!pg.temContexto) {
+      pg.temContexto = true;
+      pgMostrarContexto(texto);
+    }
+    return enviarMensagemSync(texto);
   }
 
   /**
@@ -1018,11 +1023,12 @@
       if (texto) appendMessage('assistant', texto);
       if (kevinChat) kevinChat.onAssistantMessage(texto || '');
       await pgExecutarAntes(acoes);
-      if (texto) await playTTS(texto);
+      // Encerrar no meio (ex.: durante o celebrate): não corta a despedida.
+      if (texto && !pg.encerrando) await playTTS(texto);
     } finally {
       pg.respondendo = false;
     }
-    pgExecutarDepois(acoes);
+    if (!pg.encerrando) pgExecutarDepois(acoes);
     return true;
   }
 
@@ -1062,7 +1068,10 @@
         await pgTrocarCenario(acao.cenario);
         break;
       case 'pay_attention':
-        if (kevinChat && kevinChat.payAttention) await kevinChat.payAttention();
+        // Só o gesto (aceno), em silêncio: no Playground as falas gravadas do
+        // motor estão desligadas (hiVoiceUrls vazio, D54). A frase de atenção
+        // é o texto da resposta, falado em seguida pela ElevenLabs.
+        if (kevinChat && kevinChat.waveHello) await kevinChat.waveHello();
         break;
       case 'celebrar':
         await celebrarSeNecessario(true);
@@ -1176,6 +1185,7 @@
 
   // ── Início, botões e encerramento ──
   const btnIniciarPg = document.getElementById('btn-iniciar-playground');
+  const PG_DESPEDIDA = 'Bye bye, kids! See you next time!';
 
   /** "Começar": destrava o áudio, toca a entrada e fala a abertura fixa (D53). */
   async function iniciarPlayground() {
@@ -1184,17 +1194,24 @@
       try { await kevinChat.unlockAudio(); } catch (e) {/* já logado */}
     }
     callRoot.dataset.state = 'live';
+    const abertura = pg.temContexto ? '' : (window.KEVIN_ABERTURA || '');
+    // A voz da abertura é pedida JÁ, em paralelo com a animação de entrada:
+    // quando a cortina abre, o áudio está pronto e o Kevin fala na hora.
+    const audioAbertura = abertura ? buscarTTS(abertura).catch(() => null) : null;
     if (kevinChat && kevinChat.playEntrada) {
-      try { await kevinChat.playEntrada(); } catch (e) {/* segue sem a entrada animada */}
+      // Teto de 8s: se o vídeo de entrada não terminar (falha de rede/decodificação),
+      // a Promise do motor nunca resolve e a abertura nunca seria falada.
+      try {
+        await Promise.race([kevinChat.playEntrada(), new Promise((r) => setTimeout(r, 8000))]);
+      } catch (e) {/* segue sem a entrada animada */}
     }
     // Página recarregada no meio da sessão: restaura o quadro e não repete a abertura.
     if (pg.temContexto) {
       if (pg.estado.quadro) pgMostrarNoQuadro(pg.estado.quadro);
       return;
     }
-    const abertura = window.KEVIN_ABERTURA || '';
     if (abertura) {
-      try { await playTTS(abertura); } catch (e) { /* TTS é opcional */ }
+      try { await playTTS(abertura, audioAbertura); } catch (e) { /* TTS é opcional */ }
     }
   }
 
@@ -1228,6 +1245,15 @@
   if (MODO_PLAYGROUND) {
     pg.estado.cenarioNaTela = pg.estado.cenario || window.KEVIN_BACKGROUND;
     if (btnIniciarPg) btnIniciarPg.addEventListener('click', iniciarPlayground);
+
+    // Atenção: o Kevin chama a turma com a própria voz (ElevenLabs), via IA.
+    const btnAtencao = document.getElementById('btn-pay-attention');
+    if (btnAtencao) {
+      btnAtencao.addEventListener('click', () => {
+        if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+        enviarEvento('O Teacher apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
+      });
+    }
 
     const btnWhisper = document.getElementById('btn-whisper');
     if (btnWhisper) btnWhisper.addEventListener('click', () => pgAlternarModo('whisper'));
@@ -1271,13 +1297,18 @@
       btnEncerrar.addEventListener('click', async () => {
         if (encerrando) return;
         encerrando = true;
+        pg.encerrando = true;
         state.liveMode = false;
         stopRecording();
         stopAllAudio();
         if (pg.musicaTocando) pgFinalizarMusica(null);
         const aoVivo = callRoot && callRoot.dataset.state === 'live';
-        if (aoVivo && kevinChat && kevinChat.sayBye) {
-          try { await kevinChat.sayBye(); } catch (err) { /* sai mesmo assim */ }
+        if (aoVivo && !window.KEVIN_DEMO_MODE) {
+          // Despedida com a voz do Kevin (ElevenLabs), não o "bye" gravado (D54).
+          // Teto de 8s: o professor está esperando a tela fechar.
+          try {
+            await Promise.race([playTTS(PG_DESPEDIDA), new Promise((r) => setTimeout(r, 8000))]);
+          } catch (err) { /* sai mesmo assim */ }
         }
         window.location.href = cfg.urls.sair;
       });

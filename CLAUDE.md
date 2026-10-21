@@ -340,7 +340,9 @@ não gera `AulaTurma` nem mexe em progresso (D47).
 
 **Regras que mudam só aqui:** o Kevin chama a turma por iniciativa própria
 (exceção à regra 15, D48); a abertura é fixa, não gerada pela IA (D53); o
-contexto da sessão é a 1ª resposta do Teacher, literal (D49).
+contexto da sessão é a 1ª resposta do Teacher, literal (D49); e o Kevin fala
+**só pela ElevenLabs** — nenhuma fala gravada do motor (Open class, Pay
+attention, "yeah, you got it", "bye"), que tem outra voz (D54).
 
 **Ao mexer:** os nomes das ferramentas aparecem no texto do prompt — renomear
 uma ferramenta exige atualizar o prompt (default e TGs customizados). A aula
@@ -764,7 +766,7 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | — | Correção de segurança | As 5 views em função de `coordenacao_views.py` estavam sem guarda de papel — qualquer usuário logado podia editar o TG oficial. `role_required` em `apps/accounts/decorators.py` (D40) |
 | 8 | Prompt editável por TG | Prompt do Kevin em `apps/chat/prompts/*.txt` (default) + 3 campos no `TG` (`prompt_papel/idioma/execucao`). Editor em `/coordenacao/tg/<id>/prompt/` (só coordenador); bloco vazio herda o default (D42–D44) |
 | — | Fix Kevin "robótico" | Modo demo do chat de texto era `true` hardcoded e vazava pra produção. Agora liga ao plano ter chave de IA: com chave → Kevin real (D45) |
-| 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do Teacher, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), editor por TG na coordenação (D47–D53). **Falta validar em sala** e testar o sussurro com a voz do Kevin |
+| 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do Teacher, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), voz só da ElevenLabs, editor por TG na coordenação (D47–D54). **Falta validar em sala** e testar o sussurro com a voz do Kevin |
 
 ---
 

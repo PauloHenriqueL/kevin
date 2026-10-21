@@ -396,6 +396,8 @@ class FerramentasPlaygroundTest(BasePlayground):
                          ['celebrar_acerto'])
         self.assertIn('everybody_whisper',
                       [f.nome for f in ferramentas.ferramentas_do_modo('playground')])
+        self.assertIn('pay_attention',
+                      [f.nome for f in ferramentas.ferramentas_do_modo('playground')])
 
     def test_musica_por_nome_exato_e_aproximado(self):
         for pedido in ('Hello Song', 'hello song!', 'Hello Songg', 'hello'):
@@ -573,6 +575,9 @@ class TelasPlaygroundTest(BasePlayground):
         self.assertContains(r, 'Hello kids!')
         self.assertNotContains(r, 'Sessão de Playground iniciada.')
         self.assertContains(r, 'window.KEVIN_MODO = "playground"')
+        # Falas gravadas do motor desligadas: o Kevin só fala pela ElevenLabs (D54).
+        self.assertContains(r, 'window.KEVIN_RIG_CONFIG.celebrateVoiceUrl = null;')
+        self.assertContains(r, 'window.KEVIN_RIG_CONFIG.voiceVolume = 0;')
 
     def test_sessao_de_outro_professor_da_404(self):
         outro = Professor.objects.create(

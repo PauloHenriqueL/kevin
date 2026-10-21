@@ -205,6 +205,13 @@
 {{ estado|json_script:"kevin-estado-inicial" }}
 {{ musicas|json_script:"kevin-musicas" }}
 <script>
+// No Playground o Kevin fala SÓ pela ElevenLabs (D54). As falas gravadas do
+// motor (hi/bye, "yeah, you got it", Open class, Pay attention) são MP3 com
+// outra voz: desligadas aqui. O celebrate continua com gesto, confete e efeito.
+window.KEVIN_RIG_CONFIG.celebrateVoiceUrl = null;
+window.KEVIN_RIG_CONFIG.hiVoiceUrls = [];
+window.KEVIN_RIG_CONFIG.byeVoiceUrls = [];
+window.KEVIN_RIG_CONFIG.voiceVolume = 0;
 // Modo Playground (Demanda 20): tudo o que é novo em kevin_chat.js fica atrás
 // deste flag — a aula não executa nenhum caminho novo.
 window.KEVIN_MODO = "playground";

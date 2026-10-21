@@ -1791,7 +1791,8 @@ Playground não gera `AulaTurma` nem mexe em progresso.
 
 `mostrar_no_quadro`, `trocar_cenario`, `tocar_musica`, `iniciar_jogo`,
 `encerrar_jogo`, `pay_attention`, `everybody_whisper`, `no_portuguese_allowed`,
-além de `celebrar_acerto` (que vale nos dois modos). Música e jogo são
+além de `celebrar_acerto` (que vale nos dois modos). Nenhuma delas toca fala
+gravada do motor: `pay_attention` é o gesto, e a frase sai pela ElevenLabs (D54). Música e jogo são
 resolvidos **no catálogo** (`Atividade`) — o Kevin nunca inventa regra de jogo
 (regra 8) nem vê atividade local de outra escola (D6). A descrição técnica de
 cada ferramenta diz **o que** ela faz; o **quando** usar é pedagogia e fica no
@@ -1804,7 +1805,8 @@ prompt, que a coordenação edita.
 - [ ] A primeira resposta do Teacher fica fixada e o Kevin se mantém no tema
 - [ ] Música pedida pelo nome toca a faixa do catálogo com o Kevin no ukulele; ao terminar, ele retoma o tema
 - [ ] Jogo pedido pelo nome é conduzido pelas regras do catálogo
-- [ ] Pay Attention pelo botão e por decisão do Kevin
+- [ ] Atenção pelo botão e por decisão do Kevin, sempre com a voz da ElevenLabs
+- [ ] Nenhuma fala gravada (MP3 do motor) no Playground — uma voz só
 - [ ] Whisper e Só inglês: overlay legível do fundo da sala, ligando/desligando pelo Kevin ou pelo botão; voz sussurrada no Whisper
 - [ ] Palavra nova aparece no quadro; cenário muda quando combina com o tema
 - [ ] Encerrar: o Kevin se despede e volta para a lista; nenhum progresso de TG muda
@@ -1893,6 +1895,7 @@ uma tem consequência em cascata sobre as demais.
 | **D51** | Ações do Kevin via **tool calling generalizado** (registro em `apps/chat/ferramentas.py`) gravadas em `Mensagem.acoes`. Música e jogo são resolvidos **no catálogo**, nunca inventados. Cada ferramenta declara em que modo vale; no modo aula só existe `celebrar_acerto` | Marcadores no texto da resposta; ou ferramentas também na aula | Generaliza a D38. Mantém a regra 8 (não inventar regra de jogo) e a D6 (atividade local só da própria escola). Declarar o modo na ferramenta é o que garante que a aula não muda |
 | **D52** | Everybody Whisper e No Portuguese Allowed: estado em `Conversa.estado`, sinalização por **overlay HTML/CSS** e voz sussurrada via **ElevenLabs `eleven_v3` + tag `[whispers]`**, aplicada só na síntese | Esperar pose/efeito do animador; ou guardar a tag no texto | O overlay não depende de entrega do animador. A tag nunca chega ao texto salvo nem à tela. Outros providers de TTS ignoram o estilo; o frontend baixa o volume como reforço |
 | **D53** | A **fala de abertura do Playground é fixa**, não gerada pela IA: sintetizada pelo TTS e gravada como primeira mensagem do Kevin | Gerar a abertura pela IA | O pedido é "sempre o mesmo texto". Fixa também elimina uma chamada à IA e a latência no momento mais visível da sessão |
+| **D54** | **No Playground o Kevin fala SÓ pela ElevenLabs**, sintetizada em tempo real. Nada das falas gravadas do motor: sem Open class na 1ª resposta, Pay attention vira só o gesto (aceno em silêncio) + a frase da IA na voz da ElevenLabs — o botão Atenção vira evento para a IA, celebrate sem o "yeah, you got it" (gesto, confete e efeito continuam) e despedida por TTS no lugar do "bye" gravado | Reaproveitar as sequências gravadas do motor (o que o guia da Demanda 20 previa) | Teste em produção (Arthur, 20/10/2026): os MP3 do motor têm OUTRA voz e entravam no meio das respostas — duas vozes "embaralhadas" na mesma sessão. A voz do Kevin é a da ElevenLabs. **A aula estruturada ainda usa as falas gravadas (D46)** — não mudou aqui |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)
