@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Playground — Kevin{% endblock %}
+
+{% block content %}
+<main class="page-content fade-in">
+    <div class="page-header">
+        <div>
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                Playground
+            </h2>
+            <p>Uma sessão livre com o Kevin, sem aula cadastrada. Ele pergunta o tema de hoje e conduz a partir do que você responder.</p>
+        </div>
+    </div>
+
+    <div class="home-cards">
+        {% for turma in turmas %}
+            <form method="post" action="{% url 'professor:playground_iniciar' turma.id %}" class="home-card card-lessons playground-card">
+                {% csrf_token %}
+                <div class="home-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3>Turma {{ turma.year }}{{ turma.nome }}</h3>
+                <p>
+                    Year {{ turma.year }} · {{ turma.escola.nome }}<br>
+                    <span class="badge badge-blue" style="margin-top:8px;">{{ turma.qtd_alunos }} aluno{{ turma.qtd_alunos|pluralize:"s" }}</span>
+                </p>
+                <button type="submit" class="btn btn-primary playground-card-btn">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
+                    Abrir Playground
+                </button>
+            </form>
+        {% empty %}
+            <div class="help-card" style="grid-column: 1 / -1;">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    </div>
+                    <h3>Nenhuma turma ainda</h3>
+                    <p>Você ainda não tem turmas atribuídas. Fale com a direção da escola.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

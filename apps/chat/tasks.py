@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # aqui: vem de Aula.get_contexto_completo(), anexado em _montar_contexto().
 from .prompts import (  # noqa: E402  (apos o logger, de proposito)
     PROMPT_PAPEL_PADRAO, PROMPT_IDIOMA_PADRAO, PROMPT_EXECUCAO_PADRAO,
-    montar_prompt,
+    montar_prompt, montar_prompt_playground,
 )
 
 # Nomes antigos mantidos como alias para quem importava daqui (testes, etc.).
@@ -42,6 +42,8 @@ def _montar_contexto(conversa):
     default dos arquivos quando o TG nao customizou um bloco. Sem aula ou sem TG,
     usa o SYSTEM_PROMPT_BASE (tudo default).
     """
+    if conversa.eh_playground:
+        return _montar_contexto_playground(conversa)
     if conversa.aula and conversa.aula.tg_id:
         system_prompt = conversa.aula.tg.get_system_prompt()
     else:
@@ -54,18 +56,126 @@ def _montar_contexto(conversa):
     return system_prompt
 
 
+SEM_CONTEXTO_AINDA = (
+    'O Teacher ainda não disse o tema de hoje. Pergunte, em uma frase, o que a '
+    'turma está aprendendo.'
+)
+
+
+def _montar_contexto_playground(conversa):
+    """System prompt do Playground (Demanda 20).
+
+    Vai do ESTÁVEL ao VOLÁTIL de propósito: o prefixo que não muda entre turnos
+    (blocos, turma, catálogo) é aproveitado pelo cache de prompt do provedor.
+    As listas do catálogo levam só os NOMES (D10: token é pago); as regras de
+    um jogo só entram quando ele começa (ferramenta iniciar_jogo) e enquanto
+    ele estiver em andamento.
+    """
+    from apps.chat.ferramentas import (
+        catalogo_jogos, catalogo_musicas, regras_do_jogo,
+    )
+    from apps.curriculo.models import Atividade, BACKGROUND_CHOICES
+
+    turma = conversa.turma
+    tg = turma.tg if turma else None
+    partes = [tg.get_system_prompt_playground() if tg else montar_prompt_playground()]
+
+    if turma:
+        partes.append(
+            f'=== TURMA ===\nYear {turma.year} · Turma {turma.year}{turma.nome} · '
+            f'{turma.qtd_alunos} alunos'
+        )
+
+    musicas = ' | '.join(a.nome for a in catalogo_musicas(conversa))
+    jogos = ' | '.join(a.nome for a in catalogo_jogos(conversa))
+    partes.append(f'=== MÚSICAS DISPONÍVEIS ===\n{musicas or "(nenhuma cadastrada)"}')
+    partes.append(f'=== JOGOS DISPONÍVEIS ===\n{jogos or "(nenhum cadastrado)"}')
+
+    partes.append(
+        '=== CONTEXTO DA AULA DE HOJE ===\n'
+        + (conversa.contexto.strip() or SEM_CONTEXTO_AINDA)
+    )
+
+    estado = conversa.estado or {}
+    rotulos = dict(BACKGROUND_CHOICES)
+    cenario = estado.get('cenario') or 'floresta'
+    linhas = [
+        '=== ESTADO DA SALA AGORA ===',
+        f'Cenário: {cenario} ({rotulos.get(cenario, cenario)})',
+        f'Quadro: {estado.get("quadro") or "vazio"}',
+        f'Everybody Whisper: {"ATIVO" if estado.get("whisper") else "desligado"}',
+        f'No Portuguese Allowed: {"ATIVO" if estado.get("so_ingles") else "desligado"}',
+    ]
+    jogo = None
+    if estado.get('jogo_id'):
+        jogo = Atividade.objects.filter(id=estado['jogo_id']).first()
+    if jogo:
+        # Relido do catálogo a cada mensagem: correção da coordenação vale na hora.
+        linhas.append('Jogo em andamento:\n' + regras_do_jogo(jogo))
+    else:
+        linhas.append('Jogo em andamento: nenhum')
+    partes.append('\n'.join(linhas))
+
+    return '\n\n'.join(partes)
+
+
 def _montar_historico(conversa):
-    """Monta lista de mensagens anteriores para a IA."""
+    """Monta lista de mensagens anteriores para a IA.
+
+    Evento do sistema (Playground) vai como fala do usuário prefixada por
+    [EVENTO] — o prompt explica o que é. Mensagens seguidas do mesmo papel são
+    mescladas: acontece quando uma chamada à IA falha e a fala do usuário fica
+    sem resposta, e alguns provedores recusam dois turnos iguais em sequência.
+    """
     from apps.chat.models import Mensagem
 
     mensagens = Mensagem.objects.filter(
         conversa=conversa,
     ).order_by('created_at')
 
-    return [
-        {'role': msg.role, 'content': msg.conteudo}
-        for msg in mensagens
-    ]
+    historico = []
+    for msg in mensagens:
+        role, conteudo = msg.role, msg.conteudo
+        if msg.tipo == Mensagem.TipoChoices.EVENTO:
+            role, conteudo = 'user', f'[EVENTO] {conteudo}'
+        if historico and historico[-1]['role'] == role:
+            historico[-1]['content'] += f'\n\n{conteudo}'
+        else:
+            historico.append({'role': role, 'content': conteudo})
+    return historico
+
+
+def _chamar_ia(conversa, plano):
+    """Uma resposta da IA para a conversa, com as ferramentas do modo dela."""
+    from apps.chat.ferramentas import ferramentas_do_modo
+    from apps.chat.providers import get_ia_provider
+
+    provider = get_ia_provider(
+        provider_name=plano.ia_provider,
+        api_key=plano.ia_api_key,
+        modelo=plano.ia_modelo,
+        effort=plano.ia_effort,
+    )
+    return provider.chat(
+        system_prompt=_montar_contexto(conversa),
+        mensagens=_montar_historico(conversa),
+        ferramentas=ferramentas_do_modo(conversa.modo),
+        conversa=conversa,
+    )
+
+
+def _salvar_resposta(conversa, texto, acoes):
+    from apps.chat.models import Mensagem
+
+    return Mensagem.objects.create(
+        conversa=conversa,
+        role='assistant',
+        tipo='texto',
+        conteudo=texto,
+        acoes=acoes,
+        # Mantido por compatibilidade (D38): o frontend da aula lê este campo.
+        celebrar=any(a.get('tipo') == 'celebrar' for a in acoes),
+    )
 
 
 def responder_ia_sync(conversa_id):
@@ -76,37 +186,17 @@ def responder_ia_sync(conversa_id):
     Pensado para ser chamado tanto da task Celery quanto de uma view
     síncrona (modo conversação por áudio, hands-free).
     """
-    from apps.chat.models import Conversa, Mensagem
-    from apps.chat.providers import get_ia_provider
+    from apps.chat.models import Conversa
 
     conversa = Conversa.objects.select_related(
         'professor__escola__plano',
         'aula',
+        'turma__escola',
     ).get(id=conversa_id)
 
     plano = conversa.professor.escola.plano
-    system_prompt = _montar_contexto(conversa)
-    historico = _montar_historico(conversa)
-
-    provider = get_ia_provider(
-        provider_name=plano.ia_provider,
-        api_key=plano.ia_api_key,
-        modelo=plano.ia_modelo,
-        effort=plano.ia_effort,
-    )
-
-    resposta, celebrar = provider.chat(
-        system_prompt=system_prompt,
-        mensagens=historico,
-    )
-
-    return Mensagem.objects.create(
-        conversa=conversa,
-        role='assistant',
-        tipo='texto',
-        conteudo=resposta,
-        celebrar=celebrar,
-    )
+    resposta, acoes = _chamar_ia(conversa, plano)
+    return _salvar_resposta(conversa, resposta, acoes)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
@@ -133,12 +223,13 @@ def processar_audio_ia(self, conversa_id, mensagem_id, audio_bytes_list):
     4. Salva resposta da IA
     """
     from apps.chat.models import Conversa, Mensagem
-    from apps.chat.providers import get_ia_provider, get_stt_provider
+    from apps.chat.providers import get_stt_provider
 
     try:
         conversa = Conversa.objects.select_related(
             'professor__escola__plano',
             'aula',
+            'turma__escola',
         ).get(id=conversa_id)
 
         plano = conversa.professor.escola.plano
@@ -155,31 +246,12 @@ def processar_audio_ia(self, conversa_id, mensagem_id, audio_bytes_list):
         mensagem_user = Mensagem.objects.get(id=mensagem_id)
         mensagem_user.conteudo = f'🎤 {texto_transcrito}'
         mensagem_user.save()
+        # Playground: a 1ª fala do Teacher vira o contexto da sessão (D49).
+        conversa.registrar_contexto(mensagem_user, texto=texto_transcrito)
 
-        # 3. Chamar IA
-        system_prompt = _montar_contexto(conversa)
-        historico = _montar_historico(conversa)
-
-        ia = get_ia_provider(
-            provider_name=plano.ia_provider,
-            api_key=plano.ia_api_key,
-            modelo=plano.ia_modelo,
-            effort=plano.ia_effort,
-        )
-
-        resposta, celebrar = ia.chat(
-            system_prompt=system_prompt,
-            mensagens=historico,
-        )
-
-        # 4. Salvar resposta
-        Mensagem.objects.create(
-            conversa=conversa,
-            role='assistant',
-            tipo='texto',
-            conteudo=resposta,
-            celebrar=celebrar,
-        )
+        # 3. Chamar IA e 4. salvar a resposta
+        resposta, acoes = _chamar_ia(conversa, plano)
+        _salvar_resposta(conversa, resposta, acoes)
 
         logger.info(
             'Áudio processado: conversa=%s stt=%s ia=%s',

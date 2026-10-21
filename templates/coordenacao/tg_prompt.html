@@ -1,7 +1,7 @@
 {% extends "coordenacao/base_coord.html" %}
-{% block title %}Prompt do Kevin — {{ tg }}{% endblock %}
+{% block title %}{{ titulo_tela }} — {{ tg }}{% endblock %}
 
-{% block coord_heading %}Prompt do Kevin{% endblock %}
+{% block coord_heading %}{{ titulo_tela }}{% endblock %}
 {% block coord_subheading %}
     <p><a href="{% url 'coordenacao:tg_index' %}" class="link-voltar">← grade do TG</a> ·
     <strong>{{ tg }}</strong></p>
@@ -40,11 +40,7 @@
     </form>
 
     <aside class="usos-card">
-        <h4>Como funciona</h4>
-        <p>Estes blocos definem o comportamento do Kevin nas aulas <strong>deste TG</strong> ({{ tg }}).</p>
-        <p>Cada campo já vem com o <strong>texto padrão</strong>. Edite o que precisar e clique em <strong>Salvar prompt</strong>.</p>
-        <p>O <strong>roteiro</strong> de cada aula (warm up, atividades) <strong>não</strong> fica aqui — vem do cadastro da aula.</p>
-        <p><strong>Restaurar padrão</strong> devolve o bloco ao texto oficial; salvar assim faz ele voltar a herdar melhorias futuras do padrão.</p>
+        {% include card_template %}
     </aside>
 </div>
 {% endblock %}

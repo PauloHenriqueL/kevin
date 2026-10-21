@@ -10,24 +10,28 @@ class BaseIAProvider(ABC):
         self.effort = effort
 
     @abstractmethod
-    def chat(self, system_prompt: str, mensagens: list[dict]) -> tuple[str, bool]:
+    def chat(self, system_prompt: str, mensagens: list[dict],
+             ferramentas=None, conversa=None) -> tuple[str, list[dict]]:
         """
         Envia mensagens para a IA e retorna a resposta.
 
-        Além do texto, a IA pode sinalizar que a resposta celebra um acerto
-        do Teacher/turma — via tool-calling (mais confiável que procurar
-        palavras-chave no texto): o provider expõe pro modelo uma função
-        "celebrar_acerto", sem parâmetros, que ele chama quando quer marcar a
-        resposta como uma comemoração (dispara o modo "celebrate" do Kevin no
-        frontend). Ver docs/demandas.md → D38.
+        Além do texto, a IA pode pedir AÇÕES via tool-calling (mais confiável
+        que procurar palavras-chave no texto): celebrar um acerto (D38), e no
+        Playground tocar música, mostrar no quadro, trocar o cenário etc.
+        (D51). Cada ferramenta pedida é executada por
+        `apps.chat.ferramentas.executar` e o resultado volta para a IA quando
+        ela precisa dele para falar. Ver docs/demandas.md → Demanda 20.
 
         Args:
             system_prompt: Contexto do sistema (ex: conteúdos da aula)
             mensagens: Lista de dicts com 'role' e 'content'
+            ferramentas: Lista de `Ferramenta`. None = as do modo aula
+                (só `celebrar_acerto`).
+            conversa: A `Conversa`, para as ferramentas que leem/gravam estado.
 
         Returns:
-            (texto, celebrar) — texto da resposta da IA e se ela chamou a
-            tool de celebração.
+            (texto, acoes) — texto da resposta (as rodadas concatenadas) e a
+            lista de ações para o frontend, ex: [{"tipo": "celebrar"}].
         """
 
 
@@ -38,12 +42,14 @@ class BaseTTSProvider(ABC):
         self.modelo = modelo
 
     @abstractmethod
-    def sintetizar(self, texto: str) -> bytes:
+    def sintetizar(self, texto: str, estilo: str = 'normal') -> bytes:
         """
         Converte texto em áudio.
 
         Args:
             texto: Texto para converter
+            estilo: 'normal' ou 'sussurro' (Everybody Whisper, D52). Provider
+                que não sabe sussurrar ignora.
 
         Returns:
             Bytes do arquivo de áudio

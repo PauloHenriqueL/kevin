@@ -1,0 +1,18 @@
+{# Palco do Kevin + pill de status. Compartilhado pela aula e pelo Playground #}
+{# (Demanda 20): uma cópia só, para o próximo export do animador não mexer   #}
+{# em um lado e esquecer o outro.                                             #}
+    <!-- Palco: Kevin em tela cheia -->
+    <div class="call-stage">
+        <div class="kevin-scene-bg" aria-hidden="true">
+            <span class="stage-blob blob-1"></span>
+            <span class="stage-blob blob-2"></span>
+            <span class="stage-blob blob-3"></span>
+        </div>
+        <div id="kevin-rig-mount" class="kevin-puppet-host" role="img" aria-label="Mascote Kevin animado"></div>
+    </div>
+
+    <!-- Status do Kevin (flutuante, topo) -->
+    <div class="kevin-status-pill" id="kevin-status-pill" data-state="idle" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-text">Pronto pra conversar</span>
+    </div>

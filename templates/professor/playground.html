@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static kevin_assets %}
+{% block title %}Playground — Turma {{ turma.year }}{{ turma.nome }}{% endblock %}
+
+{% block content %}
+{# Sessão do Playground (Demanda 20). Mesma estrutura do telão da aula     #}
+{# (aula_detail.html): palco, pill, topbar, controles, drawer e standby.     #}
+<div class="aula-call playground-call" id="aula-call" data-state="standby"
+     data-whisper="{{ estado.whisper|yesno:'on,off' }}" data-so-ingles="{{ estado.so_ingles|yesno:'on,off' }}">
+
+    {% include "professor/partials/kevin_palco.html" %}
+
+    <!-- Sinalização dos modos (D52): ícone + texto grandes, legíveis do fundo
+         da sala. Não depende do animador; o motor nem sabe que existem. -->
+    <div class="pg-vinheta" aria-hidden="true"></div>
+    <div class="pg-faixas" aria-live="polite">
+        <div class="pg-faixa pg-faixa-whisper" id="pg-faixa-whisper">
+            <svg class="pg-faixa-icone" viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="32" r="28" fill="#FFD66B"/>
+                <circle cx="22" cy="26" r="3.5" fill="#3B2A12"/>
+                <circle cx="42" cy="26" r="3.5" fill="#3B2A12"/>
+                <ellipse cx="32" cy="44" rx="7" ry="3" fill="#3B2A12"/>
+                <rect x="28.5" y="30" width="7" height="24" rx="3.5" fill="#F2A65A" stroke="#3B2A12" stroke-width="1.5"/>
+            </svg>
+            <span>Shhh... Everybody whisper!</span>
+        </div>
+        <div class="pg-faixa pg-faixa-ingles" id="pg-faixa-ingles">
+            <svg class="pg-faixa-icone" viewBox="0 0 64 64" aria-hidden="true">
+                <path d="M8 12h48a6 6 0 0 1 6 6v24a6 6 0 0 1-6 6H26l-12 10V48H8a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="#fff" stroke="#1D4FA3" stroke-width="3"/>
+                <text x="32" y="38" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="900" font-size="20" fill="#1D4FA3">EN</text>
+            </svg>
+            <span>No Portuguese allowed! English only!</span>
+        </div>
+    </div>
+    <div class="pg-selo-ingles" aria-hidden="true">EN</div>
+
+    <!-- Top bar translúcida -->
+    <header class="call-topbar">
+        <a class="call-back" href="{% url 'professor:playground' %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Playground</span>
+        </a>
+        <div class="call-title">
+            <div class="call-code">Playground · Turma {{ turma.year }}{{ turma.nome }}</div>
+            <h1 id="pg-contexto"{% if not conversa.contexto %} hidden{% endif %}>{{ conversa.contexto|truncatechars:60 }}</h1>
+        </div>
+        <div class="call-actions">
+            <button type="button" class="btn btn-action btn-action-primary" id="btn-encerrar-playground" aria-label="Encerrar o Playground">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <span>Encerrar</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Controles (centro/baixo, estilo chamada) -->
+    <div class="call-controls" aria-label="Controles do Playground">
+        <div class="call-btn-wrap">
+            <button class="btn-mic" id="btn-mic" type="button" aria-label="Falar com o Kevin (clique para começar, para sozinho no silêncio)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Falar</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-mic-live" id="btn-mic-live" type="button" aria-label="Conversa ao vivo, mãos livres">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                <div class="live-waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            </button>
+            <span class="call-btn-label">Conversa ao vivo</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica" id="btn-pay-attention" type="button" aria-label="Kevin chama a atenção da turma" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Atenção</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica btn-modo" id="btn-whisper" type="button" aria-label="Everybody Whisper" aria-pressed="{{ estado.whisper|yesno:'true,false' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 10.5a2.5 2.5 0 0 1 0 3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Whisper</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica btn-modo" id="btn-so-ingles" type="button" aria-label="No Portuguese Allowed — só inglês" aria-pressed="{{ estado.so_ingles|yesno:'true,false' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <text x="12" y="13.5" text-anchor="middle" font-size="7" font-weight="900" stroke="none" fill="currentColor">EN</text>
+                </svg>
+            </button>
+            <span class="call-btn-label">Só inglês</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica" id="btn-musica-pg" type="button" aria-label="Música: escolher ou parar" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label" id="btn-musica-pg-label">Música</span>
+        </div>
+    </div>
+
+    <!-- FAB do chat (canto inferior direito) -->
+    <button class="chat-fab" id="chat-fab" type="button" aria-label="Abrir chat com o Kevin" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="chat-fab-label">Chat</span>
+    </button>
+
+    <!-- Drawer do chat (deslizante, à direita). Sem "Material da aula": não há roteiro. -->
+    <aside class="chat-drawer" id="chat-drawer" aria-label="Chat com Kevin" aria-hidden="true">
+        <header class="chat-drawer-head">
+            <div>
+                <h3>Chat com Kevin</h3>
+                <div class="sub">Playground · Turma {{ turma.year }}{{ turma.nome }}</div>
+            </div>
+            <button class="chat-drawer-close" id="chat-drawer-close" type="button" aria-label="Fechar chat">×</button>
+        </header>
+
+        <div class="chat-body" id="chat-body" role="log" aria-live="polite" aria-label="Mensagens da conversa">
+            {% for msg in mensagens %}
+                <div class="message {{ msg.role }}">
+                    {% if msg.role == 'assistant' %}
+                        <div class="msg-avatar kevin-avatar" aria-hidden="true">
+                            <img class="kevin-mascot" src="{% static 'img/kevin_chat_conversa.svg' %}" alt="">
+                        </div>
+                        <div class="msg-content">
+                            <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
+                            <button class="btn-listen" type="button" aria-label="Ouvir resposta do Kevin" data-text="{{ msg.conteudo|escape }}">
+                                <svg class="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M3 22V2l18 10z"/>
+                                </svg>
+                                <svg class="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+                                </svg>
+                                <span class="btn-listen-label">Ouvir</span>
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="msg-avatar user-avatar" aria-hidden="true">{{ user.first_name|default:user.username|make_list|first|upper }}</div>
+                        <div class="msg-bubble">{{ msg.conteudo|linebreaksbr }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Escreva pro Kevin…" rows="1" aria-label="Mensagem para o Kevin"></textarea>
+            <button class="btn-send" id="btn-send" type="button" aria-label="Enviar mensagem">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Standby — tela inicial antes de começar (mesmo esquema da aula: o
+         cenário entra inline para o overlay ser opaco desde o 1º quadro). -->
+    {% kevin_asset "backgrounds/"|add:cenario|add:".webp" as cenario_url %}
+    {% kevin_asset "videos/entrada-kevin-poster.webp" as entrada_poster_url %}
+    <div class="call-standby" id="call-standby"
+         style="background-image: radial-gradient(120% 90% at 50% 28%, rgba(120,72,20,0.16), rgba(55,38,14,0.5)), url('{{ entrada_poster_url }}'), url('{{ cenario_url }}'); background-size: cover; background-position: center;">
+        <div class="standby-card">
+            <div class="standby-kevin">
+                <img src="{% static 'img/kevin_chat_conversa.svg' %}" alt="Kevin">
+            </div>
+            <div class="standby-code">Playground · Turma {{ turma.year }}{{ turma.nome }}</div>
+            <h2>Sessão livre com o Kevin</h2>
+            <p>O Kevin vai te perguntar sobre a aula de hoje e conduzir a partir do que você responder.</p>
+            <button class="btn-iniciar" id="btn-iniciar-playground" type="button">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <span>Começar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Seletor de música (botão Música, com nada tocando) -->
+    <div class="modal-overlay" id="modal-musicas" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-musicas-titulo">
+            <button type="button" class="modal-close" id="modal-musicas-close" aria-label="Fechar">×</button>
+            <h2 id="modal-musicas-titulo">Escolher música</h2>
+            <p class="modal-sub">O Kevin anuncia e toca com o ukulele.</p>
+            <div class="pg-musicas-lista">
+                {% for musica in musicas %}
+                    <button type="button" class="pg-musica-opcao" data-nome="{{ musica.nome }}">🎵 {{ musica.nome }}</button>
+                {% empty %}
+                    <p class="pg-musicas-vazio">Nenhuma música com áudio cadastrada no catálogo ainda.</p>
+                {% endfor %}
+                <button type="button" class="pg-musica-opcao pg-musica-ukulele" data-nome="">🪕 Só o ukulele (eu canto)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "professor/partials/kevin_config.html" with cenario=cenario %}
+{{ estado|json_script:"kevin-estado-inicial" }}
+{{ musicas|json_script:"kevin-musicas" }}
+<script>
+// Modo Playground (Demanda 20): tudo o que é novo em kevin_chat.js fica atrás
+// deste flag — a aula não executa nenhum caminho novo.
+window.KEVIN_MODO = "playground";
+window.KEVIN_CHAT_CONFIG.urls.estado = "/api/chat/conversas/{{ conversa.id }}/estado/";
+window.KEVIN_CHAT_CONFIG.urls.sair = "{% url 'professor:playground' %}";
+// Fala fixa de abertura (D53): já está no histórico; o "Começar" só a fala.
+window.KEVIN_ABERTURA = "{{ abertura|escapejs }}";
+// Contexto já fixado? (Recarregar a página no meio da sessão não repete o Open class.)
+window.KEVIN_TEM_CONTEXTO = {{ conversa.contexto|yesno:"true,false" }};
+// Estado da sala, para restaurar overlays/cenário/quadro se a página recarregar.
+window.KEVIN_ESTADO_INICIAL = JSON.parse(document.getElementById('kevin-estado-inicial').textContent);
+// Músicas do catálogo com faixa: nome → url, para o seletor.
+window.KEVIN_MUSICAS = JSON.parse(document.getElementById('kevin-musicas').textContent);
+window.KEVIN_DEMO_MODE = {{ kevin_demo_mode|yesno:"true,false" }};
+</script>
+{% include "professor/partials/kevin_scripts.html" %}
+{% endblock %}

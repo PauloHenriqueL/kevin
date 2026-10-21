@@ -539,3 +539,68 @@ class KevinAssetFallbackTest(TestCase):
 
         self.assertIn('backgrounds/floresta.webp', url)
         self.assertTrue(url.startswith('/static/'), url)
+
+
+class EditorPromptTGTest(TestCase):
+    """Editores do prompt do Kevin por TG: aula (Demanda 8) e Playground (Demanda 20)."""
+
+    def setUp(self):
+        from django.test import Client
+        from .models import TG
+        User.objects.create_user('coord', password='x', role='coordenador')
+        User.objects.create_user('prof', password='x', role='professor')
+        User.objects.create_user('dir', password='x', role='diretor')
+        self.tg = TG.objects.create(nome='TG 3x — Year 5', year=5, frequencia=3)
+        self.client_coord = Client()
+        self.client_coord.login(username='coord', password='x')
+
+    def test_editor_playground_so_para_coordenador(self):
+        from django.test import Client
+        url = f'/coordenacao/tg/{self.tg.id}/prompt-playground/'
+        self.assertEqual(self.client_coord.get(url).status_code, 200)
+        for username in ('prof', 'dir'):
+            c = Client()
+            c.login(username=username, password='x')
+            self.assertEqual(c.get(url).status_code, 403, username)
+
+    def test_editor_playground_mostra_os_4_campos_com_o_padrao(self):
+        from apps.chat.prompts import PLAYGROUND_ABERTURA_PADRAO
+        r = self.client_coord.get(f'/coordenacao/tg/{self.tg.id}/prompt-playground/')
+        for campo in ('playground_abertura', 'playground_papel',
+                      'playground_idioma', 'playground_execucao'):
+            self.assertContains(r, f'name="{campo}"')
+        self.assertContains(r, 'Kevin no Playground')
+        self.assertContains(r, PLAYGROUND_ABERTURA_PADRAO.split('!')[0])
+
+    def test_salvar_playground_grava_custom_e_vazio_quando_igual_ao_padrao(self):
+        from apps.chat.prompts import (
+            PLAYGROUND_EXECUCAO_PADRAO, PLAYGROUND_IDIOMA_PADRAO, PLAYGROUND_PAPEL_PADRAO,
+        )
+        r = self.client_coord.post(f'/coordenacao/tg/{self.tg.id}/prompt-playground/', {
+            'playground_abertura': 'Hello, Year 5!',
+            'playground_papel': PLAYGROUND_PAPEL_PADRAO,
+            'playground_idioma': PLAYGROUND_IDIOMA_PADRAO,
+            'playground_execucao': PLAYGROUND_EXECUCAO_PADRAO,
+        })
+        self.assertRedirects(r, f'/coordenacao/tg/{self.tg.id}/prompt-playground/',
+                             fetch_redirect_response=False)
+        self.tg.refresh_from_db()
+        self.assertEqual(self.tg.playground_abertura, 'Hello, Year 5!')
+        self.assertEqual(self.tg.playground_papel, '')
+        self.assertEqual(self.tg.get_abertura_playground(), 'Hello, Year 5!')
+
+    def test_editor_da_aula_continua_com_os_3_blocos(self):
+        r = self.client_coord.get(f'/coordenacao/tg/{self.tg.id}/prompt/')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'name="prompt_papel"')
+        self.assertNotContains(r, 'name="playground_papel"')
+        r = self.client_coord.post(f'/coordenacao/tg/{self.tg.id}/prompt/', {
+            'prompt_papel': 'Papel custom', 'prompt_idioma': '', 'prompt_execucao': '',
+        })
+        self.tg.refresh_from_db()
+        self.assertEqual(self.tg.prompt_papel, 'Papel custom')
+
+    def test_grade_tem_os_dois_botoes(self):
+        r = self.client_coord.get('/coordenacao/tg/')
+        self.assertContains(r, f'/coordenacao/tg/{self.tg.id}/prompt/')
+        self.assertContains(r, f'/coordenacao/tg/{self.tg.id}/prompt-playground/')

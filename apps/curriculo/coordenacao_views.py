@@ -100,44 +100,40 @@ class SelecionarUnitView(CoordBase, TemplateView):
         return ctx
 
 
-class EditarPromptTGView(CoordBase, TemplateView):
-    """Editor do prompt do Kevin de um TG (Demanda 8, D43/D44).
+class _EditorPromptTGBase(CoordBase, TemplateView):
+    """Editor de um conjunto de blocos do prompt do Kevin de um TG (D43/D44).
 
-    Os 3 blocos (Papel / Idioma / Execução) aparecem pré-preenchidos com o valor
-    efetivo: o texto customizado do TG, ou o default de apps/chat/prompts/*.txt
-    quando o bloco nunca foi mexido. Salvar um bloco idêntico ao default o grava
-    VAZIO, para o TG seguir herdando futuras melhorias do default (D42). Só o
-    coordenador acessa (CoordBase → CoordenadorRequiredMixin)."""
+    Os blocos aparecem pré-preenchidos com o valor efetivo: o texto
+    customizado do TG, ou o default de apps/chat/prompts/*.txt quando o bloco
+    nunca foi mexido. Salvar um bloco idêntico ao default o grava VAZIO, para o
+    TG seguir herdando futuras melhorias do default (D42). Só o coordenador
+    acessa (CoordBase → CoordenadorRequiredMixin).
+
+    Cada subclasse define o conjunto: `campos` = [(campo, título, ajuda)],
+    `_defaults()`, o nome da rota e os textos da tela.
+    """
     template_name = 'coordenacao/tg_prompt.html'
     active_nav = 'tg'
+    campos = []
+    url_name = ''
+    titulo_tela = ''
+    mensagem_salvo = ''
+    card_template = ''
 
     def _get_tg(self):
         from .models import TG
         return get_object_or_404(TG, pk=self.kwargs['tg_id'])
 
     def _defaults(self):
-        from apps.chat.prompts import (
-            PROMPT_PAPEL_PADRAO, PROMPT_IDIOMA_PADRAO, PROMPT_EXECUCAO_PADRAO,
-        )
-        return {
-            'prompt_papel': PROMPT_PAPEL_PADRAO,
-            'prompt_idioma': PROMPT_IDIOMA_PADRAO,
-            'prompt_execucao': PROMPT_EXECUCAO_PADRAO,
-        }
+        raise NotImplementedError
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         tg = self._get_tg()
         defaults = self._defaults()
-        metadados = [
-            ('prompt_papel', 'Papel do Kevin',
-             'Quem o Kevin é e sua postura em sala (o professor é o interlocutor).'),
-            ('prompt_idioma', 'Idioma (Instant Translation)',
-             'Política de idioma: valida em português, responde em inglês.'),
-            ('prompt_execucao', 'Como conduzir a aula',
-             'Como o Kevin executa o roteiro sem lê-lo em voz alta.'),
-        ]
         ctx['tg'] = tg
+        ctx['titulo_tela'] = self.titulo_tela
+        ctx['card_template'] = self.card_template
         ctx['blocos'] = [
             {
                 'campo': campo,
@@ -147,7 +143,7 @@ class EditarPromptTGView(CoordBase, TemplateView):
                 'padrao': defaults[campo],
                 'customizado': bool(getattr(tg, campo)),
             }
-            for campo, titulo, ajuda in metadados
+            for campo, titulo, ajuda in self.campos
         ]
         return ctx
 
@@ -159,8 +155,64 @@ class EditarPromptTGView(CoordBase, TemplateView):
             # Igual ao default → grava vazio, pra continuar herdando o default.
             setattr(tg, campo, '' if enviado == default.strip() else enviado)
         tg.save(update_fields=list(defaults.keys()))
-        messages.success(request, 'Prompt do Kevin atualizado para este TG.')
-        return redirect('coordenacao:tg_prompt', tg_id=tg.id)
+        messages.success(request, self.mensagem_salvo)
+        return redirect(f'coordenacao:{self.url_name}', tg_id=tg.id)
+
+
+class EditarPromptTGView(_EditorPromptTGBase):
+    """Prompt do Kevin nas aulas do TG (Demanda 8): Papel / Idioma / Execução."""
+    url_name = 'tg_prompt'
+    titulo_tela = 'Prompt do Kevin'
+    mensagem_salvo = 'Prompt do Kevin atualizado para este TG.'
+    card_template = 'coordenacao/_card_prompt_aula.html'
+    campos = [
+        ('prompt_papel', 'Papel do Kevin',
+         'Quem o Kevin é e sua postura em sala (o professor é o interlocutor).'),
+        ('prompt_idioma', 'Idioma (Instant Translation)',
+         'Política de idioma: valida em português, responde em inglês.'),
+        ('prompt_execucao', 'Como conduzir a aula',
+         'Como o Kevin executa o roteiro sem lê-lo em voz alta.'),
+    ]
+
+    def _defaults(self):
+        from apps.chat.prompts import (
+            PROMPT_PAPEL_PADRAO, PROMPT_IDIOMA_PADRAO, PROMPT_EXECUCAO_PADRAO,
+        )
+        return {
+            'prompt_papel': PROMPT_PAPEL_PADRAO,
+            'prompt_idioma': PROMPT_IDIOMA_PADRAO,
+            'prompt_execucao': PROMPT_EXECUCAO_PADRAO,
+        }
+
+
+class EditarPromptPlaygroundTGView(_EditorPromptTGBase):
+    """Kevin no Playground do TG (Demanda 20, D50): abertura + 3 blocos."""
+    url_name = 'tg_prompt_playground'
+    titulo_tela = 'Kevin no Playground'
+    mensagem_salvo = 'Kevin do Playground atualizado para este TG.'
+    card_template = 'coordenacao/_card_prompt_playground.html'
+    campos = [
+        ('playground_abertura', 'Fala de abertura',
+         'O que o Kevin diz ao abrir o Playground. Falado sempre igual.'),
+        ('playground_papel', 'Papel do Kevin',
+         'Quem o Kevin é e como se relaciona com o Teacher e com a turma.'),
+        ('playground_idioma', 'Idioma',
+         'Instant Translation e o modo No Portuguese Allowed.'),
+        ('playground_execucao', 'Como conduzir',
+         'Começo da sessão, ritmo, participação e uso dos recursos.'),
+    ]
+
+    def _defaults(self):
+        from apps.chat.prompts import (
+            PLAYGROUND_ABERTURA_PADRAO, PLAYGROUND_EXECUCAO_PADRAO,
+            PLAYGROUND_IDIOMA_PADRAO, PLAYGROUND_PAPEL_PADRAO,
+        )
+        return {
+            'playground_abertura': PLAYGROUND_ABERTURA_PADRAO,
+            'playground_papel': PLAYGROUND_PAPEL_PADRAO,
+            'playground_idioma': PLAYGROUND_IDIOMA_PADRAO,
+            'playground_execucao': PLAYGROUND_EXECUCAO_PADRAO,
+        }
 
 
 class GradeView(CoordBase, TemplateView):

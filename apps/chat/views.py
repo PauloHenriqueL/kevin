@@ -10,6 +10,7 @@ from apps.accounts.permissions import IsProfessor
 
 from .models import Conversa, Mensagem
 from .serializers import (
+    AtualizarEstadoSerializer,
     ConversaDetailSerializer,
     ConversaSerializer,
     EnviarMensagemSerializer,
@@ -73,13 +74,23 @@ class EnviarMensagemView(APIView):
 
         serializer = EnviarMensagemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        tipo = serializer.validated_data['tipo']
+
+        # Evento do sistema ("a música terminou") só existe no Playground.
+        if tipo == Mensagem.TipoChoices.EVENTO and not conversa.eh_playground:
+            return Response(
+                {'detail': 'Evento só existe no Playground.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         mensagem = Mensagem.objects.create(
             conversa=conversa,
             role='user',
-            tipo=serializer.validated_data['tipo'],
+            tipo=tipo,
             conteudo=serializer.validated_data['conteudo'],
         )
+        # Playground: a 1ª fala do Teacher vira o contexto da sessão (D49).
+        conversa.registrar_contexto(mensagem)
 
         sync = (
             request.query_params.get('sync') in ('1', 'true')
@@ -122,6 +133,36 @@ class EnviarMensagemView(APIView):
             MensagemSerializer(mensagem).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class AtualizarEstadoView(APIView):
+    """
+    PATCH /api/chat/conversas/<id>/estado/   body: {"whisper": true} etc.
+
+    Botões do professor no Playground (Whisper, Só inglês, limpar o quadro).
+    Grava e devolve o estado; o frontend avisa o Kevin em seguida com um
+    evento, para ele reagir em voz (Demanda 20).
+    """
+    permission_classes = [IsProfessor]
+
+    def patch(self, request, pk):
+        conversa = Conversa.objects.filter(
+            pk=pk,
+            professor=request.user.professor,
+            modo=Conversa.Modo.PLAYGROUND,
+        ).first()
+        if not conversa:
+            return Response(
+                {'detail': 'Conversa não encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = AtualizarEstadoSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data:
+            conversa.estado = {**(conversa.estado or {}), **serializer.validated_data}
+            conversa.save(update_fields=['estado'])
+        return Response(conversa.estado)
 
 
 class EnviarAudioView(APIView):
@@ -212,15 +253,20 @@ class TranscreverAudioView(APIView):
 
 class SintetizarTextoView(APIView):
     """
-    POST /api/chat/tts/     body: {"text": "..."}
-    Retorna bytes de áudio (MP3) direto no body.
+    POST /api/chat/tts/     body: {"text": "...", "estilo": "normal" | "sussurro"}
+    Retorna bytes de áudio (MP3) direto no body. `estilo` é opcional
+    (Everybody Whisper, D52).
     """
     permission_classes = [IsProfessor]
 
     def post(self, request):
         from apps.chat.providers import get_tts_provider
+        from apps.chat.providers.tts import ESTILOS, limpar_para_fala
 
-        texto = (request.data.get('text') or '').strip()
+        texto = limpar_para_fala(request.data.get('text') or '')
+        estilo = request.data.get('estilo') or 'normal'
+        if estilo not in ESTILOS:
+            estilo = 'normal'
         if not texto:
             return Response(
                 {'detail': 'Campo "text" obrigatório.'},
@@ -236,7 +282,7 @@ class SintetizarTextoView(APIView):
         )
 
         try:
-            audio_bytes = tts.sintetizar(texto)
+            audio_bytes = tts.sintetizar(texto, estilo=estilo)
         except Exception as exc:
             return Response(
                 {'detail': f'Falha na síntese: {exc}'},

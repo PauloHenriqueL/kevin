@@ -3985,3 +3985,114 @@ table.data tbody tr:hover {
   .chat-drawer { transition: none; }
 }
 
+
+/* ============================================================
+   PLAYGROUND (Demanda 20) — sinalização dos modos na TV
+   Everybody Whisper e No Portuguese Allowed: ícone + texto GRANDES,
+   legíveis do fundo da sala (as crianças pequenas não leem — o
+   ícone e a voz carregam o sinal, o texto reforça). Faixas no
+   topo, abaixo da pill, para não cobrir o rosto do Kevin; nunca
+   bloqueiam clique (pointer-events: none). Não dependem do motor.
+   ============================================================ */
+.pg-vinheta {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.6s ease;
+  background: radial-gradient(ellipse 75% 70% at 50% 58%, rgba(10,25,70,0) 45%, rgba(10,25,70,0.62) 100%);
+}
+.playground-call[data-whisper="on"] .pg-vinheta { opacity: 1; }
+
+/* Compactas e numa linha só: as duas empilhadas cabem entre a pill e a
+   cabeça do Kevin (medido em 1600×900 e 1920×1080). */
+.pg-faixas {
+  position: absolute; top: 112px; left: 50%; z-index: 5;
+  transform: translateX(-50%);
+  width: min(94%, 1100px);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  pointer-events: none;
+}
+.pg-faixa {
+  display: none; align-items: center; justify-content: center; gap: 0.4em;
+  font-family: 'Nunito', sans-serif; font-weight: 900;
+  font-size: clamp(1.05rem, 2.4vw, 2.9rem); line-height: 1.1;
+  white-space: nowrap;
+  padding: 0.22em 0.8em 0.22em 0.4em; border-radius: var(--radius-pill);
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(15,23,42,0.35);
+}
+.pg-faixa-icone { width: 1.45em; height: 1.45em; flex-shrink: 0; }
+.pg-faixa-whisper { background: #14306B; color: #FFFFFF; border: 0.09em solid #8FB7FF; }
+.pg-faixa-ingles { background: #FFD84D; color: #14306B; border: 0.09em solid #1D4FA3; }
+.playground-call[data-whisper="on"] .pg-faixa-whisper {
+  display: inline-flex;
+  animation: pg-entra 0.55s cubic-bezier(.34,1.56,.64,1), pg-pulsa 2.6s ease-in-out 0.6s infinite;
+}
+/* Só inglês: a faixa anuncia e some; o selo fica no canto enquanto valer. */
+.playground-call[data-so-ingles="on"] .pg-faixa-ingles {
+  display: inline-flex;
+  animation: pg-anuncia 7s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.pg-selo-ingles {
+  display: none;
+  position: absolute; top: 92px; right: 24px; z-index: 5;
+  width: clamp(64px, 7vw, 104px); height: clamp(64px, 7vw, 104px);
+  border-radius: 50%;
+  align-items: center; justify-content: center;
+  background: #FFD84D; color: #14306B; border: 5px solid #1D4FA3;
+  font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  box-shadow: 0 8px 22px rgba(15,23,42,0.30);
+  pointer-events: none;
+}
+.playground-call[data-so-ingles="on"] .pg-selo-ingles { display: flex; animation: pg-entra 0.5s cubic-bezier(.34,1.56,.64,1) 6.4s both; }
+
+@keyframes pg-entra { from { opacity: 0; transform: translateY(-18px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes pg-pulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); opacity: 0.88; } }
+@keyframes pg-anuncia {
+  0%   { opacity: 0; transform: translateY(-18px) scale(0.85); }
+  8%   { opacity: 1; transform: none; }
+  88%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); visibility: hidden; }
+}
+
+/* Botões de modo (Whisper / Só inglês): ligado = mesmo visual de "tocando". */
+.btn-modo[aria-pressed="true"] {
+  background: #16a34a; color: white;
+  box-shadow: 0 0 0 4px rgba(22,163,74,0.20), 0 4px 12px rgba(22,163,74,0.30);
+}
+.call-btn-wrap:has([aria-pressed="true"]) { opacity: 1; }
+
+/* Seletor de música */
+.pg-musicas-lista { display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.pg-musica-opcao {
+  text-align: left; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800;
+  color: var(--azul-escuro); background: var(--cinza-fundo);
+  border: 1.5px solid var(--cinza-borda); border-radius: 12px; padding: 12px 14px;
+  transition: var(--transition);
+}
+.pg-musica-opcao:hover, .pg-musica-opcao:focus-visible { background: var(--azul-claro); border-color: var(--azul); }
+.pg-musica-ukulele { color: var(--texto-sec); }
+.pg-musicas-vazio { color: var(--texto-sec); font-size: 0.9rem; margin: 0 0 4px; }
+
+/* Lista de turmas do Playground */
+.playground-card { cursor: default; }
+.playground-card-btn { margin-top: 16px; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; }
+
+@media (max-width: 640px) {
+  .pg-faixas { top: 108px; }
+  .pg-faixa { white-space: normal; }
+  .pg-selo-ingles { top: 84px; right: 14px; }
+  /* 6 botões não cabem lado a lado no celular: quebram linha e não
+     passam por baixo do FAB do chat. */
+  .playground-call .call-controls { right: 84px; flex-wrap: wrap; gap: 8px; }
+  .playground-call .call-controls .btn-mic,
+  .playground-call .call-controls .btn-mic-live,
+  .playground-call .call-controls .btn-musica { width: 44px; height: 44px; border-radius: 14px; }
+  .playground-call .call-btn-label { font-size: 0.6rem; max-width: 56px; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-vinheta { transition: none; }
+  .playground-call[data-whisper="on"] .pg-faixa-whisper,
+  .playground-call[data-so-ingles="on"] .pg-selo-ingles { animation: none; }
+  .playground-call[data-so-ingles="on"] .pg-faixa-ingles { animation: pg-anuncia 7s steps(1, end) forwards; }
+}

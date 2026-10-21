@@ -62,7 +62,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Tipo de mudança | Como validar |
 |---|---|
-| Modelo/lógica | `docker compose exec web python manage.py test` (55 testes) |
+| Modelo/lógica | `docker compose exec web python manage.py test` (124 testes) |
 | Tela/fluxo | Playwright: login → navegar → screenshot. **Olhar o screenshot** |
 | Animação | Screenshot no modo específico. Comparar com o `demo.html` do animador |
 | Qualquer coisa | `manage.py check` limpo antes de commitar |
@@ -299,6 +299,8 @@ celery -A config worker -l info  # in another terminal
 |---|---|
 | `apps/chat/tasks.py` → `SYSTEM_PROMPT_BASE` | ✅ **O prompt oficial.** É o único lugar a editar |
 | `apps/chat/tasks.py` → `_montar_contexto()` | ✅ Montagem do contexto da aula |
+| `apps/chat/prompts/playground_*.txt` + `_montar_contexto_playground()` | ✅ Prompt do **Playground** (Demanda 20) — ver "Kevin Playground" abaixo |
+| `apps/chat/ferramentas.py` | ✅ Ferramentas (tool calling) do Kevin: o que cada uma faz e em que modo vale |
 | `exemplo/` | ❌ **Protótipo descartável.** Não é referência, não é produção |
 
 **Regras:**
@@ -317,7 +319,37 @@ celery -A config worker -l info  # in another terminal
 **Modelo de interação** (confirmado com o cliente): o Kevin é projetado na
 tela/TV da sala. O **professor é o interlocutor principal** e conversa por áudio;
 a turma participa em momentos que o professor abre e fecha. O Kevin não toma a
-iniciativa de se dirigir às crianças.
+iniciativa de se dirigir às crianças. (Exceção no Playground, D48 — ver
+"Kevin Playground" abaixo.)
+
+### 🛝 Kevin Playground (Demanda 20)
+
+Sessão com o Kevin **sem aula cadastrada** (`/professor/playground/`). É um
+**modo da `Conversa`** (`modo='playground'`, `turma` preenchida, `aula` nula) —
+não gera `AulaTurma` nem mexe em progresso (D47).
+
+| Peça | Onde |
+|---|---|
+| Prompt (default) | `apps/chat/prompts/playground_{abertura,papel,idioma,execucao}.txt` |
+| Prompt (por TG) | campos `TG.playground_*`, editor em `/coordenacao/tg/<id>/prompt-playground/` (D50) |
+| Montagem | `_montar_contexto_playground()` em `tasks.py`: blocos → turma → catálogo (só nomes) → contexto → estado da sala |
+| Ferramentas | `apps/chat/ferramentas.py` — cada uma declara o modo; **no modo aula só existe `celebrar_acerto`** |
+| Estado da sala | `Conversa.estado` (whisper, so_ingles, cenario, quadro, jogo_id) |
+| Telão | `templates/professor/playground.html` + o que está atrás de `MODO_PLAYGROUND` em `kevin_chat.js` |
+| Voz sussurrada | `ElevenLabsTTSProvider.sintetizar(estilo='sussurro')` → `eleven_v3` + `[whispers]` (D52) |
+
+**Regras que mudam só aqui:** o Kevin chama a turma por iniciativa própria
+(exceção à regra 15, D48); a abertura é fixa, não gerada pela IA (D53); o
+contexto da sessão é a 1ª resposta do Teacher, literal (D49).
+
+**Ao mexer:** os nomes das ferramentas aparecem no texto do prompt — renomear
+uma ferramenta exige atualizar o prompt (default e TGs customizados). A aula
+estruturada não pode ganhar caminho novo: tudo no JS fica atrás de
+`MODO_PLAYGROUND`, e o teste `test_conversa_de_aula_continua_so_com_celebrar`
+protege o backend.
+
+**Como testar:** login como `maria` → Playground → turma → Começar. Sem chave
+de IA no plano, o chat cai no modo demo (sem ferramentas).
 
 ## 📐 Regras de negócio — metodologia Bebelingue
 
@@ -388,7 +420,9 @@ iniciativa de se dirigir às crianças.
 
 15. **O professor é o interlocutor**, principalmente por áudio. A turma
     participa em momentos que ele abre e fecha. O Kevin **não toma a iniciativa**
-    de se dirigir às crianças.
+    de se dirigir às crianças. **Exceção, só no Playground (D48):** sem roteiro,
+    o Kevin chama a turma por iniciativa própria. É de propósito — não
+    "corrija" o prompt do Playground com base nesta regra.
 16. **Instant Translation é o padrão de idioma**: valida em português, responde
     em inglês. Deve ficar num trecho **isolado e substituível** do prompt
     (vira configuração na Demanda 8).
@@ -571,8 +605,8 @@ See `.env.example`. Key variables:
 **Test API endpoint:**
 - Use `manage.py shell` to test views/models
 - **Suíte de testes (Demanda 14):** `docker compose exec web python manage.py test`
-  — 55 testes em `apps/{accounts,curriculo,escolas}/tests.py`. Rode antes de
-  commitar mudanças no domínio.
+  — 124 testes em `apps/{accounts,chat,curriculo,escolas}/tests.py`. Rode antes
+  de commitar mudanças no domínio.
 
 ## ⚠️ Exports de animação do animador — como lidar
 
@@ -634,9 +668,9 @@ SVGO, use `cleanupIds: false`.
 2. **Copiar os arquivos** para os destinos da tabela acima. Sobrescrever o SVG,
    o JS e o CSS; adicionar backgrounds/vídeos novos em `assets/`.
 
-3. **Bump do cache-buster** no template que carrega os assets
-   (`templates/professor/aula_detail.html`): incrementar o `?v=N` do
-   `kevin-puppet.js`, do `.css` e do SVG. Sem isso, o navegador serve o cache
+3. **Bump do cache-buster** no partial que carrega os assets
+   (`templates/professor/partials/kevin_scripts.html`, usado pela aula e pelo
+   Playground): incrementar o `?v=N` do `kevin-puppet.js`, do `.css` e do SVG. Sem isso, o navegador serve o cache
    velho e "não muda nada" (causa nº 1 de "instalei mas continua igual").
 
 4. **Se o background for novo**, registrar a chave em `BACKGROUND_CHOICES`
@@ -730,6 +764,7 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | — | Correção de segurança | As 5 views em função de `coordenacao_views.py` estavam sem guarda de papel — qualquer usuário logado podia editar o TG oficial. `role_required` em `apps/accounts/decorators.py` (D40) |
 | 8 | Prompt editável por TG | Prompt do Kevin em `apps/chat/prompts/*.txt` (default) + 3 campos no `TG` (`prompt_papel/idioma/execucao`). Editor em `/coordenacao/tg/<id>/prompt/` (só coordenador); bloco vazio herda o default (D42–D44) |
 | — | Fix Kevin "robótico" | Modo demo do chat de texto era `true` hardcoded e vazava pra produção. Agora liga ao plano ter chave de IA: com chave → Kevin real (D45) |
+| 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do Teacher, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), editor por TG na coordenação (D47–D53). **Falta validar em sala** e testar o sussurro com a voz do Kevin |
 
 ---
 

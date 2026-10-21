@@ -6,13 +6,13 @@ from .models import Conversa, Mensagem
 class MensagemInline(admin.TabularInline):
     model = Mensagem
     extra = 0
-    readonly_fields = ('role', 'tipo', 'conteudo', 'created_at')
+    readonly_fields = ('role', 'tipo', 'conteudo', 'acoes', 'created_at')
 
 
 @admin.register(Conversa)
 class ConversaAdmin(admin.ModelAdmin):
-    list_display = ('professor', 'aula', 'created_at')
-    list_filter = ('professor__escola',)
+    list_display = ('professor', 'modo', 'aula', 'turma', 'created_at')
+    list_filter = ('modo', 'professor__escola')
     inlines = [MensagemInline]
 
 

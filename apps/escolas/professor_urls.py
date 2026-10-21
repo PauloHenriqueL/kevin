@@ -14,4 +14,9 @@ urlpatterns = [
     path('aulas/', professor_views.TodasAulasView.as_view(), name='todas_aulas'),
     path('biblioteca/', professor_views.BibliotecaView.as_view(), name='biblioteca'),
     path('meu-progresso/', professor_views.MeuProgressoView.as_view(), name='meu_progresso'),
+    path('playground/', professor_views.PlaygroundView.as_view(), name='playground'),
+    path('playground/turma/<int:turma_id>/iniciar/', professor_views.IniciarPlaygroundView.as_view(),
+         name='playground_iniciar'),
+    path('playground/<int:conversa_id>/', professor_views.PlaygroundSessaoView.as_view(),
+         name='playground_sessao'),
 ]

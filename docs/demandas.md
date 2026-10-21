@@ -25,6 +25,7 @@
 - **[Demanda 16 — Relatório orientado ao professor](#demanda-16--relatório-orientado-ao-professor)** 🔴
 - **[Demanda 17 — June ordenada entre a Unit 4 e a Unit 5](#demanda-17--june-ordenada-entre-a-unit-4-e-a-unit-5)** 🔴
 - **[Demanda 18 — Subir para produção (Render + Neon)](#demanda-18--subir-para-produção-render--neon)** 🔵 (passo a passo)
+- **[Demanda 20 — Kevin Playground](#demanda-20--kevin-playground)** 🟡
 - [Decisões registradas](#decisões-registradas)
 - [Considerado e adiado](#considerado-e-adiado)
 - [Riscos aceitos](#riscos-aceitos)
@@ -138,6 +139,7 @@ invenção nossa** — são o vocabulário do cliente, e devem ser preservados n
 | 12 | Background por aula | ✅ **Feita** | 1, 9 |
 | 13 | Seed só com currículo da Bebelingue | ✅ **Feita** | 1 |
 | 14 | Suíte de testes automatizados | ✅ **Feita** — 30 testes | — |
+| 20 | Kevin Playground (sessão sem aula cadastrada) | 🟡 **Em implementação** | 3, 8, 11 |
 
 ### Ordem sugerida de execução
 
@@ -1759,6 +1761,78 @@ cenário novo já exige deploy.
 
 ---
 
+## Demanda 20 — Kevin Playground
+
+**Status:** 🟡 Em implementação. Pedido do Arthur (20/10/2026).
+
+Uma aba **Playground** na área do professor: sessão com o Kevin **sem aula
+cadastrada**. O Kevin abre com uma fala fixa perguntando o tema do dia; a
+primeira resposta do Teacher vira o contexto da sessão. A partir daí ele conduz
+com a mesma personalidade e metodologia, usando os recursos que já existem
+(Pay Attention, celebrate, música, jogos do catálogo, quadro, cenários) e dois
+novos: **Everybody Whisper** e **No Portuguese Allowed**.
+
+**Não muda:** a aula estruturada (`aula_detail`). No modo aula a única
+ferramenta oferecida à IA continua sendo `celebrar_acerto`. Sessão de
+Playground não gera `AulaTurma` nem mexe em progresso.
+
+### Peças
+
+| Camada | O que entra |
+|---|---|
+| Modelo | `Conversa.modo/turma/contexto/estado`; `Mensagem.tipo='evento'` e `Mensagem.acoes`; 4 campos `playground_*` no `TG` |
+| Prompt | `apps/chat/prompts/playground_*.txt` (default) + override por TG; montagem em `_montar_contexto_playground()` |
+| IA | Registro de ferramentas em `apps/chat/ferramentas.py`; laço de tool-calling nos dois providers, devolvendo `(texto, acoes)` |
+| Professor | `/professor/playground/` (lista de turmas) → sessão no formato do telão |
+| Coordenação | "Editar Kevin (Playground)" por TG, ao lado do "Editar prompt do Kevin" |
+| TTS | `estilo='sussurro'` → ElevenLabs `eleven_v3` com a tag `[whispers]`, só na síntese |
+
+### Ferramentas do Playground
+
+`mostrar_no_quadro`, `trocar_cenario`, `tocar_musica`, `iniciar_jogo`,
+`encerrar_jogo`, `pay_attention`, `everybody_whisper`, `no_portuguese_allowed`,
+além de `celebrar_acerto` (que vale nos dois modos). Música e jogo são
+resolvidos **no catálogo** (`Atividade`) — o Kevin nunca inventa regra de jogo
+(regra 8) nem vê atividade local de outra escola (D6). A descrição técnica de
+cada ferramenta diz **o que** ela faz; o **quando** usar é pedagogia e fica no
+prompt, que a coordenação edita.
+
+### Critérios de aceite
+
+- [ ] Aba Playground só para o professor, listando as turmas dele
+- [ ] Toda sessão começa com a mesma fala de abertura, sem chamada à IA
+- [ ] A primeira resposta do Teacher fica fixada e o Kevin se mantém no tema
+- [ ] Música pedida pelo nome toca a faixa do catálogo com o Kevin no ukulele; ao terminar, ele retoma o tema
+- [ ] Jogo pedido pelo nome é conduzido pelas regras do catálogo
+- [ ] Pay Attention pelo botão e por decisão do Kevin
+- [ ] Whisper e Só inglês: overlay legível do fundo da sala, ligando/desligando pelo Kevin ou pelo botão; voz sussurrada no Whisper
+- [ ] Palavra nova aparece no quadro; cenário muda quando combina com o tema
+- [ ] Encerrar: o Kevin se despede e volta para a lista; nenhum progresso de TG muda
+- [ ] Editor do Playground por TG com 4 campos, valendo na próxima sessão
+- [ ] Aula estruturada exatamente como antes (suíte passando, sem ferramenta nova no modo aula)
+
+### Fora da v1
+
+Extração estruturada do contexto (tema/vocabulário/gramática em campos) e
+histórico de temas por turma; pose "shh" e efeitos sonoros do animador;
+imagens de quadro além das 14 de vocabulário (depende da Demanda 19, etapa 2);
+voz em tempo real (Nível B, D45); `cache_control` explícito no Anthropic
+(produção usa OpenAI, cujo cache de prefixo é automático — o contexto já é
+montado do estável para o volátil).
+
+### Riscos
+
+- **Transcrição com muitas crianças falando** é ruidosa. O prompt manda
+  comemorar a participação em vez de corrigir pela transcrição.
+- **VAD x cochicho:** durante o Whisper o modo ao vivo pode não detectar a fala
+  baixa das crianças. Avisar no treinamento; o botão Falar continua valendo.
+- **Catálogo de músicas sem `arquivo_url`** em produção: o Kevin diz que não
+  tem a música. A experiência depende de a coordenação cadastrar as faixas.
+- **Prompt editado sem os nomes das ferramentas:** o contrato técnico não
+  quebra, mas o Kevin deixa de saber quando usar o recurso. O editor avisa.
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1812,6 +1886,13 @@ uma tem consequência em cascata sobre as demais.
 | **D44** | **Editor expõe os 3 blocos separados** (Papel / Idioma / Execução), só para `coordenador` | Um campo de texto livre com o prompt inteiro; ou só o bloco de Idioma | Paulo (15/10/2026). Campos separados preservam a estrutura e dificultam quebrar o Kevin por engano (ex.: apagar a regra de "não ler o roteiro"). Diretor não vê — prompt é metodologia da Bebelingue |
 | **D45** | **Voz em sala: turn-based (Nível A).** Clica no botão ao vivo, VAD detecta fim da fala, STT→IA→TTS síncronos, reabre o mic. **Não** migrar para streaming/realtime (Nível B) agora | Realtime estilo GPT/Gemini (OpenAI Realtime API, WebSocket, barge-in) | Paulo (15/10/2026). O pipeline do Nível A já existe (`live mode` em `kevin_chat.js`) e as 3 chaves estão em produção. O Nível B (barge-in, baixa latência) é outra arquitetura; só se justifica com uso real. Infra: **não** subir Redis/Celery agora — o código já chama `.delay()` e só o flag `CELERY_TASK_ALWAYS_EAGER=True` roda inline, então migrar depois é config, não refactor. Concorrência se ataca primeiro tunando o gunicorn (trabalho é I/O-bound) |
 | **D46** | **Falas gravadas do export de 15/10/2026 ligadas assim:** abertura usa **`playOpenClass()`** (~22s: "hi kids", "todos dizem hi Kevin", "como estão se sentindo", "how are you feeling", com pausas de escuta) e o kickoff da IA vem depois; `celebrate` **fala** "yeah, you got it" e a resposta da IA só toca depois (`await playCelebrate()`); pose `listening` enquanto o professor grava pelo mic; botão **Atenção** no telão dispara `playPayAttention()`; `bye` ao concluir a aula. Tela de espera mostra o **1º frame da entrada** (cortina fechada) | Manter o aceno mudo (`tchau`); só o `hi` na abertura; celebrate sem fala (`celebrateVoiceUrl: null`); recursos só na API, sem gatilho | Decisão em 15/10/2026, na instalação do export. A abertura começou com `hi` e foi trocada por Open class no mesmo dia, depois de ver rodando. Se o professor interagir durante o Open class, a sequência é cancelada e o kickoff **não** roda por cima. **Dívida com o animador:** as falas de `playOpenClass`/`playPayAttention` são resolvidas relativas ao `.js` (`VOICE_DIR`), sem opção de URL — em produção, com a mídia no bucket, **a abertura e o botão Atenção ficam mudos** (404 nas falas) até o motor expor algo como `voiceBaseUrl`. Ver `DIARIO_EXPORT.md`, Entrada 10 |
+| **D47** | Playground é um **modo da `Conversa`** (`modo='playground'`, `aula=NULL`, `turma` preenchida). Cada entrada cria uma sessão nova. Não gera `AulaTurma` | Modelo próprio de sessão; ou reaproveitar uma conversa por turma | Reaproveita chat, histórico, STT/TTS e telão sem tocar no fluxo da aula. Sessão nova evita o contexto de um dia vazar para o outro (Demanda 20) |
+| **D48** | **Exceção à D11 restrita ao Playground**: o Kevin se dirige às crianças por iniciativa própria e chama a turma o tempo todo. Na aula estruturada a D11 continua valendo | Manter a D11 também no Playground | Pedido do produto (Arthur, 20/10/2026). Sem roteiro, o engajamento precisa vir do Kevin. É a regra 15 do `CLAUDE.md` mudando de propósito, só neste modo |
+| **D49** | O contexto da sessão é a **primeira resposta do Teacher, gravada literalmente** em `Conversa.contexto` e injetada no system prompt | Extrair tema/vocabulário/gramática em campos estruturados | Simples e sem erro de extração. Extração estruturada fica para a v2 |
+| **D50** | Prompt do Playground **por TG**, espelhando D42–D44: default em `apps/chat/prompts/playground_*.txt`, override em 4 campos do `TG` (abertura, papel, idioma, execução). Turma sem série/TG usa o default | Prompt global do Playground | Mesma granularidade e mesmo editor que a coordenação já conhece. "Year 1 tolera mais português que Year 5" continua coberto |
+| **D51** | Ações do Kevin via **tool calling generalizado** (registro em `apps/chat/ferramentas.py`) gravadas em `Mensagem.acoes`. Música e jogo são resolvidos **no catálogo**, nunca inventados. Cada ferramenta declara em que modo vale; no modo aula só existe `celebrar_acerto` | Marcadores no texto da resposta; ou ferramentas também na aula | Generaliza a D38. Mantém a regra 8 (não inventar regra de jogo) e a D6 (atividade local só da própria escola). Declarar o modo na ferramenta é o que garante que a aula não muda |
+| **D52** | Everybody Whisper e No Portuguese Allowed: estado em `Conversa.estado`, sinalização por **overlay HTML/CSS** e voz sussurrada via **ElevenLabs `eleven_v3` + tag `[whispers]`**, aplicada só na síntese | Esperar pose/efeito do animador; ou guardar a tag no texto | O overlay não depende de entrega do animador. A tag nunca chega ao texto salvo nem à tela. Outros providers de TTS ignoram o estilo; o frontend baixa o volume como reforço |
+| **D53** | A **fala de abertura do Playground é fixa**, não gerada pela IA: sintetizada pelo TTS e gravada como primeira mensagem do Kevin | Gerar a abertura pela IA | O pedido é "sempre o mesmo texto". Fixa também elimina uma chamada à IA e a latência no momento mais visível da sessão |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)

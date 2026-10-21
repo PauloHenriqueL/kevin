@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
@@ -340,4 +341,102 @@ class MeuProgressoView(ProfessorRequiredMixin, TemplateView):
             })
 
         ctx['turmas_data'] = turmas_data
+        return ctx
+
+
+# ── Playground (Demanda 20) ──────────────────────────────────────────────────
+#
+# Sessão com o Kevin sem aula cadastrada. É um modo da Conversa (D47): cada
+# entrada cria uma sessão nova, presa a uma turma, e não gera AulaTurma — o
+# progresso continua sendo do TG.
+
+CENARIO_INICIAL_PLAYGROUND = 'floresta'
+
+
+def _kevin_demo_mode(turma):
+    """Respostas locais (sem IA) só quando o plano não tem chave de IA."""
+    plano = getattr(turma.escola, 'plano', None)
+    return not bool(plano and plano.ia_api_key)
+
+
+class PlaygroundView(ProfessorRequiredMixin, TemplateView):
+    """Professor escolhe a turma para abrir o Playground."""
+    template_name = 'professor/playground_turmas.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['turmas'] = Turma.objects.filter(
+            professor=self.request.user.professor,
+        ).select_related('escola').order_by('year', 'nome')
+        return ctx
+
+
+class IniciarPlaygroundView(ProfessorRequiredMixin, View):
+    """POST: cria a sessão e grava a abertura fixa como 1ª fala do Kevin (D53).
+
+    O evento de início vem ANTES da abertura para o histórico começar por uma
+    mensagem do usuário — exigência de alguns provedores de IA.
+    """
+
+    def post(self, request, turma_id):
+        from apps.chat.prompts import PLAYGROUND_ABERTURA_PADRAO
+
+        professor = request.user.professor
+        turma = get_object_or_404(
+            Turma.objects.select_related('serie__tg'), id=turma_id, professor=professor,
+        )
+        tg = turma.tg
+        abertura = tg.get_abertura_playground() if tg else PLAYGROUND_ABERTURA_PADRAO
+
+        with transaction.atomic():
+            conversa = Conversa.objects.create(
+                professor=professor,
+                turma=turma,
+                modo=Conversa.Modo.PLAYGROUND,
+                estado={
+                    'cenario': CENARIO_INICIAL_PLAYGROUND, 'quadro': '',
+                    'whisper': False, 'so_ingles': False, 'jogo_id': None,
+                },
+            )
+            Mensagem.objects.create(
+                conversa=conversa, role='user', tipo=Mensagem.TipoChoices.EVENTO,
+                conteudo='Sessão de Playground iniciada.',
+            )
+            Mensagem.objects.create(
+                conversa=conversa, role='assistant', tipo='texto', conteudo=abertura,
+            )
+
+        return redirect('professor:playground_sessao', conversa_id=conversa.id)
+
+
+class PlaygroundSessaoView(ProfessorRequiredMixin, TemplateView):
+    """A sessão do Playground, no mesmo formato do telão da aula."""
+    template_name = 'professor/playground.html'
+
+    def get_context_data(self, **kwargs):
+        from apps.chat.ferramentas import catalogo_musicas
+
+        ctx = super().get_context_data(**kwargs)
+        conversa = Conversa.objects.filter(
+            id=kwargs['conversa_id'],
+            professor=self.request.user.professor,
+            modo=Conversa.Modo.PLAYGROUND,
+        ).select_related('turma__escola__plano').first()
+        if not conversa or not conversa.turma:
+            raise Http404
+
+        mensagens = Mensagem.objects.filter(conversa=conversa).order_by('created_at')
+        abertura = mensagens.filter(role='assistant').first()
+        estado = conversa.estado or {}
+
+        ctx['conversa'] = conversa
+        ctx['turma'] = conversa.turma
+        ctx['mensagens'] = mensagens.exclude(tipo=Mensagem.TipoChoices.EVENTO)
+        ctx['abertura'] = abertura.conteudo if abertura else ''
+        ctx['estado'] = estado
+        ctx['cenario'] = estado.get('cenario') or CENARIO_INICIAL_PLAYGROUND
+        ctx['musicas'] = [
+            {'nome': a.nome, 'url': a.arquivo_url} for a in catalogo_musicas(conversa)
+        ]
+        ctx['kevin_demo_mode'] = _kevin_demo_mode(conversa.turma)
         return ctx

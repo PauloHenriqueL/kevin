@@ -1,137 +1,166 @@
+import json
+
 import anthropic
 import openai
 
 from .base import BaseIAProvider
 
-# ── Tool "celebrar_acerto" ──────────────────────────────────────────────────
+# ── Ferramentas (tool calling) ──────────────────────────────────────────────
 #
-# Sinaliza pro frontend disparar o modo "celebrate" do Kevin (pulo + confete)
-# quando o Teacher ou a turma acerta algo (D38, docs/demandas.md). Uma única
-# descrição compartilhada pelos dois providers evita as duas cópias divergirem
-# com o tempo — cada provider só traduz para o formato de tool da sua API.
-CELEBRAR_TOOL_NOME = 'celebrar_acerto'
-CELEBRAR_TOOL_DESCRICAO = (
-    'Chame esta ferramenta quando o Teacher (ou a turma, no momento que ele '
-    'abriu) acabou de acertar algo que você estava ensinando ou testando — '
-    'uma resposta certa, um vocabulário lembrado corretamente, um jogo '
-    'ganho. Chame JUNTO com sua resposta de texto normal, nunca no lugar '
-    'dela — o Teacher precisa continuar ouvindo você falar. Não chame por '
-    'elogios genéricos, cumprimentos, ou toda vez que alguém responde algo.'
-)
+# A descrição de cada ferramenta vive UMA vez em apps/chat/ferramentas.py (D38,
+# generalizada na D51); cada provider só traduz para o formato da sua API. Sem
+# lista explícita, vale a do modo aula — só `celebrar_acerto`, como sempre foi.
+
+# Teto de rodadas de tool calling por resposta: protege contra laço e contra
+# latência (o professor espera na frente da turma).
+MAX_RODADAS = 3
+
+
+def _ferramentas_padrao():
+    from apps.chat.ferramentas import ferramentas_do_modo
+    return ferramentas_do_modo('aula')
+
+
+def _executar(conversa, nome, entrada):
+    from apps.chat.ferramentas import executar
+    return executar(conversa, nome, entrada)
+
+
+def _acumular(acoes, resultados):
+    """Junta as ações da rodada, sem repetir (a IA pode chamar duas vezes)."""
+    for r in resultados:
+        if r.acao and r.acao not in acoes:
+            acoes.append(r.acao)
+
+
+def _precisa_rodar_de_novo(texto, resultados):
+    """Sem texto ainda, ou alguma ferramenta devolveu algo que a IA precisa ler
+    antes de falar (regras do jogo, música não encontrada)."""
+    return not texto or any(r.precisa_continuar for r in resultados)
 
 
 class AnthropicProvider(BaseIAProvider):
-    def chat(self, system_prompt: str, mensagens: list[dict]) -> tuple[str, bool]:
+    def chat(self, system_prompt: str, mensagens: list[dict],
+             ferramentas=None, conversa=None) -> tuple[str, list[dict]]:
+        ferramentas = _ferramentas_padrao() if ferramentas is None else ferramentas
         client = anthropic.Anthropic(api_key=self.api_key)
-        tools = [{
-            'name': CELEBRAR_TOOL_NOME,
-            'description': CELEBRAR_TOOL_DESCRICAO,
-            'input_schema': {'type': 'object', 'properties': {}},
-        }]
+        tools = [
+            {'name': f.nome, 'description': f.descricao, 'input_schema': f.parametros}
+            for f in ferramentas
+        ]
+        extra = {'tools': tools} if tools else {}
 
-        conversa = list(mensagens)
-        response = client.messages.create(
-            model=self.modelo,
-            max_tokens=1024,
-            system=system_prompt,
-            messages=conversa,
-            tools=tools,
-        )
-
-        texto = self._extrair_texto(response.content)
-        celebrar = self._chamou_celebrar(response.content)
-
-        if celebrar and not texto:
-            # O modelo só chamou a tool nesta rodada, sem texto — devolve um
-            # resultado trivial (não há dado real a computar) e pede a
-            # continuação, que é a fala de verdade que o Teacher precisa
-            # ouvir. Sem isso, celebrar tocaria com uma mensagem vazia.
-            tool_use = next(b for b in response.content if b.type == 'tool_use')
-            conversa = conversa + [
-                {'role': 'assistant', 'content': response.content},
-                {'role': 'user', 'content': [{
-                    'type': 'tool_result',
-                    'tool_use_id': tool_use.id,
-                    'content': 'ok',
-                }]},
-            ]
-            followup = client.messages.create(
+        historico = list(mensagens)
+        textos, acoes = [], []
+        for _ in range(MAX_RODADAS):
+            response = client.messages.create(
                 model=self.modelo,
                 max_tokens=1024,
                 system=system_prompt,
-                messages=conversa,
+                messages=historico,
+                **extra,
             )
-            texto = self._extrair_texto(followup.content)
+            texto = self._extrair_texto(response.content)
+            if texto:
+                textos.append(texto)
+            chamadas = [
+                (b.id, b.name, getattr(b, 'input', None) or {})
+                for b in response.content if b.type == 'tool_use'
+            ]
+            if not chamadas:
+                break
+            resultados = [_executar(conversa, nome, entrada) for _, nome, entrada in chamadas]
+            _acumular(acoes, resultados)
+            if not _precisa_rodar_de_novo(texto, resultados):
+                break
+            # Toda tool_use da rodada precisa do seu tool_result. Lista nova a
+            # cada rodada (sem mutar a anterior).
+            historico = historico + [
+                {'role': 'assistant', 'content': response.content},
+                {'role': 'user', 'content': [
+                    {'type': 'tool_result', 'tool_use_id': id_, 'content': r.texto_para_ia}
+                    for (id_, _, _), r in zip(chamadas, resultados)
+                ]},
+            ]
 
-        return texto, celebrar
+        return ' '.join(textos).strip(), acoes
 
     @staticmethod
     def _extrair_texto(blocks) -> str:
         return ''.join(b.text for b in blocks if b.type == 'text').strip()
 
-    @staticmethod
-    def _chamou_celebrar(blocks) -> bool:
-        return any(
-            b.type == 'tool_use' and b.name == CELEBRAR_TOOL_NOME
-            for b in blocks
-        )
-
 
 class OpenAIProvider(BaseIAProvider):
-    def chat(self, system_prompt: str, mensagens: list[dict]) -> tuple[str, bool]:
+    def chat(self, system_prompt: str, mensagens: list[dict],
+             ferramentas=None, conversa=None) -> tuple[str, list[dict]]:
+        ferramentas = _ferramentas_padrao() if ferramentas is None else ferramentas
         client = openai.OpenAI(api_key=self.api_key)
-        tools = [{
-            'type': 'function',
-            'function': {
-                'name': CELEBRAR_TOOL_NOME,
-                'description': CELEBRAR_TOOL_DESCRICAO,
-                'parameters': {'type': 'object', 'properties': {}},
-            },
-        }]
-
-        conversa = [{'role': 'system', 'content': system_prompt}]
-        conversa.extend(mensagens)
+        tools = [
+            {'type': 'function', 'function': {
+                'name': f.nome, 'description': f.descricao, 'parameters': f.parametros,
+            }}
+            for f in ferramentas
+        ]
 
         # reasoning_effort só vai quando configurado no Plano: modelos sem
         # suporte (ex: gpt-4o) recusam o parâmetro, então enviar sempre
         # quebraria quem não migrou. Ver D39.
         extra = {'reasoning_effort': self.effort} if self.effort else {}
+        if tools:
+            extra['tools'] = tools
 
-        response = client.chat.completions.create(
-            model=self.modelo,
-            messages=conversa,
-            tools=tools,
-            **extra,
-        )
-        message = response.choices[0].message
-        texto = (message.content or '').strip()
-        celebrar = self._chamou_celebrar(message)
-
-        if celebrar and not texto:
-            # Mesma lógica do Anthropic: sem texto na rodada da tool, pede a
-            # continuação devolvendo um resultado trivial pra cada tool call.
-            conversa = conversa + [message] + [
-                {
-                    'role': 'tool',
-                    'tool_call_id': tc.id,
-                    'content': 'ok',
-                }
-                for tc in message.tool_calls
-            ]
-            followup = client.chat.completions.create(
+        historico = [{'role': 'system', 'content': system_prompt}, *mensagens]
+        textos, acoes = [], []
+        for _ in range(MAX_RODADAS):
+            response = client.chat.completions.create(
                 model=self.modelo,
-                messages=conversa,
+                messages=historico,
                 **extra,
             )
-            texto = (followup.choices[0].message.content or '').strip()
+            message = response.choices[0].message
+            texto = (message.content or '').strip()
+            if texto:
+                textos.append(texto)
+            tool_calls = message.tool_calls or []
+            if not tool_calls:
+                break
+            chamadas = [
+                (tc.id, tc.function.name, getattr(tc.function, 'arguments', None) or '{}')
+                for tc in tool_calls
+            ]
+            resultados = [
+                _executar(conversa, nome, self._ler_argumentos(argumentos))
+                for _, nome, argumentos in chamadas
+            ]
+            _acumular(acoes, resultados)
+            if not _precisa_rodar_de_novo(texto, resultados):
+                break
+            historico = historico + [
+                {
+                    'role': 'assistant',
+                    'content': message.content,
+                    'tool_calls': [
+                        {'id': id_, 'type': 'function',
+                         'function': {'name': nome, 'arguments': argumentos}}
+                        for id_, nome, argumentos in chamadas
+                    ],
+                },
+                *[
+                    {'role': 'tool', 'tool_call_id': id_, 'content': r.texto_para_ia}
+                    for (id_, _, _), r in zip(chamadas, resultados)
+                ],
+            ]
 
-        return texto, celebrar
+        return ' '.join(textos).strip(), acoes
 
     @staticmethod
-    def _chamou_celebrar(message) -> bool:
-        if not message.tool_calls:
-            return False
-        return any(tc.function.name == CELEBRAR_TOOL_NOME for tc in message.tool_calls)
+    def _ler_argumentos(argumentos) -> dict:
+        """`function.arguments` chega como string JSON (às vezes malformada)."""
+        try:
+            valor = json.loads(argumentos or '{}')
+        except (TypeError, ValueError):
+            return {}
+        return valor if isinstance(valor, dict) else {}
 
 
 PROVIDERS = {

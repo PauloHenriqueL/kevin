@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=25">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=27">
     <link rel="stylesheet" href="{% static 'css/kevin-chat-animation.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'js/kevin-puppet/kevin-puppet.css' %}?v=1">
     {% block extra_css %}{% endblock %}
@@ -39,6 +39,10 @@
                     <a class="nav-link {% if active_nav == 'meu_progresso' %}active{% endif %}" href="{% url 'professor:meu_progresso' %}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                         Meu progresso
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'playground' or request.resolver_match.url_name == 'playground_sessao' %}active{% endif %}" href="{% url 'professor:playground' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        Playground
                     </a>
                 {% elif user.role == 'diretor' %}
                     <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="{% url 'gestao:dashboard' %}">

@@ -25,6 +25,31 @@ BACKGROUND_CHOICES = [
 ]
 
 
+# Como reconhecer uma atividade de música no catálogo: tag ou nome. Regra única,
+# usada pelo botão de música da aula (Aula._atividade_musica) e pela lista de
+# músicas do Playground (Atividade.objects.musicas) — Demanda 20.
+MUSICA_TAGS = ('musica', 'música')
+MUSICA_NOMES = ('song', 'música')
+
+
+class AtividadeQuerySet(models.QuerySet):
+    def visiveis_para(self, escola):
+        """Catálogo oficial + atividades locais DESTA escola, nunca de outra (D6)."""
+        return self.filter(models.Q(escola__isnull=True) | models.Q(escola=escola))
+
+    def musicas(self):
+        """Atividades que são música, pela mesma regra do botão da aula."""
+        filtro = models.Q()
+        for tag in MUSICA_TAGS:
+            filtro |= models.Q(tags__icontains=tag)
+        for nome in MUSICA_NOMES:
+            filtro |= models.Q(nome__icontains=nome)
+        return self.filter(filtro)
+
+    def jogos(self):
+        return self.filter(tipo='jogo')
+
+
 # Unidades não numeradas do TG. O material usa a sigla, não um número:
 # a Welcome Unit é "WU" e a de junho é "JU" — nunca "U0" ou "U9".
 UNIT_WELCOME = 'WU'
@@ -147,6 +172,8 @@ class Atividade(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = AtividadeQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Atividade'
         verbose_name_plural = 'Atividades (catálogo)'
@@ -217,6 +244,26 @@ class TG(models.Model):
         help_text='Como conduzir a aula. Vazio = usa o padrão.',
     )
 
+    # ── Kevin no Playground, por TG (Demanda 20, D50) ──
+    # Mesmo esquema dos prompt_*: vazio herda o default de
+    # apps/chat/prompts/playground_*.txt.
+    playground_abertura = models.TextField(
+        blank=True, default='',
+        help_text='Fala fixa que abre o Playground. Vazio = usa o padrão.',
+    )
+    playground_papel = models.TextField(
+        blank=True, default='',
+        help_text='Quem é o Kevin no Playground. Vazio = usa o padrão.',
+    )
+    playground_idioma = models.TextField(
+        blank=True, default='',
+        help_text='Política de idioma no Playground. Vazio = usa o padrão.',
+    )
+    playground_execucao = models.TextField(
+        blank=True, default='',
+        help_text='Como conduzir o Playground. Vazio = usa o padrão.',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -236,6 +283,20 @@ class TG(models.Model):
             idioma=self.prompt_idioma,
             execucao=self.prompt_execucao,
         )
+
+    def get_system_prompt_playground(self):
+        """Blocos do Kevin no Playground: custom do TG ou o default (D50)."""
+        from apps.chat.prompts import montar_prompt_playground
+        return montar_prompt_playground(
+            papel=self.playground_papel,
+            idioma=self.playground_idioma,
+            execucao=self.playground_execucao,
+        )
+
+    def get_abertura_playground(self):
+        """Fala fixa que abre o Playground deste TG (D53)."""
+        from apps.chat.prompts import PLAYGROUND_ABERTURA_PADRAO
+        return self.playground_abertura.strip() or PLAYGROUND_ABERTURA_PADRAO
 
 
 class Aula(models.Model):
@@ -450,8 +511,7 @@ class Aula(models.Model):
 
     def _atividade_musica(self):
         """Atividade de música da aula (o Kevin canta com o ukulele), ou None."""
-        return self._atividade_por_marcadores(
-            tags=('musica', 'música'), nomes=('song', 'música'))
+        return self._atividade_por_marcadores(tags=MUSICA_TAGS, nomes=MUSICA_NOMES)
 
     def _atividade_listening(self):
         """Atividade de listening da aula (áudio de escuta), ou None.
