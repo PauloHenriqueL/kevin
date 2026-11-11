@@ -76,13 +76,8 @@ class EnviarMensagemView(APIView):
         serializer.is_valid(raise_exception=True)
         tipo = serializer.validated_data['tipo']
 
-        # Evento do sistema ("a música terminou") só existe no Playground.
-        if tipo == Mensagem.TipoChoices.EVENTO and not conversa.eh_playground:
-            return Response(
-                {'detail': 'Evento só existe no Playground.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+        # Evento do sistema ("a música terminou", botão apertado) vale nos dois
+        # modos desde o Épico A (D60); só a aula não grava contexto.
         mensagem = Mensagem.objects.create(
             conversa=conversa,
             role='user',
@@ -139,9 +134,9 @@ class AtualizarEstadoView(APIView):
     """
     PATCH /api/chat/conversas/<id>/estado/   body: {"whisper": true} etc.
 
-    Botões do professor no Playground (Whisper, Só inglês, limpar o quadro).
-    Grava e devolve o estado; o frontend avisa o Kevin em seguida com um
-    evento, para ele reagir em voz (Demanda 20).
+    Botões do professor (Whisper, Só inglês, limpar o quadro), na aula e no
+    Playground (D60). Grava e devolve o estado; o frontend avisa o Kevin em
+    seguida com um evento, para ele reagir em voz (Demanda 20).
     """
     permission_classes = [IsProfessor]
 
@@ -149,7 +144,6 @@ class AtualizarEstadoView(APIView):
         conversa = Conversa.objects.filter(
             pk=pk,
             professor=request.user.professor,
-            modo=Conversa.Modo.PLAYGROUND,
         ).first()
         if not conversa:
             return Response(

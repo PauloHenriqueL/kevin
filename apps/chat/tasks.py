@@ -53,7 +53,10 @@ def _montar_contexto(conversa):
         system_prompt += '\n\n--- CONTEXTO DA AULA ---\n'
         system_prompt += conversa.aula.get_contexto_completo()
 
-    return system_prompt
+    # Épico A (D60/D61): a aula também tem os recursos do Playground. Catálogo
+    # e estado da sala entram depois do roteiro, do estável ao volátil.
+    partes = [system_prompt] + _secoes_catalogo(conversa) + [_secao_estado(conversa)]
+    return '\n\n'.join(partes)
 
 
 SEM_CONTEXTO_AINDA = (
@@ -71,11 +74,6 @@ def _montar_contexto_playground(conversa):
     um jogo só entram quando ele começa (ferramenta iniciar_jogo) e enquanto
     ele estiver em andamento.
     """
-    from apps.chat.ferramentas import (
-        catalogo_jogos, catalogo_musicas, regras_do_jogo,
-    )
-    from apps.curriculo.models import Atividade, BACKGROUND_CHOICES
-
     turma = conversa.turma
     tg = turma.tg if turma else None
     partes = [tg.get_system_prompt_playground() if tg else montar_prompt_playground()]
@@ -86,15 +84,34 @@ def _montar_contexto_playground(conversa):
             f'{turma.qtd_alunos} alunos'
         )
 
-    musicas = ' | '.join(a.nome for a in catalogo_musicas(conversa))
-    jogos = ' | '.join(a.nome for a in catalogo_jogos(conversa))
-    partes.append(f'=== MÚSICAS DISPONÍVEIS ===\n{musicas or "(nenhuma cadastrada)"}')
-    partes.append(f'=== JOGOS DISPONÍVEIS ===\n{jogos or "(nenhum cadastrado)"}')
+    partes.extend(_secoes_catalogo(conversa))
 
     partes.append(
         '=== CONTEXTO DA AULA DE HOJE ===\n'
         + (conversa.contexto.strip() or SEM_CONTEXTO_AINDA)
     )
+
+    partes.append(_secao_estado(conversa))
+
+    return '\n\n'.join(partes)
+
+
+def _secoes_catalogo(conversa):
+    """MÚSICAS e JOGOS disponíveis — só os nomes (D10: token é pago)."""
+    from apps.chat.ferramentas import catalogo_jogos, catalogo_musicas
+
+    musicas = ' | '.join(a.nome for a in catalogo_musicas(conversa))
+    jogos = ' | '.join(a.nome for a in catalogo_jogos(conversa))
+    return [
+        f'=== MÚSICAS DISPONÍVEIS ===\n{musicas or "(nenhuma cadastrada)"}',
+        f'=== JOGOS DISPONÍVEIS ===\n{jogos or "(nenhum cadastrado)"}',
+    ]
+
+
+def _secao_estado(conversa):
+    """ESTADO DA SALA AGORA: cenário, quadro, modos e jogo em andamento."""
+    from apps.chat.ferramentas import regras_do_jogo
+    from apps.curriculo.models import Atividade, BACKGROUND_CHOICES
 
     estado = conversa.estado or {}
     rotulos = dict(BACKGROUND_CHOICES)
@@ -114,9 +131,7 @@ def _montar_contexto_playground(conversa):
         linhas.append('Jogo em andamento:\n' + regras_do_jogo(jogo))
     else:
         linhas.append('Jogo em andamento: nenhum')
-    partes.append('\n'.join(linhas))
-
-    return '\n\n'.join(partes)
+    return '\n'.join(linhas)
 
 
 def _montar_historico(conversa):

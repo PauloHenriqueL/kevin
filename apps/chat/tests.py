@@ -334,15 +334,21 @@ class ContextoSessaoTest(BasePlayground):
         self.conversa.refresh_from_db()
         self.assertEqual(self.conversa.contexto, 'Farm animals')
 
-    def test_evento_e_recusado_na_conversa_de_aula(self):
+    @patch('apps.chat.views.responder_ia_sync')
+    def test_evento_e_aceito_na_conversa_de_aula_sem_gravar_contexto(self, responder):
+        # Épico A (D60): botões da aula também viram evento para a IA.
+        responder.side_effect = lambda conversa_id: Mensagem.objects.create(
+            conversa_id=conversa_id, role='assistant', conteudo='Eyes on me!')
         aula = Conversa.objects.create(professor=self.prof)
         r = self.client.post(
             f'/api/chat/conversas/{aula.id}/mensagem/?sync=1',
-            data=_json.dumps({'conteudo': 'x', 'tipo': 'evento'}),
+            data=_json.dumps({'conteudo': 'O professor apertou Atenção.', 'tipo': 'evento'}),
             content_type='application/json',
         )
-        self.assertEqual(r.status_code, 400)
-        self.assertFalse(aula.mensagens.exists())
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(aula.mensagens.filter(tipo='evento').count(), 1)
+        aula.refresh_from_db()
+        self.assertEqual(aula.contexto, '')
 
 
 class MontagemContextoPlaygroundTest(BasePlayground):
@@ -375,6 +381,24 @@ class MontagemContextoPlaygroundTest(BasePlayground):
         from apps.chat.tasks import SEM_CONTEXTO_AINDA
         self.assertIn(SEM_CONTEXTO_AINDA, _montar_contexto(self.conversa))
 
+    def test_aula_tem_catalogo_e_estado_depois_do_roteiro(self):
+        # Épico A (D60): a aula também vê MÚSICAS, JOGOS e ESTADO DA SALA.
+        aula_obj = Aula.objects.create(tg=self.tg, unit='U1', semana=1, numero_aula=1,
+                                       titulo='Daily', background='quarto')
+        conversa = Conversa.objects.create(
+            professor=self.prof, aula=aula_obj,
+            estado={'cenario': 'quarto', 'quadro': 'cow', 'whisper': False,
+                    'so_ingles': False, 'jogo_id': None})
+        prompt = _montar_contexto(conversa)
+        ordem = ['--- CONTEXTO DA AULA ---', '=== MÚSICAS DISPONÍVEIS ===',
+                 '=== JOGOS DISPONÍVEIS ===', '=== ESTADO DA SALA AGORA ===']
+        posicoes = [prompt.index(secao) for secao in ordem]
+        self.assertEqual(posicoes, sorted(posicoes))
+        self.assertIn('Hello Song', prompt)
+        self.assertIn('Cenário: quarto', prompt)
+        self.assertIn('Quadro: cow', prompt)
+        self.assertNotIn('CONTEXTO DA AULA DE HOJE', prompt)
+
     def test_jogo_em_andamento_expande_as_regras_do_catalogo(self):
         self.conversa.estado['jogo_id'] = self.jogo.id
         self.assertIn('Dê comandos com "Simon says".', _montar_contexto(self.conversa))
@@ -403,13 +427,13 @@ class FerramentasPlaygroundTest(BasePlayground):
     def _executar(self, nome, entrada):
         return ferramentas.executar(self.conversa, nome, entrada)
 
-    def test_modo_aula_so_tem_celebrar(self):
-        self.assertEqual([f.nome for f in ferramentas.ferramentas_do_modo('aula')],
-                         ['celebrar_acerto'])
-        self.assertIn('everybody_whisper',
-                      [f.nome for f in ferramentas.ferramentas_do_modo('playground')])
-        self.assertIn('pay_attention',
-                      [f.nome for f in ferramentas.ferramentas_do_modo('playground')])
+    def test_aula_e_playground_tem_todas_as_ferramentas(self):
+        # Épico A (D60): a aula ganhou os recursos do Playground.
+        todas = [f.nome for f in ferramentas.REGISTRO]
+        self.assertEqual([f.nome for f in ferramentas.ferramentas_do_modo('aula')], todas)
+        self.assertEqual([f.nome for f in ferramentas.ferramentas_do_modo('playground')], todas)
+        self.assertIn('everybody_whisper', todas)
+        self.assertIn('pay_attention', todas)
 
     def test_musica_por_nome_exato_e_aproximado(self):
         for pedido in ('Hello Song', 'hello song!', 'Hello Songg', 'hello'):
@@ -480,12 +504,12 @@ def _bloco_tool(tool_id, nome, entrada):
 
 class ProvidersPlaygroundTest(BasePlayground):
     @patch('apps.chat.providers.ia.anthropic.Anthropic')
-    def test_modo_aula_oferece_so_celebrar(self, AnthropicMock):
+    def test_padrao_do_provider_oferece_todas_as_ferramentas(self, AnthropicMock):
         AnthropicMock.return_value.messages.create.return_value = _anthropic_response(
             [_bloco_texto('Hello!')])
         AnthropicProvider(api_key='f', modelo='m').chat('s', [{'role': 'user', 'content': 'oi'}])
         tools = AnthropicMock.return_value.messages.create.call_args.kwargs['tools']
-        self.assertEqual([t['name'] for t in tools], ['celebrar_acerto'])
+        self.assertEqual([t['name'] for t in tools], [f.nome for f in ferramentas.REGISTRO])
 
     @patch('apps.chat.providers.ia.anthropic.Anthropic')
     def test_laco_para_em_3_rodadas(self, AnthropicMock):
@@ -541,14 +565,14 @@ class ProvidersPlaygroundTest(BasePlayground):
         self.assertIn('tocar_musica', nomes)
 
     @patch('apps.chat.providers.get_ia_provider')
-    def test_conversa_de_aula_continua_so_com_celebrar(self, get_provider):
+    def test_conversa_de_aula_recebe_todas_as_ferramentas(self, get_provider):
         from apps.chat.tasks import responder_ia_sync
         aula = Conversa.objects.create(professor=self.prof)
         get_provider.return_value.chat.return_value = ('Hi!', [])
         msg = responder_ia_sync(aula.id)
         self.assertFalse(msg.celebrar)
         nomes = [f.nome for f in get_provider.return_value.chat.call_args.kwargs['ferramentas']]
-        self.assertEqual(nomes, ['celebrar_acerto'])
+        self.assertEqual(nomes, [f.nome for f in ferramentas.REGISTRO])
 
 
 class TelasPlaygroundTest(BasePlayground):
@@ -607,10 +631,19 @@ class TelasPlaygroundTest(BasePlayground):
         self.assertTrue(self.conversa.estado['whisper'])
         self.assertEqual(self.conversa.estado['cenario'], 'floresta')   # o resto fica
 
-    def test_patch_estado_em_conversa_de_aula_da_404(self):
+    def test_patch_estado_na_aula_so_do_proprio_professor(self):
         aula = Conversa.objects.create(professor=self.prof)
         r = self.client.patch(
             f'/api/chat/conversas/{aula.id}/estado/',
+            data=_json.dumps({'whisper': True}), content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        aula.refresh_from_db()
+        self.assertTrue(aula.estado['whisper'])
+        outro = Professor.objects.create(
+            user=User.objects.create_user('joao', role='professor'), escola=self.escola_a)
+        de_outro = Conversa.objects.create(professor=outro)
+        r = self.client.patch(
+            f'/api/chat/conversas/{de_outro.id}/estado/',
             data=_json.dumps({'whisper': True}), content_type='application/json')
         self.assertEqual(r.status_code, 404)
 
@@ -620,6 +653,21 @@ class TelasPlaygroundTest(BasePlayground):
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, 'KEVIN_MODO')
         self.assertContains(r, 'window.KEVIN_RIG_CONFIG')
+
+    def test_aula_nasce_com_estado_no_cenario_dela(self):
+        # Épico A (D61): o estado da sala da aula começa no Aula.background.
+        aula = Aula.objects.create(tg=self.tg, unit='U1', semana=1, numero_aula=2,
+                                   titulo='Bedroom', background='quarto')
+        self.client.get(f'/professor/turma/{self.turma.id}/aula/{aula.codigo}/')
+        conversa = Conversa.objects.get(professor=self.prof, aula=aula)
+        self.assertEqual(conversa.estado['cenario'], 'quarto')
+        self.assertFalse(conversa.estado['whisper'])
+        # Conversa antiga (estado vazio) ganha as chaves ao reabrir.
+        conversa.estado = {}
+        conversa.save()
+        self.client.get(f'/professor/turma/{self.turma.id}/aula/{aula.codigo}/')
+        conversa.refresh_from_db()
+        self.assertEqual(conversa.estado['cenario'], 'quarto')
 
 
 class TTSWhisperTest(TestCase):

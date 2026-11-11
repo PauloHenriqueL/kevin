@@ -43,7 +43,9 @@ class Ferramenta:
     descricao: str
     parametros: dict                   # JSON Schema do input
     executar: Callable                 # (conversa, entrada: dict) -> Resultado
-    modos: tuple = field(default=('playground',))
+    # Épico A (D60): a aula estruturada ganhou os recursos do Playground —
+    # todas as ferramentas valem nos dois modos.
+    modos: tuple = field(default=('aula', 'playground'))
 
 
 # ── Catálogo visível na sessão ───────────────────────────────────────────────

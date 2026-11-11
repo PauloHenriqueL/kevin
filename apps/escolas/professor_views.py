@@ -30,6 +30,31 @@ def _criar_mensagem_boas_vindas(conversa, aula):
     )
 
 
+def _estado_inicial_aula(aula):
+    """Estado da sala no começo da aula (D61): o cenário é o da aula."""
+    return {
+        'cenario': aula.background or 'floresta', 'quadro': '',
+        'whisper': False, 'so_ingles': False, 'jogo_id': None,
+    }
+
+
+def _completar_estado_aula(conversa, aula):
+    """Conversa criada antes do Épico A: ganha as chaves que faltam, sem
+    sobrescrever as que já tem."""
+    base = _estado_inicial_aula(aula)
+    atual = conversa.estado or {}
+    faltando = {k: v for k, v in base.items() if k not in atual}
+    if faltando:
+        conversa.estado = {**atual, **faltando}
+        conversa.save(update_fields=['estado'])
+
+
+def _kevin_demo_mode(turma):
+    """Respostas locais (sem IA) só quando o plano não tem chave de IA."""
+    plano = getattr(turma.escola, 'plano', None)
+    return not bool(plano and plano.ia_api_key)
+
+
 class YearsView(ProfessorRequiredMixin, TemplateView):
     """Professor escolhe o Year."""
     template_name = 'professor/years.html'
@@ -140,12 +165,20 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
         conversa, created = Conversa.objects.get_or_create(
             professor=professor,
             aula=aula,
+            defaults={'estado': _estado_inicial_aula(aula)},
         )
 
         if created:
             _criar_mensagem_boas_vindas(conversa, aula)
+        else:
+            _completar_estado_aula(conversa, aula)
 
-        mensagens = Mensagem.objects.filter(conversa=conversa).order_by('created_at')
+        # Eventos (botões, fim de música) não aparecem no chat.
+        mensagens = (
+            Mensagem.objects.filter(conversa=conversa)
+            .exclude(tipo=Mensagem.TipoChoices.EVENTO)
+            .order_by('created_at')
+        )
 
         # Marca como 'em andamento' se estava não iniciada
         progresso, _ = AulaTurma.objects.get_or_create(
@@ -164,12 +197,19 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
         ctx['conversa'] = conversa
         ctx['mensagens'] = mensagens
         ctx['progresso_status'] = progresso.status
+        # Recursos do Playground na aula (D60): estado da sala e catálogo de
+        # músicas para o seletor; a música da aula entra em primeiro (D61).
+        from apps.chat.ferramentas import catalogo_musicas
+        ctx['estado'] = conversa.estado or {}
+        ctx['cenario'] = ctx['estado'].get('cenario') or aula.background or 'floresta'
+        ctx['musicas'] = [
+            {'nome': a.nome, 'url': a.arquivo_url} for a in catalogo_musicas(conversa)
+        ]
 
         # Modo demo (respostas locais, sem IA) SÓ quando o plano não tem chave
         # de IA — em produção, com a chave preenchida, o chat usa o Kevin real.
         # Era hardcoded `true` e vazava para produção (Kevin "robótico").
-        plano = getattr(turma.escola, 'plano', None)
-        ctx['kevin_demo_mode'] = not bool(plano and plano.ia_api_key)
+        ctx['kevin_demo_mode'] = _kevin_demo_mode(turma)
 
         return ctx
 
@@ -304,6 +344,8 @@ class ResetAulaView(ProfessorRequiredMixin, View):
         if conversa:
             Mensagem.objects.filter(conversa=conversa).delete()
             _criar_mensagem_boas_vindas(conversa, aula)
+            conversa.estado = _estado_inicial_aula(aula)
+            conversa.save(update_fields=['estado'])
 
         return redirect('professor:aula_detail', turma_id=turma.id, aula_codigo=aula.codigo)
 
@@ -351,12 +393,6 @@ class MeuProgressoView(ProfessorRequiredMixin, TemplateView):
 # progresso continua sendo do TG.
 
 CENARIO_INICIAL_PLAYGROUND = 'floresta'
-
-
-def _kevin_demo_mode(turma):
-    """Respostas locais (sem IA) só quando o plano não tem chave de IA."""
-    plano = getattr(turma.escola, 'plano', None)
-    return not bool(plano and plano.ia_api_key)
 
 
 class PlaygroundView(ProfessorRequiredMixin, TemplateView):
