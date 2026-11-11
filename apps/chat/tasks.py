@@ -57,7 +57,7 @@ def _montar_contexto(conversa):
 
 
 SEM_CONTEXTO_AINDA = (
-    'O Teacher ainda não disse o tema de hoje. Pergunte, em uma frase, o que a '
+    'O professor ainda não disse o tema de hoje. Pergunte, em uma frase, o que a '
     'turma está aprendendo.'
 )
 

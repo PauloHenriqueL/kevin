@@ -264,6 +264,18 @@ class BasePlayground(TestCase):
         )
 
 
+class PromptEpicoATest(TestCase):
+    """Épico A (D55–D57): português com o professor, sequência didática com a turma."""
+
+    def test_prompts_padrao_sem_instant_translation_e_com_a_sequencia(self):
+        from apps.chat.prompts import montar_prompt
+        for prompt in (montar_prompt(), montar_prompt_playground()):
+            self.assertNotIn('Instant Translation', prompt)
+            self.assertNotIn('Teacher', prompt)
+            self.assertIn('SEQUÊNCIA PARA ENSINAR UM TERMO', prompt)
+            self.assertIn('PROFESSOR REGENTE', prompt)
+
+
 class PromptPlaygroundTest(BasePlayground):
     def test_tg_sem_customizacao_usa_os_defaults(self):
         self.assertEqual(self.tg.get_system_prompt_playground(), montar_prompt_playground())

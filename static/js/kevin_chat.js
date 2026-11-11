@@ -1234,7 +1234,7 @@
       }
     }
     const nome = chave === 'whisper' ? 'o Everybody Whisper' : 'o No Portuguese Allowed';
-    enviarEvento(`O Teacher ${ativo ? 'ativou' : 'desativou'} ${nome} pelo botão.`);
+    enviarEvento(`O professor ${ativo ? 'ativou' : 'desativou'} ${nome} pelo botão.`);
   }
 
   const modalMusicas = document.getElementById('modal-musicas');
@@ -1251,7 +1251,7 @@
     if (btnAtencao) {
       btnAtencao.addEventListener('click', () => {
         if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
-        enviarEvento('O Teacher apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
+        enviarEvento('O professor apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
       });
     }
 
@@ -1262,7 +1262,7 @@
 
     if (btnMusicaPg) {
       btnMusicaPg.addEventListener('click', () => {
-        if (pg.musicaTocando) pgFinalizarMusica('O Teacher parou a música.');
+        if (pg.musicaTocando) pgFinalizarMusica('O professor parou a música.');
         else pgToggleModalMusicas(true);
       });
     }
@@ -1283,8 +1283,8 @@
           return;
         }
         enviarEvento(nome
-          ? `O Teacher escolheu a música "${nome}".`
-          : 'O Teacher vai cantar uma música com a turma; acompanhe só com o ukulele.');
+          ? `O professor escolheu a música "${nome}".`
+          : 'O professor vai cantar uma música com a turma; acompanhe só com o ukulele.');
       });
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !modalMusicas.hidden) pgToggleModalMusicas(false);

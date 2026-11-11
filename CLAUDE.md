@@ -148,7 +148,7 @@ dívida** e cobrar a correção na origem.
 
 **Progresso**
 
-- [ ] Etapa 1 — Prompts (Demandas 21 + 22)
+- [x] Etapa 1 — Prompts (Demandas 21 + 22)
 - [ ] Etapa 2 — Backend da aula interativa (Demanda 25, parte 1)
 - [ ] Etapa 3 — Telão da aula igual ao Playground e fim das falas gravadas (Demandas 25, parte 2, e 23) ⛔ ElevenLabs
 - [ ] Etapa 4 — Botão Repetir (Demanda 24)

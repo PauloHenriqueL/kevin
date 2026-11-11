@@ -167,11 +167,11 @@ class EditarPromptTGView(_EditorPromptTGBase):
     card_template = 'coordenacao/_card_prompt_aula.html'
     campos = [
         ('prompt_papel', 'Papel do Kevin',
-         'Quem o Kevin é e sua postura em sala (o professor é o interlocutor).'),
-        ('prompt_idioma', 'Idioma (Instant Translation)',
-         'Política de idioma: valida em português, responde em inglês.'),
+         'Quem o Kevin é: o professor de inglês da turma; com o regente, fala português.'),
+        ('prompt_idioma', 'Idioma',
+         'Português com o professor; inglês com a turma, pela sequência didática.'),
         ('prompt_execucao', 'Como conduzir a aula',
-         'Como o Kevin executa o roteiro sem lê-lo em voz alta.'),
+         'Como seguir o roteiro e a sequência para ensinar cada termo.'),
     ]
 
     def _defaults(self):
@@ -195,11 +195,11 @@ class EditarPromptPlaygroundTGView(_EditorPromptTGBase):
         ('playground_abertura', 'Fala de abertura',
          'O que o Kevin diz ao abrir o Playground. Falado sempre igual.'),
         ('playground_papel', 'Papel do Kevin',
-         'Quem o Kevin é e como se relaciona com o Teacher e com a turma.'),
+         'Quem o Kevin é: o professor de inglês da turma; com o regente, fala português.'),
         ('playground_idioma', 'Idioma',
-         'Instant Translation e o modo No Portuguese Allowed.'),
+         'Português com o professor; inglês com a turma, pela sequência didática. No Portuguese Allowed só para a turma.'),
         ('playground_execucao', 'Como conduzir',
-         'Começo da sessão, ritmo, participação e uso dos recursos.'),
+         'Ritmo, sequência para ensinar cada termo e uso dos recursos.'),
     ]
 
     def _defaults(self):
