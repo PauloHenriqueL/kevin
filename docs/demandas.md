@@ -27,7 +27,7 @@
 - **[Demanda 17 — June ordenada entre a Unit 4 e a Unit 5](#demanda-17--june-ordenada-entre-a-unit-4-e-a-unit-5)** 🔴
 - **[Demanda 18 — Subir para produção (Render + Neon)](#demanda-18--subir-para-produção-render--neon)** 🔵 (passo a passo)
 - **[Demanda 20 — Kevin Playground](#demanda-20--kevin-playground)** 🟡
-- **[Épico A — Kevin no lugar do professor de inglês](#épico-a--kevin-no-lugar-do-professor-de-inglês)** 🚧 planejado (guia no `CLAUDE.md`)
+- **[Épico A — Kevin no lugar do professor de inglês](#épico-a--kevin-no-lugar-do-professor-de-inglês)** ✅ implementado · deploy aguarda ElevenLabs
   - [Demanda 21 — Kevin fala português com o professor](#demanda-21--kevin-fala-português-com-o-professor) · Must
   - [Demanda 22 — Sequência didática TEFL com repetição tripla](#demanda-22--sequência-didática-tefl-com-repetição-tripla) · Must
   - [Demanda 23 — Kevin responsivo: fim das falas gravadas](#demanda-23--kevin-responsivo-fim-das-falas-gravadas) · Must ⛔
@@ -1844,9 +1844,10 @@ montado do estável para o volátil).
 
 ## Épico A — Kevin no lugar do professor de inglês
 
-**Status:** 🚧 Planejado em 11/11/2026. O guia de implementação, etapa por
-etapa, está no `CLAUDE.md` (seção "🚧 Épico A — guia de implementação"). Os
-textos de prompt são provisórios até o Lucas validar. Fonte: reunião de
+**Status:** ✅ Implementado em 11/11/2026 (5 commits, um por etapa; 134 testes
+passando; validado no browser). **Deploy travado** até o Plano apontar para o
+ElevenLabs com chave válida (ver Demanda 23). Os textos de prompt são
+provisórios até o Lucas validar. Resumo técnico no `CLAUDE.md`. Fonte: reunião de
 validação Paulo Henrique Lima × Lucas Albertoni (notas do Gemini) + pedido do
 Paulo no mesmo dia.
 
@@ -1932,7 +1933,7 @@ passo da reunião).
 
 ## Demanda 21 — Kevin fala português com o professor
 
-**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço P.
+**Status:** ✅ Implementada (11/11/2026); prompts aguardam validação do Lucas. Épico A · **Must** · esforço P.
 
 > **Como** professor regente que não fala inglês, **quero** que o Kevin fale
 > comigo em português, **para** entender o que ele está fazendo e conduzir a
@@ -1966,7 +1967,7 @@ Regra 16 do `CLAUDE.md` e o bloco de idioma da D13. Ver D56.
 
 ## Demanda 22 — Sequência didática TEFL com repetição tripla
 
-**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço P.
+**Status:** ✅ Implementada (11/11/2026); prompts aguardam validação do Lucas. Épico A · **Must** · esforço P.
 
 > **Como** coordenação pedagógica, **quero** que o Kevin ensine cada termo em
 > inglês numa sequência fixa, **para** que a turma saiba o que responder antes
@@ -2007,7 +2008,7 @@ feeling?"*, o Kevin pergunta *"Como vocês estão se sentindo hoje?"*, valida
 
 ## Demanda 23 — Kevin responsivo: fim das falas gravadas
 
-**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço M.
+**Status:** ✅ Implementada (11/11/2026); prompts aguardam validação do Lucas. Épico A · **Must** · esforço M.
 ⛔ **Bloqueada** pela chave do ElevenLabs (ver pré-requisito).
 
 > **Como** turma, **quero** que o Kevin espere a gente responder antes de
@@ -2055,7 +2056,7 @@ ElevenLabs no Plano, `tts_provider = elevenlabs`, `tts_modelo` vazio (o valor
 
 ## Demanda 24 — Botão Repetir
 
-**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço M.
+**Status:** ✅ Implementada (11/11/2026); prompts aguardam validação do Lucas. Épico A · **Must** · esforço M.
 
 > **Como** professor regente, **quero** um botão que faz o Kevin repetir a
 > última palavra ensinada, **para** reforçar o vocabulário sem falar inglês nem
@@ -2092,7 +2093,7 @@ book, book!"*.
 
 ## Demanda 25 — Aula estruturada com os recursos do Playground
 
-**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Should** · esforço G.
+**Status:** ✅ Implementada (11/11/2026); prompts aguardam validação do Lucas. Épico A · **Should** · esforço G.
 Pedido do Paulo; não consta dos próximos passos combinados com o Lucas.
 
 > **Como** professor regente, **quero** na aula normal os mesmos botões e
