@@ -151,7 +151,7 @@ dívida** e cobrar a correção na origem.
 - [x] Etapa 1 — Prompts (Demandas 21 + 22)
 - [x] Etapa 2 — Backend da aula interativa (Demanda 25, parte 1)
 - [x] Etapa 3 — Telão da aula igual ao Playground e fim das falas gravadas (Demandas 25, parte 2, e 23) ⛔ ElevenLabs (código pronto; deploy só com a chave)
-- [ ] Etapa 4 — Botão Repetir (Demanda 24)
+- [x] Etapa 4 — Botão Repetir (Demanda 24)
 - [ ] Etapa 5 — Documentação e fechamento
 
 ### Contexto

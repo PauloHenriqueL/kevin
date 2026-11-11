@@ -73,3 +73,6 @@ documento_escola/
 
 # ── Áudios de teste locais ──
 audios/
+
+# Saídas do MCP do Playwright (screenshots, snapshots, logs de console)
+.playwright-mcp/

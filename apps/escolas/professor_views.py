@@ -199,8 +199,11 @@ class AulaDetailView(ProfessorRequiredMixin, TemplateView):
         ctx['progresso_status'] = progresso.status
         # Recursos do Playground na aula (D60): estado da sala e catálogo de
         # músicas para o seletor; a música da aula entra em primeiro (D61).
-        from apps.chat.ferramentas import catalogo_musicas
-        ctx['estado'] = conversa.estado or {}
+        from apps.chat.ferramentas import catalogo_musicas, segundos_restantes_para_repetir
+        ctx['estado'] = {
+            **(conversa.estado or {}),
+            'repetir_restante': segundos_restantes_para_repetir(conversa),
+        }
         ctx['cenario'] = ctx['estado'].get('cenario') or aula.background or 'floresta'
         ctx['musicas'] = [
             {'nome': a.nome, 'url': a.arquivo_url} for a in catalogo_musicas(conversa)
@@ -450,7 +453,7 @@ class PlaygroundSessaoView(ProfessorRequiredMixin, TemplateView):
     template_name = 'professor/playground.html'
 
     def get_context_data(self, **kwargs):
-        from apps.chat.ferramentas import catalogo_musicas
+        from apps.chat.ferramentas import catalogo_musicas, segundos_restantes_para_repetir
 
         ctx = super().get_context_data(**kwargs)
         conversa = Conversa.objects.filter(
@@ -463,7 +466,10 @@ class PlaygroundSessaoView(ProfessorRequiredMixin, TemplateView):
 
         mensagens = Mensagem.objects.filter(conversa=conversa).order_by('created_at')
         abertura = mensagens.filter(role='assistant').first()
-        estado = conversa.estado or {}
+        estado = {
+            **(conversa.estado or {}),
+            'repetir_restante': segundos_restantes_para_repetir(conversa),
+        }
 
         ctx['conversa'] = conversa
         ctx['turma'] = conversa.turma

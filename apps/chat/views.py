@@ -159,6 +159,70 @@ class AtualizarEstadoView(APIView):
         return Response(conversa.estado)
 
 
+class RepetirPalavraView(APIView):
+    """
+    POST /api/chat/conversas/<id>/repetir/
+
+    Botão Repetir (Demanda 24, D59): o Kevin reapresenta a última palavra
+    ensinada. O guard rail fica aqui: a palavra vem do registro feito no
+    momento do ensino (`estado.ultima_palavra`), nunca do histórico, e só
+    dentro da janela de 2 minutos. A IA conduz a reintrodução a partir de um
+    evento que já traz a palavra escrita.
+    """
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from .ferramentas import segundos_restantes_para_repetir
+
+        conversa = Conversa.objects.filter(
+            pk=pk,
+            professor=request.user.professor,
+        ).first()
+        if not conversa:
+            return Response(
+                {'detail': 'Conversa não encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        registro = (conversa.estado or {}).get('ultima_palavra') or {}
+        if not registro.get('texto'):
+            return Response(
+                {'detail': 'Nenhuma palavra ensinada agora.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if segundos_restantes_para_repetir(conversa) <= 0:
+            return Response(
+                {'detail': 'O tempo para repetir passou.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        palavra = registro['texto']
+        mensagem = Mensagem.objects.create(
+            conversa=conversa,
+            role='user',
+            tipo=Mensagem.TipoChoices.EVENTO,
+            conteudo=(
+                f'O professor apertou Repetir. Reapresente agora a palavra "{palavra}", '
+                'com os passos 3 a 5 da sequência, inclusive a repetição tripla.'
+            ),
+        )
+        try:
+            resposta = responder_ia_sync(conversa.id)
+        except Exception as exc:
+            logger.error('Falha no Repetir (conversa=%s): %s', conversa.id, exc)
+            return Response(
+                {'detail': 'Kevin não conseguiu responder agora.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response(
+            {
+                'mensagem_user': MensagemSerializer(mensagem).data,
+                'resposta': MensagemSerializer(resposta).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class EnviarAudioView(APIView):
     """
     POST /api/chat/conversas/<id>/audio/

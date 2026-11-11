@@ -952,7 +952,62 @@
         break;
       case 'quadro':
         pgMostrarNoQuadro(acao.texto || '');
+        // Palavra nova no quadro = o Repetir vale por 2 min (D59).
+        if (acao.texto) pgArmarRepetir(REPETIR_JANELA_S);
         break;
+    }
+  }
+
+  // ── Botão Repetir (Demanda 24, D59) ──
+  // Só fica ativo nos 2 minutos depois de uma palavra nova; o servidor valida
+  // a janela de novo e recusa (409) se passou. A IA conduz a reintrodução.
+  const REPETIR_JANELA_S = 120;
+  const btnRepetir = document.getElementById('btn-repetir');
+  let repetirTimer = null;
+
+  function pgArmarRepetir(segundos) {
+    if (!btnRepetir) return;
+    if (repetirTimer) { clearTimeout(repetirTimer); repetirTimer = null; }
+    if (!segundos || segundos <= 0 || window.KEVIN_DEMO_MODE) {
+      btnRepetir.disabled = true;
+      return;
+    }
+    btnRepetir.disabled = false;
+    repetirTimer = setTimeout(() => { btnRepetir.disabled = true; repetirTimer = null; }, segundos * 1000);
+  }
+
+  async function pgRepetir() {
+    if (!btnRepetir || btnRepetir.disabled || window.KEVIN_DEMO_MODE) return;
+    if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+    await pgEsperarVez();
+    const reabrirAoVivo = state.liveMode;
+    if (state.isRecording) {
+      state.isSending = true;
+      if (state.mediaRecorder) state.mediaRecorder._hasSpeech = false;
+      stopRecording();
+    }
+    state.isSending = true;
+    showTyping();
+    try {
+      const r = await fetch(cfg.urls.repetir, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      if (r.status === 409) { pgArmarRepetir(0); hideTyping(); return; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      hideTyping();
+      await pgResponder(data);
+    } catch (err) {
+      console.error('[Repetir]', err);
+      hideTyping();
+      if (kevinChat) kevinChat.onError();
+    } finally {
+      state.isSending = false;
+      if (reabrirAoVivo && state.liveMode && !state.isRecording) {
+        setMicBtnState('live');
+        setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 400);
+      }
     }
   }
 
@@ -1118,6 +1173,14 @@
 
   if (RECURSOS) {
     pg.estado.cenarioNaTela = pg.estado.cenario || window.KEVIN_BACKGROUND;
+
+    // Repetir: no load, o servidor diz quanto da janela ainda vale. Sem IA
+    // (demo) o botão some.
+    if (btnRepetir) {
+      if (window.KEVIN_DEMO_MODE) btnRepetir.closest('.call-btn-wrap').hidden = true;
+      else pgArmarRepetir(Number(pg.estado.repetir_restante) || 0);
+      btnRepetir.addEventListener('click', pgRepetir);
+    }
 
     // Atenção: o Kevin chama a turma com a própria voz (ElevenLabs), via IA.
     // Sem IA (demo), fica só o gesto.

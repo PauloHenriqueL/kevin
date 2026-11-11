@@ -10,6 +10,7 @@ urlpatterns = [
     path('conversas/<int:pk>/mensagem/', views.EnviarMensagemView.as_view(), name='enviar_mensagem'),
     path('conversas/<int:pk>/audio/', views.EnviarAudioView.as_view(), name='enviar_audio'),
     path('conversas/<int:pk>/estado/', views.AtualizarEstadoView.as_view(), name='atualizar_estado'),
+    path('conversas/<int:pk>/repetir/', views.RepetirPalavraView.as_view(), name='repetir_palavra'),
     path('stt/', views.TranscreverAudioView.as_view(), name='stt'),
     path('tts/', views.SintetizarTextoView.as_view(), name='tts'),
 ]

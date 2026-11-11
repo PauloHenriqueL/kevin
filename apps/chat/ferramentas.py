@@ -5,8 +5,9 @@ traduz para o formato da sua API (ver providers/ia.py). A descrição diz O QUE 
 ferramenta faz; QUANDO usar é pedagogia e fica no prompt, que a coordenação
 edita — assim, editar o prompt nunca quebra o contrato técnico.
 
-Cada ferramenta declara em que modo da Conversa vale. No modo aula só existe
-`celebrar_acerto`: é isso que garante que a aula estruturada não muda.
+Cada ferramenta declara em que modo da Conversa vale. Desde o Épico A (D60)
+todas valem na aula estruturada e no Playground; a diferença entre os modos
+está no prompt (o roteiro manda na aula) e no que o telão mostra.
 
 Nomes: o que é nome da metodologia fica em inglês, como o professor fala em
 sala (`everybody_whisper`, `no_portuguese_allowed`); o resto segue a convenção
@@ -21,13 +22,18 @@ import logging
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Callable
+
+from django.utils import timezone
 
 from apps.curriculo.models import BACKGROUND_CHOICES
 
 logger = logging.getLogger(__name__)
 
 QUADRO_MAX_CARACTERES = 40
+# Botão Repetir (Demanda 24, D59): ativo só nos 2 minutos depois de uma palavra nova.
+JANELA_REPETIR_SEGUNDOS = 120
 
 
 @dataclass
@@ -139,8 +145,29 @@ def _mostrar_no_quadro(conversa, entrada):
     texto = ' '.join(str(entrada.get('texto') or '').split())[:QUADRO_MAX_CARACTERES]
     if texto == (conversa.estado or {}).get('quadro', ''):
         return Resultado(texto_para_ia='Isso já está no quadro.')
-    _salvar_estado(conversa, quadro=texto)
+    mudancas = {'quadro': texto}
+    if texto:
+        # Repetir (D59): a palavra ensinada fica registrada NO MOMENTO do
+        # ensino, com hora — o botão Repetir só repete esta, nunca deduz do
+        # histórico (guard rail), e só dentro da janela.
+        mudancas['ultima_palavra'] = {'texto': texto, 'em': timezone.now().isoformat()}
+    _salvar_estado(conversa, **mudancas)
     return Resultado(acao={'tipo': 'quadro', 'texto': texto})
+
+
+def segundos_restantes_para_repetir(conversa):
+    """Quanto da janela do Repetir ainda vale para a última palavra (0 = nada)."""
+    registro = (conversa.estado or {}).get('ultima_palavra') or {}
+    if not registro.get('texto') or not registro.get('em'):
+        return 0
+    try:
+        ensinada_em = datetime.fromisoformat(registro['em'])
+    except (TypeError, ValueError):
+        return 0
+    if timezone.is_naive(ensinada_em):
+        ensinada_em = timezone.make_aware(ensinada_em)
+    passado = (timezone.now() - ensinada_em).total_seconds()
+    return max(0, int(JANELA_REPETIR_SEGUNDOS - passado))
 
 
 def _cenarios():

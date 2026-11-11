@@ -279,6 +279,7 @@ class PromptEpicoATest(TestCase):
             self.assertIn('NO PORTUGUESE ALLOWED', prompt)
             for nome in [f.nome for f in ferramentas.REGISTRO]:
                 self.assertIn(nome, prompt)
+            self.assertIn('apertar Repetir', prompt)   # Etapa 4
 
 
 class PromptPlaygroundTest(BasePlayground):
@@ -578,6 +579,75 @@ class ProvidersPlaygroundTest(BasePlayground):
         self.assertFalse(msg.celebrar)
         nomes = [f.nome for f in get_provider.return_value.chat.call_args.kwargs['ferramentas']]
         self.assertEqual(nomes, [f.nome for f in ferramentas.REGISTRO])
+
+
+class RepetirTest(BasePlayground):
+    """Botão Repetir (Demanda 24, D59): palavra registrada no ensino, janela de 2 min."""
+
+    def _repetir(self, conversa):
+        return self.client.post(f'/api/chat/conversas/{conversa.id}/repetir/')
+
+    def test_mostrar_no_quadro_registra_a_ultima_palavra(self):
+        ferramentas.executar(self.conversa, 'mostrar_no_quadro', {'texto': 'book'})
+        self.conversa.refresh_from_db()
+        self.assertEqual(self.conversa.estado['ultima_palavra']['texto'], 'book')
+        self.assertIn('em', self.conversa.estado['ultima_palavra'])
+        restante = ferramentas.segundos_restantes_para_repetir(self.conversa)
+        self.assertGreaterEqual(restante, ferramentas.JANELA_REPETIR_SEGUNDOS - 2)
+        self.assertLessEqual(restante, ferramentas.JANELA_REPETIR_SEGUNDOS)
+        # Limpar o quadro não apaga o registro.
+        ferramentas.executar(self.conversa, 'mostrar_no_quadro', {'texto': ''})
+        self.conversa.refresh_from_db()
+        self.assertEqual(self.conversa.estado['ultima_palavra']['texto'], 'book')
+
+    @patch('apps.chat.views.responder_ia_sync')
+    def test_repetir_dentro_da_janela_manda_a_palavra_no_evento(self, responder):
+        responder.side_effect = lambda conversa_id: Mensagem.objects.create(
+            conversa_id=conversa_id, role='assistant', conteudo='Book! Repeat: book!')
+        ferramentas.executar(self.conversa, 'mostrar_no_quadro', {'texto': 'book'})
+        r = self._repetir(self.conversa)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.json()['resposta']['conteudo'], 'Book! Repeat: book!')
+        evento = self.conversa.mensagens.filter(tipo='evento').latest('id')
+        self.assertIn('"book"', evento.conteudo)
+        self.assertIn('Repetir', evento.conteudo)
+
+    def test_repetir_sem_palavra_da_409(self):
+        self.assertEqual(self._repetir(self.conversa).status_code, 409)
+
+    def test_repetir_com_a_janela_vencida_da_409(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.conversa.estado['ultima_palavra'] = {
+            'texto': 'book', 'em': (timezone.now() - timedelta(seconds=200)).isoformat()}
+        self.conversa.save()
+        self.assertEqual(ferramentas.segundos_restantes_para_repetir(self.conversa), 0)
+        self.assertEqual(self._repetir(self.conversa).status_code, 409)
+        self.assertFalse(self.conversa.mensagens.filter(tipo='evento').exists())
+
+    def test_repetir_em_conversa_de_outro_professor_da_404(self):
+        outro = Professor.objects.create(
+            user=User.objects.create_user('joao', role='professor'), escola=self.escola_a)
+        conversa = Conversa.objects.create(professor=outro, estado={
+            'ultima_palavra': {'texto': 'book', 'em': '2999-01-01T00:00:00+00:00'}})
+        self.assertEqual(self._repetir(conversa).status_code, 404)
+
+    @patch('apps.chat.views.responder_ia_sync')
+    def test_repetir_vale_na_conversa_de_aula(self, responder):
+        responder.side_effect = lambda conversa_id: Mensagem.objects.create(
+            conversa_id=conversa_id, role='assistant', conteudo='Pen!')
+        aula = Conversa.objects.create(professor=self.prof)
+        ferramentas.executar(aula, 'mostrar_no_quadro', {'texto': 'pen'})
+        self.assertEqual(self._repetir(aula).status_code, 201)
+
+    def test_telas_recebem_repetir_restante(self):
+        ferramentas.executar(self.conversa, 'mostrar_no_quadro', {'texto': 'book'})
+        r = self.client.get(f'/professor/playground/{self.conversa.id}/')
+        self.assertContains(r, '"repetir_restante"')
+        aula = Aula.objects.create(tg=self.tg, unit='U1', semana=1, numero_aula=3, titulo='Pens')
+        r = self.client.get(f'/professor/turma/{self.turma.id}/aula/{aula.codigo}/')
+        self.assertContains(r, '"repetir_restante": 0')
+        self.assertContains(r, 'id="btn-repetir"')
 
 
 class TelasPlaygroundTest(BasePlayground):

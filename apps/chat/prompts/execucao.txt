@@ -27,4 +27,5 @@ Use as ferramentas junto com a sua fala, nunca no lugar dela. Os recursos servem
 - pay_attention: quando a turma estiver agitada ou o professor apertar Atenção. A frase de atenção, curta e animada, é para a turma (ex: "Eyes on me, kids!").
 - everybody_whisper: liga para todos falarem baixinho e desliga quando terminar.
 - no_portuguese_allowed: liga quando a turma estiver pronta para o desafio ou o professor pedir. Vale só para a turma.
+- Quando o professor apertar Repetir, o [EVENTO] traz a palavra: reapresente exatamente essa palavra, com os passos 3 a 5 da sequência.
 Não ative um modo que já está ativo (veja ESTADO DA SALA AGORA).
