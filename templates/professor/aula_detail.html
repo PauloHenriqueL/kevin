@@ -3,9 +3,11 @@
 {% block title %}{{ aula.titulo }} — Turma {{ turma.year }}{{ turma.nome }}{% endblock %}
 
 {% block content %}
-<div class="aula-call" id="aula-call" data-state="standby">
+<div class="aula-call kevin-recursos" id="aula-call" data-state="standby"
+     data-whisper="{{ estado.whisper|yesno:'on,off' }}" data-so-ingles="{{ estado.so_ingles|yesno:'on,off' }}">
 
     {% include "professor/partials/kevin_palco.html" %}
+    {% include "professor/partials/kevin_overlays.html" %}
 
     <!-- Top bar translúcida -->
     <header class="call-topbar">
@@ -50,60 +52,7 @@
         </div>
     </header>
 
-    <!-- Controles de voz (centro/baixo, estilo chamada) -->
-    <div class="call-controls" aria-label="Controles de voz">
-        <div class="call-btn-wrap">
-            <button class="btn-mic" id="btn-mic" type="button" aria-label="Falar com o Kevin (clique para começar, para sozinho no silêncio)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-            </button>
-            <span class="call-btn-label">Falar</span>
-        </div>
-        <div class="call-btn-wrap">
-            <button class="btn-mic-live" id="btn-mic-live" type="button" aria-label="Conversa ao vivo, mãos livres">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                </svg>
-                <div class="live-waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-            </button>
-            <span class="call-btn-label">Conversa ao vivo</span>
-        </div>
-        {% if aula.tem_musica %}
-        <div class="call-btn-wrap">
-            <button class="btn-musica" id="btn-musica" type="button" aria-label="Kevin canta com o ukulele" data-playing="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-                </svg>
-            </button>
-            <span class="call-btn-label">Música</span>
-        </div>
-        {% endif %}
-        {% if aula.tem_listening %}
-        <div class="call-btn-wrap">
-            {# Mesmo estilo do botão de música (btn-musica); muda só o ícone (fone) e o texto. #}
-            <button class="btn-musica" id="btn-listening" type="button" aria-label="Tocar áudio de listening" data-playing="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-                </svg>
-            </button>
-            <span class="call-btn-label">Listening</span>
-        </div>
-        {% endif %}
-        <div class="call-btn-wrap">
-            {# Sequência gravada do motor (playPayAttention). Mesmo estilo do btn-musica. #}
-            <button class="btn-musica" id="btn-pay-attention" type="button" aria-label="Kevin chama a atenção da turma" data-playing="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                </svg>
-            </button>
-            <span class="call-btn-label">Atenção</span>
-        </div>
-    </div>
+    {% include "professor/partials/kevin_controles.html" %}
 
     <!-- FAB do chat (canto inferior direito) -->
     <button class="chat-fab" id="chat-fab" type="button" aria-label="Abrir chat com o Kevin" aria-expanded="false">
@@ -223,7 +172,7 @@
          rede lenta) — até lá o palco com o Kevin de pé ficava à mostra e era
          tapado em seguida, o "pisca" de 30/09/2026. Com o fundo aqui, não há
          instante em que o palco apareça. O gradiente sépia fica por cima. -->
-    {% kevin_asset "backgrounds/"|add:aula.background|add:".webp" as cenario_url %}
+    {% kevin_asset "backgrounds/"|add:cenario|add:".webp" as cenario_url %}
     {# 1º frame da animação de entrada (a "cortina" fechada), extraído do  #}
     {# entrada-kevin.webm. O cenário fica por baixo: se o frame não        #}
     {# carregar (ex.: ainda não subiu pro bucket), cai no cenário de antes. #}
@@ -243,6 +192,8 @@
             </button>
         </div>
     </div>
+
+    {% include "professor/partials/kevin_modal_musicas.html" %}
 
     <!-- Modal de conclusão da aula (Demanda 11) -->
     <div class="modal-overlay" id="modal-concluir" hidden>
@@ -272,7 +223,9 @@
     </div>
 </div>
 
-{% include "professor/partials/kevin_config.html" with cenario=aula.background %}
+{% include "professor/partials/kevin_config.html" with cenario=cenario %}
+{{ estado|json_script:"kevin-estado-inicial" }}
+{{ musicas|json_script:"kevin-musicas" }}
 <script>
 // Áudio de música desta aula: vem do arquivo_url da atividade de música (ex:
 // faixa no R2). Vazio = o botão só anima o ukulele, sem tocar som. Sem fallback
@@ -283,6 +236,14 @@ window.KEVIN_MUSICA_URL = "{{ aula.musica_url|default:''|escapejs }}";
 window.KEVIN_LISTENING_URL = "{{ aula.listening_url|default:''|escapejs }}";
 // Mensagem que abre a aula: vem do banco (Aula.get_kickoff), variando por aula.
 window.KEVIN_KICKOFF = "{{ aula.get_kickoff|escapejs }}";
+// Recursos do Playground na aula (Épico A, D60): quadro, cenário, música,
+// jogos, Whisper, Só inglês, Atenção por evento e Repetir. A aula não liga o
+// modo Playground: abertura fixa e Encerrar são só da sessão sem roteiro.
+window.KEVIN_RECURSOS = true;
+// Estado da sala, para restaurar overlays/cenário/quadro se a página recarregar.
+window.KEVIN_ESTADO_INICIAL = JSON.parse(document.getElementById('kevin-estado-inicial').textContent);
+// Músicas do catálogo com faixa: nome → url, para o seletor.
+window.KEVIN_MUSICAS = JSON.parse(document.getElementById('kevin-musicas').textContent);
 // Modo demo: respostas locais (sem IA), só quando o plano não tem chave de IA.
 // Com chave preenchida (produção), usa o Kevin real. Controlado pela view.
 window.KEVIN_DEMO_MODE = {{ kevin_demo_mode|yesno:"true,false" }};

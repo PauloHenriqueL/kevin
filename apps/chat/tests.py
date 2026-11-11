@@ -274,6 +274,11 @@ class PromptEpicoATest(TestCase):
             self.assertNotIn('Teacher', prompt)
             self.assertIn('SEQUÊNCIA PARA ENSINAR UM TERMO', prompt)
             self.assertIn('PROFESSOR REGENTE', prompt)
+            # Etapa 3: a aula também conhece os recursos e o Só inglês.
+            self.assertIn('=== RECURSOS (ferramentas) ===', prompt)
+            self.assertIn('NO PORTUGUESE ALLOWED', prompt)
+            for nome in [f.nome for f in ferramentas.REGISTRO]:
+                self.assertIn(nome, prompt)
 
 
 class PromptPlaygroundTest(BasePlayground):
@@ -653,6 +658,14 @@ class TelasPlaygroundTest(BasePlayground):
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, 'KEVIN_MODO')
         self.assertContains(r, 'window.KEVIN_RIG_CONFIG')
+        # Épico A (D60): recursos do Playground na aula; falas gravadas fora (D58).
+        self.assertContains(r, 'window.KEVIN_RECURSOS = true;')
+        self.assertContains(r, 'window.KEVIN_RIG_CONFIG.voiceVolume = 0;')
+        self.assertContains(r, 'window.KEVIN_RIG_CONFIG.celebrateVoiceUrl = null;')
+        for botao in ('btn-whisper', 'btn-so-ingles', 'btn-musica-pg', 'btn-repetir', 'btn-pay-attention'):
+            self.assertContains(r, f'id="{botao}"')
+        self.assertContains(r, 'id="modal-musicas"')
+        self.assertNotContains(r, 'id="btn-listening"')   # aula sem listening
 
     def test_aula_nasce_com_estado_no_cenario_dela(self):
         # Épico A (D61): o estado da sala da aula começa no Aula.background.

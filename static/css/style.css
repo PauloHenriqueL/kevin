@@ -3746,24 +3746,39 @@ table.data tbody tr:hover {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
 }
-.call-btn-wrap:hover,
-.call-btn-wrap:focus-within {
+/* A transparência fica SÓ no botão: o rótulo precisa ser legível sobre
+   qualquer cenário (Épico A, Demanda 25). */
+.call-btn-wrap > button {
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.call-btn-wrap:hover > button,
+.call-btn-wrap:focus-within > button {
   opacity: 1;
 }
-/* Um botão em estado ativo (gravando, ao vivo, tocando) fica sempre visível
-   — não faz sentido esconder o mic que está gravando só porque o mouse não
-   está em cima dele. */
-.call-btn-wrap:has(.recording),
-.call-btn-wrap:has(.active),
-.call-btn-wrap:has([data-playing="true"]) {
+/* Um botão em estado ativo (gravando, ao vivo, tocando, modo ligado) fica
+   sempre visível — não faz sentido esconder o mic que está gravando só porque
+   o mouse não está em cima dele. */
+.call-btn-wrap > button.recording,
+.call-btn-wrap > button.active,
+.call-btn-wrap > button[data-playing="true"],
+.call-btn-wrap > button[aria-pressed="true"] {
   opacity: 1;
 }
+/* Repetir desabilitado (sem palavra nos últimos 2 min, D59). */
+.call-btn-wrap > button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.call-btn-wrap:has(> button:disabled) .call-btn-label { opacity: 0.6; }
 .call-btn-label {
   font-size: 0.68rem; font-weight: 800; color: var(--azul-escuro);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.2px; white-space: nowrap;
+  padding: 2px 9px; border-radius: var(--radius-pill, 999px);
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 1px 4px rgba(15,23,42,0.22);
 }
 /* Botões pequenos e discretos — reaproveitam os estados .recording / .active.
    Música/Listening (.btn-musica) entram aqui pra ficar do MESMO tamanho dos
@@ -4000,7 +4015,7 @@ table.data tbody tr:hover {
   transition: opacity 0.6s ease;
   background: radial-gradient(ellipse 75% 70% at 50% 58%, rgba(10,25,70,0) 45%, rgba(10,25,70,0.62) 100%);
 }
-.playground-call[data-whisper="on"] .pg-vinheta { opacity: 1; }
+.kevin-recursos[data-whisper="on"] .pg-vinheta { opacity: 1; }
 
 /* Compactas e numa linha só: as duas empilhadas cabem entre a pill e a
    cabeça do Kevin (medido em 1600×900 e 1920×1080). */
@@ -4023,12 +4038,12 @@ table.data tbody tr:hover {
 .pg-faixa-icone { width: 1.45em; height: 1.45em; flex-shrink: 0; }
 .pg-faixa-whisper { background: #14306B; color: #FFFFFF; border: 0.09em solid #8FB7FF; }
 .pg-faixa-ingles { background: #FFD84D; color: #14306B; border: 0.09em solid #1D4FA3; }
-.playground-call[data-whisper="on"] .pg-faixa-whisper {
+.kevin-recursos[data-whisper="on"] .pg-faixa-whisper {
   display: inline-flex;
   animation: pg-entra 0.55s cubic-bezier(.34,1.56,.64,1), pg-pulsa 2.6s ease-in-out 0.6s infinite;
 }
 /* Só inglês: a faixa anuncia e some; o selo fica no canto enquanto valer. */
-.playground-call[data-so-ingles="on"] .pg-faixa-ingles {
+.kevin-recursos[data-so-ingles="on"] .pg-faixa-ingles {
   display: inline-flex;
   animation: pg-anuncia 7s cubic-bezier(.34,1.56,.64,1) forwards;
 }
@@ -4043,7 +4058,7 @@ table.data tbody tr:hover {
   box-shadow: 0 8px 22px rgba(15,23,42,0.30);
   pointer-events: none;
 }
-.playground-call[data-so-ingles="on"] .pg-selo-ingles { display: flex; animation: pg-entra 0.5s cubic-bezier(.34,1.56,.64,1) 6.4s both; }
+.kevin-recursos[data-so-ingles="on"] .pg-selo-ingles { display: flex; animation: pg-entra 0.5s cubic-bezier(.34,1.56,.64,1) 6.4s both; }
 
 @keyframes pg-entra { from { opacity: 0; transform: translateY(-18px) scale(0.85); } to { opacity: 1; transform: none; } }
 @keyframes pg-pulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); opacity: 0.88; } }
@@ -4059,7 +4074,6 @@ table.data tbody tr:hover {
   background: #16a34a; color: white;
   box-shadow: 0 0 0 4px rgba(22,163,74,0.20), 0 4px 12px rgba(22,163,74,0.30);
 }
-.call-btn-wrap:has([aria-pressed="true"]) { opacity: 1; }
 
 /* Seletor de música */
 .pg-musicas-lista { display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
@@ -4082,17 +4096,20 @@ table.data tbody tr:hover {
   .pg-faixas { top: 108px; }
   .pg-faixa { white-space: normal; }
   .pg-selo-ingles { top: 84px; right: 14px; }
-  /* 6 botões não cabem lado a lado no celular: quebram linha e não
+  /* 7 ou 8 botões não cabem lado a lado no celular: quebram linha e não
      passam por baixo do FAB do chat. */
-  .playground-call .call-controls { right: 84px; flex-wrap: wrap; gap: 8px; }
-  .playground-call .call-controls .btn-mic,
-  .playground-call .call-controls .btn-mic-live,
-  .playground-call .call-controls .btn-musica { width: 44px; height: 44px; border-radius: 14px; }
-  .playground-call .call-btn-label { font-size: 0.6rem; max-width: 56px; text-align: center; }
+  .kevin-recursos .call-controls { right: 84px; flex-wrap: wrap; gap: 8px; }
+  .kevin-recursos .call-controls .btn-mic,
+  .kevin-recursos .call-controls .btn-mic-live,
+  .kevin-recursos .call-controls .btn-musica { width: 44px; height: 44px; border-radius: 14px; }
+  .kevin-recursos .call-btn-label {
+    font-size: 0.6rem; max-width: 64px; text-align: center;
+    white-space: normal; line-height: 1.15;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .pg-vinheta { transition: none; }
-  .playground-call[data-whisper="on"] .pg-faixa-whisper,
-  .playground-call[data-so-ingles="on"] .pg-selo-ingles { animation: none; }
-  .playground-call[data-so-ingles="on"] .pg-faixa-ingles { animation: pg-anuncia 7s steps(1, end) forwards; }
+  .kevin-recursos[data-whisper="on"] .pg-faixa-whisper,
+  .kevin-recursos[data-so-ingles="on"] .pg-selo-ingles { animation: none; }
+  .kevin-recursos[data-so-ingles="on"] .pg-faixa-ingles { animation: pg-anuncia 7s steps(1, end) forwards; }
 }

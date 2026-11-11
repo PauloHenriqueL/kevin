@@ -12,6 +12,8 @@ window.KEVIN_CHAT_CONFIG = {
         conversa:     "/api/chat/conversas/{{ conversa.id }}/",
         stt:          "/api/chat/stt/",
         tts:          "/api/chat/tts/",
+        estado:       "/api/chat/conversas/{{ conversa.id }}/estado/",
+        repetir:      "/api/chat/conversas/{{ conversa.id }}/repetir/",
     }
 };
 // Mapa de cenários → URL do asset (Demanda 12). A chave vem de Aula.background.
@@ -66,11 +68,14 @@ window.KEVIN_RIG_CONFIG = {
     snoreAudioUrl:      "{% kevin_asset 'audio/voz-kevin/ronco-kevin.mp3' %}",
     teachingBoardUrl:   "{% kevin_asset 'obj/quadro-negro.png' %}",
     vocabularyItems:    window.KEVIN_VOCABULARIO,
-    // Falas gravadas configuráveis: hi (fallback da abertura), despedida ao
-    // concluir e o "yeah, you got it" do celebrate.
-    hiVoiceUrls:        ["{% kevin_asset 'audio/voz-kevin/hi-kids.mp3' %}"],
-    byeVoiceUrls:       ["{% kevin_asset 'audio/voz-kevin/kevin-bye.mp3' %}",
-                         "{% kevin_asset 'audio/voz-kevin/kids-bye.mp3' %}"],
-    celebrateVoiceUrl:  "{% kevin_asset 'audio/voz-kevin/yeah-you-got-it.mp3' %}",
 };
+// O Kevin fala SÓ pela voz sintetizada (ElevenLabs), na aula e no Playground
+// (D54, D58). As falas gravadas do motor (hi/bye, "yeah, you got it", Open
+// class, Pay attention) são MP3 com outra voz e não esperam a turma: ficam
+// desligadas. O celebrate continua com gesto, confete e efeito; o ronco é
+// efeito sonoro e não passa por aqui (D61).
+window.KEVIN_RIG_CONFIG.celebrateVoiceUrl = null;
+window.KEVIN_RIG_CONFIG.hiVoiceUrls = [];
+window.KEVIN_RIG_CONFIG.byeVoiceUrls = [];
+window.KEVIN_RIG_CONFIG.voiceVolume = 0;
 </script>

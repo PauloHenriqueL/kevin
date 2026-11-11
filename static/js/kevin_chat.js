@@ -45,9 +45,13 @@
     kevinReady: false,          // true quando kevinChat.init() resolve
   };
 
-  // Playground (Demanda 20): sessão sem aula. Todo caminho novo fica atrás
-  // deste flag — a aula estruturada não executa nada do que vem abaixo.
+  // Playground (Demanda 20): sessão sem aula. Só o que é exclusivo da sessão
+  // (abertura fixa, contexto no título, Encerrar) fica atrás deste flag.
   const MODO_PLAYGROUND = window.KEVIN_MODO === 'playground';
+  // Recursos do Kevin (quadro, cenário, música, jogos, Whisper, Só inglês,
+  // Atenção por evento): valem no Playground E na aula (Épico A, D60). A aula
+  // liga com window.KEVIN_RECURSOS = true.
+  const RECURSOS = MODO_PLAYGROUND || window.KEVIN_RECURSOS === true;
   const pg = {
     estado: Object.assign(
       { whisper: false, so_ingles: false, cenario: 'floresta', quadro: '' },
@@ -225,57 +229,15 @@
     const texto = input.value.trim();
     if (!texto || state.isSending) return;
 
-    if (MODO_PLAYGROUND) {
-      // Sala barulhenta: o professor digita e o Kevin fala E age, como na voz.
-      input.value = '';
-      input.style.height = 'auto';
-      if (kevinChat && kevinChat.unlockAudio) {
-        kevinChat.unlockAudio().catch(() => {/* já logado pelo adapter */});
-      }
-      pgAntesDeInteragir();
-      sendTextAndSpeak(texto);
-      return;
-    }
-
+    // Sala barulhenta: o professor digita e o Kevin fala E age, como na voz.
     // Aproveita esse user gesture pra destravar o AudioContext do TTS.
-    // Sem isso, o primeiro play() pode rodar com ctx suspended (Safari/iOS).
+    input.value = '';
+    input.style.height = 'auto';
     if (kevinChat && kevinChat.unlockAudio) {
       kevinChat.unlockAudio().catch(() => {/* já logado pelo adapter */});
     }
-
-    appendMessage('user', texto);
-    input.value = '';
-    input.style.height = 'auto';
-
-    if (kevinChat) kevinChat.onUserMessage(texto);
-
-    showTyping();
-
-    // Modo demo: resposta local com animação
-    if (window.KEVIN_DEMO_MODE) {
-      setTimeout(() => {
-        hideTyping();
-        const resposta = demoReply(texto);
-        appendMessage('assistant', resposta);
-        if (kevinChat) kevinChat.onAssistantMessage(resposta);
-      }, 1500 + Math.random() * 1000);
-      return;
-    }
-
-    // Modo normal: chama backend
-    fetch(cfg.urls.mensagem, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-      body: JSON.stringify({ conteudo: texto, tipo: 'texto' }),
-    })
-      .then((r) => r.json())
-      .then(() => pollResposta())
-      .catch((err) => {
-        console.error('[Chat] Erro no envio:', err);
-        hideTyping();
-        appendMessage('assistant', 'Ops, tive um problema. Tente de novo!');
-        if (kevinChat) kevinChat.onError();
-      });
+    pgAntesDeInteragir();
+    sendTextAndSpeak(texto);
   }
 
   // ───────────── Envio síncrono (live mode) ─────────────
@@ -289,44 +251,10 @@
     return r.json();
   }
 
-  function pollResposta() {
-    let tentativas = 0;
-    const id = setInterval(() => {
-      tentativas++;
-      fetch(cfg.urls.conversa)
-        .then((r) => r.json())
-        .then((data) => {
-          const msgs = data.mensagens || [];
-          const ultima = msgs[msgs.length - 1];
-          if (ultima && ultima.role === 'assistant') {
-            clearInterval(id);
-            hideTyping();
-            appendMessage('assistant', ultima.conteudo);
-
-            if (ultima.celebrar) {
-              // Não chama onAssistantMessage aqui: ele forçaria "standby" e
-              // cortaria o gesto do celebrate no meio.
-              celebrarSeNecessario(true);
-            } else if (kevinChat) {
-              kevinChat.onAssistantMessage(ultima.conteudo);
-            }
-          }
-        });
-      if (tentativas >= 30) {
-        clearInterval(id);
-        hideTyping();
-        appendMessage('assistant', 'Kevin demorou demais. Tente novamente.');
-        if (kevinChat) {
-          kevinChat.onError();
-        }
-      }
-    }, 2000);
-  }
-
   // ───────────── Gravação com VAD ─────────────
   async function startRecording() {
     if (state.isRecording || state.isSending) return;
-    if (MODO_PLAYGROUND) pgAntesDeInteragir();
+    pgAntesDeInteragir();
     // Destrava o AudioContext do TTS enquanto ainda há user gesture do clique
     // do mic (será usado pra falar a resposta depois). Só faz sentido na
     // PRIMEIRA chamada do gesture; chamadas em loop do live mode já não
@@ -464,21 +392,11 @@
       // só o live re-abre o mic automaticamente depois.
       state.isSending = true;
       appendMessage('user', '🎤 ' + texto);
-      const data = MODO_PLAYGROUND ? await pgEnviarTeacher(texto) : await enviarMensagemSync(texto);
+      const data = await pgEnviarTeacher(texto);
       state.isSending = false;
       state.liveErros = 0;  // turno OK: zera a contagem de erros consecutivos
       hideTyping();
-      if (MODO_PLAYGROUND) {
-        await pgResponder(data);
-      } else {
-        const resp = data.resposta && data.resposta.conteudo;
-        const celebrar = !!(data.resposta && data.resposta.celebrar);
-        if (resp) {
-          appendMessage('assistant', resp);
-          await celebrarSeNecessario(celebrar);
-          await playTTS(resp);
-        }
-      }
+      await pgResponder(data);
       setMicBtnState(state.liveMode ? 'live' : 'idle');
       // Re-checa liveMode DENTRO do callback (privacy: ver acima).
       setTimeout(() => { if (state.liveMode && !state.isRecording) startRecording(); }, 400);
@@ -620,7 +538,7 @@
       state.currentTtsBlobUrl = url;
       audioEl.src = url;
       // Whisper: reforço de volume baixo para qualquer provider de TTS (D52).
-      if (MODO_PLAYGROUND) audioEl.volume = pg.estado.whisper ? 0.55 : 1;
+      if (RECURSOS) audioEl.volume = pg.estado.whisper ? 0.55 : 1;
 
       // Ativa o lipsync ANTES do play.
       const speakingOk = await kevinChat.startSpeaking();
@@ -763,21 +681,16 @@
     showTyping();
 
     let resp = null;
-    let celebrar = false;
     try {
       if (window.KEVIN_DEMO_MODE) {
         await new Promise((r) => setTimeout(r, 1300 + Math.random() * 700));
         resp = demoReply(texto);
-      } else if (MODO_PLAYGROUND) {
+      } else {
         state.isSending = true;
         const data = await pgEnviarTeacher(texto);
         state.isSending = false;
         hideTyping();
         if (await pgResponder(data)) return;
-      } else {
-        const data = await enviarMensagemSync(texto);
-        resp = data && data.resposta && data.resposta.conteudo;
-        celebrar = !!(data && data.resposta && data.resposta.celebrar);
       }
     } catch (err) {
       console.error('[Chat] sendTextAndSpeak:', err);
@@ -791,15 +704,15 @@
       return;
     }
     appendMessage('assistant', resp);
-    if (celebrar) {
-      await celebrarSeNecessario(true);
-    } else if (kevinChat) {
-      kevinChat.onAssistantMessage(resp);
-    }
+    if (kevinChat) kevinChat.onAssistantMessage(resp);
     try { await playTTS(resp); } catch (e) { /* TTS é opcional */ }
   }
 
-  /** Clique em "Iniciar aula": destrava o áudio (gesture) e dispara o kickoff. */
+  /**
+   * Clique em "Iniciar aula": destrava o áudio (gesture), toca a entrada e
+   * dispara o kickoff. Sem o Open class gravado (D58): a abertura é a resposta
+   * da IA ao kickoff, com a voz do Kevin, e ele espera a turma responder.
+   */
   async function iniciarAula() {
     if (!callRoot || callRoot.dataset.state === 'live') return;
     // Esse clique é o user gesture — destrava o AudioContext pro TTS tocar sozinho.
@@ -808,19 +721,14 @@
     }
     callRoot.dataset.state = 'live';
     // Vídeo de entrada ("abre a cortina" e revela o Kevin) antes do kickoff.
+    // Teto de 8s: se o vídeo não terminar, a Promise do motor nunca resolve.
     if (kevinChat && kevinChat.playEntrada) {
-      try { await kevinChat.playEntrada(); } catch (e) {/* segue sem a entrada animada */}
+      try {
+        await Promise.race([kevinChat.playEntrada(), new Promise((r) => setTimeout(r, 8000))]);
+      } catch (e) {/* segue sem a entrada animada */}
     }
-    // Open class (cumprimento + "como estão se sentindo" com a turma) —
-    // precisa terminar ANTES do kickoff entrar em "thinking"
-    // (sendTextAndSpeak → showTyping() já dispara o modo pensando).
-    // Se o professor interromper (mic/mensagem), a sequência resolve false
-    // e o kickoff não roda por cima da interação dele.
-    if (kevinChat && kevinChat.openClass) {
-      let completa = true;
-      try { completa = await kevinChat.openClass(); } catch (e) {/* segue sem a abertura */}
-      if (completa === false) return;
-    }
+    // Página recarregada no meio da aula: restaura o quadro.
+    if (pg.estado.quadro) pgMostrarNoQuadro(pg.estado.quadro);
     const kickoff = window.KEVIN_KICKOFF || 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?';
     sendTextAndSpeak(kickoff);
   }
@@ -862,61 +770,27 @@
       if (e.key === 'Escape' && !modalConcluir.hidden) toggleModalConcluir(false);
     });
 
-    // Despedida: com a aula em andamento, o Kevin diz "bye / kids bye"
-    // acenando antes de a página sair. Aula nem iniciada = envia direto.
+    // Despedida: com a aula em andamento, o Kevin se despede com a própria
+    // voz (TTS, D58) antes de a página sair. Aula nem iniciada = envia direto.
+    // Teto de 8s: o professor está esperando a tela fechar.
     const formConcluir = modalConcluir.querySelector('form');
     let despedindo = false;
     if (formConcluir) {
       formConcluir.addEventListener('submit', async (e) => {
         const aoVivo = callRoot && callRoot.dataset.state === 'live';
-        if (despedindo || !aoVivo || !kevinChat || !kevinChat.sayBye) return;
+        if (despedindo || !aoVivo || !kevinChat || window.KEVIN_DEMO_MODE) return;
         e.preventDefault();
         despedindo = true;
         toggleModalConcluir(false);
-        try { await kevinChat.sayBye(); } catch (err) { /* sai mesmo assim */ }
+        state.liveMode = false;
+        stopRecording();
+        if (pg.musicaTocando) pgFinalizarMusica(null);
+        try {
+          await Promise.race([playTTS(PG_DESPEDIDA), new Promise((r) => setTimeout(r, 8000))]);
+        } catch (err) { /* sai mesmo assim */ }
         formConcluir.submit();
       });
     }
-  }
-
-  // ── Botão Pay attention ──
-  // Sequência gravada para chamar a atenção da turma. Clicar de novo enquanto
-  // roda interrompe.
-  const btnPayAttention = document.getElementById('btn-pay-attention');
-  // No Playground o botão vira evento para a IA (ver bloco do Playground): a
-  // sequência gravada do motor fala com outra voz (D54).
-  if (btnPayAttention && kevinChat && !MODO_PLAYGROUND) {
-    btnPayAttention.addEventListener('click', async () => {
-      if (btnPayAttention.dataset.playing === 'true') {
-        kevinChat.cancelSequence();
-        return;
-      }
-      if (!kevinChat.payAttention) return;
-      if (kevinChat.unlockAudio) {
-        try { await kevinChat.unlockAudio(); } catch (e) { /* já logado */ }
-      }
-      btnPayAttention.dataset.playing = 'true';
-      try { await kevinChat.payAttention(); } catch (e) { /* segue */ }
-      btnPayAttention.dataset.playing = 'false';
-    });
-  }
-
-  // ── Botão de música (Demanda 9A) ──
-  // Toggle: Kevin pega o ukulele e canta / guarda o ukulele. A saída da música
-  // é animada pelo próprio motor (integração cuida disso).
-  const btnMusica = document.getElementById('btn-musica');
-  if (btnMusica && kevinChat) {
-    btnMusica.addEventListener('click', async () => {
-      const tocando = btnMusica.dataset.playing === 'true';
-      if (tocando) {
-        if (kevinChat.stopMusica) kevinChat.stopMusica();
-        btnMusica.dataset.playing = 'false';
-      } else {
-        // window.KEVIN_MUSICA_URL pode trazer uma faixa; senão, só a animação.
-        if (kevinChat.playMusica) await kevinChat.playMusica(window.KEVIN_MUSICA_URL);
-        btnMusica.dataset.playing = 'true';
-      }
-    });
   }
 
   // ── Botão de listening (atividade de escuta) ──
@@ -936,14 +810,14 @@
     });
   }
 
-  // ───────────── Playground (Demanda 20) ─────────────
-  // Sessão sem aula cadastrada: o Kevin pergunta o tema e conduz a partir da
-  // resposta do Teacher, acionando recursos por tool calling (D51). Tudo aqui
-  // só roda com MODO_PLAYGROUND.
+  // ───────────── Recursos do Kevin (Demanda 20 + Épico A) ─────────────
+  // Nasceram no Playground (sessão sem aula: o Kevin pergunta o tema e conduz
+  // a partir da resposta do professor) e valem também na aula estruturada
+  // (D60). Ações por tool calling (D51), eventos da sala, modos e música.
 
   /** Estilo de voz do TTS: sussurro enquanto o Everybody Whisper estiver ativo. */
   function pgEstiloVoz() {
-    return (MODO_PLAYGROUND && pg.estado.whisper) ? { estilo: 'sussurro' } : {};
+    return (RECURSOS && pg.estado.whisper) ? { estilo: 'sussurro' } : {};
   }
 
   function pgMostrarContexto(texto) {
@@ -973,7 +847,7 @@
    * como qualquer outra. Espera a vez: não corta a resposta em andamento.
    */
   async function enviarEvento(texto) {
-    if (!MODO_PLAYGROUND || window.KEVIN_DEMO_MODE) return;
+    if (!RECURSOS || window.KEVIN_DEMO_MODE) return;
     await pgEsperarVez();
     // Ao vivo gravando: descarta o trecho (o professor apertou um botão) e
     // não deixa o mic gravar a própria resposta do Kevin.
@@ -1180,7 +1054,7 @@
 
   /** O professor vai falar/digitar: música em andamento para, sem evento. */
   function pgAntesDeInteragir() {
-    if (MODO_PLAYGROUND && pg.musicaTocando) pgFinalizarMusica(null);
+    if (RECURSOS && pg.musicaTocando) pgFinalizarMusica(null);
   }
 
   // ── Início, botões e encerramento ──
@@ -1242,15 +1116,19 @@
     if (modalMusicas) modalMusicas.hidden = !abrir;
   }
 
-  if (MODO_PLAYGROUND) {
+  if (RECURSOS) {
     pg.estado.cenarioNaTela = pg.estado.cenario || window.KEVIN_BACKGROUND;
-    if (btnIniciarPg) btnIniciarPg.addEventListener('click', iniciarPlayground);
 
     // Atenção: o Kevin chama a turma com a própria voz (ElevenLabs), via IA.
+    // Sem IA (demo), fica só o gesto.
     const btnAtencao = document.getElementById('btn-pay-attention');
     if (btnAtencao) {
       btnAtencao.addEventListener('click', () => {
         if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+        if (window.KEVIN_DEMO_MODE) {
+          if (kevinChat && kevinChat.waveHello) kevinChat.waveHello();
+          return;
+        }
         enviarEvento('O professor apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
       });
     }
@@ -1276,6 +1154,12 @@
         if (!opcao) return;
         pgToggleModalMusicas(false);
         const nome = opcao.dataset.nome || '';
+        if (opcao.dataset.aula === '1') {
+          // Música desta aula (D61): toca direto, sem passar pela IA. Ao
+          // terminar, o evento "A música terminou." devolve a vez ao Kevin.
+          pgTocarMusica(window.KEVIN_MUSICA_URL || '', nome);
+          return;
+        }
         if (window.KEVIN_DEMO_MODE) {
           // Sem IA: toca direto, sem o Kevin anunciar.
           const musica = (window.KEVIN_MUSICAS || []).find((m) => m.nome === nome);
@@ -1290,6 +1174,11 @@
         if (e.key === 'Escape' && !modalMusicas.hidden) pgToggleModalMusicas(false);
       });
     }
+  }
+
+  // ── Exclusivo da sessão de Playground: Começar (abertura fixa) e Encerrar ──
+  if (MODO_PLAYGROUND) {
+    if (btnIniciarPg) btnIniciarPg.addEventListener('click', iniciarPlayground);
 
     const btnEncerrar = document.getElementById('btn-encerrar-playground');
     let encerrando = false;

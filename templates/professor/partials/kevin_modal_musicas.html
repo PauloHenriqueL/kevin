@@ -1,0 +1,23 @@
+{# Seletor de música (botão Música, com nada tocando). Compartilhado pela    #}
+{# aula e pelo Playground (D60). Recebe `musicas` (catálogo com faixa) e,   #}
+{# na aula, `aula`: a música da aula entra em primeiro e toca direto (D61). #}
+    <div class="modal-overlay" id="modal-musicas" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-musicas-titulo">
+            <button type="button" class="modal-close" id="modal-musicas-close" aria-label="Fechar">×</button>
+            <h2 id="modal-musicas-titulo">Escolher música</h2>
+            <p class="modal-sub">O Kevin anuncia e toca com o ukulele.</p>
+            <div class="pg-musicas-lista">
+                {% if aula and aula.tem_musica %}
+                    <button type="button" class="pg-musica-opcao" data-nome="Música desta aula" data-aula="1">⭐ Música desta aula</button>
+                {% endif %}
+                {% for musica in musicas %}
+                    <button type="button" class="pg-musica-opcao" data-nome="{{ musica.nome }}">🎵 {{ musica.nome }}</button>
+                {% empty %}
+                    {% if not aula or not aula.tem_musica %}
+                    <p class="pg-musicas-vazio">Nenhuma música com áudio cadastrada no catálogo ainda.</p>
+                    {% endif %}
+                {% endfor %}
+                <button type="button" class="pg-musica-opcao pg-musica-ukulele" data-nome="">🪕 Só o ukulele (eu canto)</button>
+            </div>
+        </div>
+    </div>

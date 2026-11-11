@@ -1,0 +1,81 @@
+{# Barra de botões do telão, compartilhada pela aula e pelo Playground      #}
+{# (Épico A, D60). Recebe `estado` (whisper/so_ingles) e, na aula, `aula`.  #}
+{# Os IDs são o contrato com kevin_chat.js — não renomear.                  #}
+    <div class="call-controls" aria-label="Controles do Kevin">
+        <div class="call-btn-wrap">
+            <button class="btn-mic" id="btn-mic" type="button" aria-label="Falar com o Kevin (clique para começar, para sozinho no silêncio)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Falar</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-mic-live" id="btn-mic-live" type="button" aria-label="Conversa ao vivo, mãos livres">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                <div class="live-waves" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            </button>
+            <span class="call-btn-label">Conversa ao vivo</span>
+        </div>
+        <div class="call-btn-wrap">
+            {# Atenção: vira evento para a IA; o Kevin acena e chama a turma com a própria voz (D58). #}
+            <button class="btn-musica" id="btn-pay-attention" type="button" aria-label="Kevin chama a atenção da turma" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Atenção</span>
+        </div>
+        <div class="call-btn-wrap">
+            {# Repetir (Demanda 24, D59): só fica ativo nos 2 min depois de uma palavra nova. #}
+            <button class="btn-musica" id="btn-repetir" type="button" aria-label="Kevin repete a última palavra ensinada" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Repetir</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica btn-modo" id="btn-whisper" type="button" aria-label="Everybody Whisper" aria-pressed="{{ estado.whisper|yesno:'true,false' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 10.5a2.5 2.5 0 0 1 0 3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Whisper</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica btn-modo" id="btn-so-ingles" type="button" aria-label="No Portuguese Allowed — só inglês" aria-pressed="{{ estado.so_ingles|yesno:'true,false' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <text x="12" y="13.5" text-anchor="middle" font-size="7" font-weight="900" stroke="none" fill="currentColor">EN</text>
+                </svg>
+            </button>
+            <span class="call-btn-label">Só inglês</span>
+        </div>
+        <div class="call-btn-wrap">
+            <button class="btn-musica" id="btn-musica-pg" type="button" aria-label="Música: escolher ou parar" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+            </button>
+            <span class="call-btn-label" id="btn-musica-pg-label">Música</span>
+        </div>
+        {% if aula and aula.tem_listening %}
+        <div class="call-btn-wrap">
+            {# Listening da aula (D61): continua como era. Só toca o áudio, sem ukulele nem lipsync. #}
+            <button class="btn-musica" id="btn-listening" type="button" aria-label="Tocar áudio de listening" data-playing="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Listening</span>
+        </div>
+        {% endif %}
+    </div>
