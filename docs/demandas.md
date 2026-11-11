@@ -3,8 +3,9 @@
 > **Status deste documento:** aprovado como escopo. Cada demanda tem seu próprio
 > status de implementação — leia o cabeçalho de cada uma antes de começar.
 >
-> **Última atualização:** 30/07/2026 — reunião com a Bebelingue fechou a
-> modelagem de currículo (D31–D36). Novas **Demandas 15–17** para o MVP.
+> **Última atualização:** 10/11/2026 — reunião de validação com o Lucas
+> Albertoni: o Kevin assume o lugar do professor de inglês. Novo **Épico A**
+> (Demandas 21–25) e decisões D55–D60.
 
 ---
 
@@ -26,6 +27,12 @@
 - **[Demanda 17 — June ordenada entre a Unit 4 e a Unit 5](#demanda-17--june-ordenada-entre-a-unit-4-e-a-unit-5)** 🔴
 - **[Demanda 18 — Subir para produção (Render + Neon)](#demanda-18--subir-para-produção-render--neon)** 🔵 (passo a passo)
 - **[Demanda 20 — Kevin Playground](#demanda-20--kevin-playground)** 🟡
+- **[Épico A — Kevin no lugar do professor de inglês](#épico-a--kevin-no-lugar-do-professor-de-inglês)** 🚧 planejado (guia no `CLAUDE.md`)
+  - [Demanda 21 — Kevin fala português com o professor](#demanda-21--kevin-fala-português-com-o-professor) · Must
+  - [Demanda 22 — Sequência didática TEFL com repetição tripla](#demanda-22--sequência-didática-tefl-com-repetição-tripla) · Must
+  - [Demanda 23 — Kevin responsivo: fim das falas gravadas](#demanda-23--kevin-responsivo-fim-das-falas-gravadas) · Must ⛔
+  - [Demanda 24 — Botão Repetir](#demanda-24--botão-repetir) · Must
+  - [Demanda 25 — Aula estruturada com os recursos do Playground](#demanda-25--aula-estruturada-com-os-recursos-do-playground) · Should
 - [Decisões registradas](#decisões-registradas)
 - [Considerado e adiado](#considerado-e-adiado)
 - [Riscos aceitos](#riscos-aceitos)
@@ -1835,6 +1842,305 @@ montado do estável para o volátil).
 
 ---
 
+## Épico A — Kevin no lugar do professor de inglês
+
+**Status:** 🚧 Planejado em 11/11/2026. O guia de implementação, etapa por
+etapa, está no `CLAUDE.md` (seção "🚧 Épico A — guia de implementação"). Os
+textos de prompt são provisórios até o Lucas validar. Fonte: reunião de
+validação Paulo Henrique Lima × Lucas Albertoni (notas do Gemini) + pedido do
+Paulo no mesmo dia.
+
+### A.1 A decisão que puxa todas as outras
+
+Até aqui o Kevin foi desenhado como **assistente do professor de inglês**: o
+professor conduz, fala com o Kevin e abre momentos para a turma (D11, regra 15
+do `CLAUDE.md`). A reunião mudou o cenário: **o professor de inglês sai da sala
+e o Kevin assume o papel dele.** Quem fica é o **professor regente**, que **não
+fala inglês** (D55).
+
+Daí vêm as demandas do épico:
+
+- com o regente, o Kevin fala **português** (Demanda 21);
+- com a turma, ensina inglês por uma **sequência didática**, sem despejar inglês direto (Demanda 22);
+- o Kevin precisa **ouvir** a turma antes de avançar, e fala gravada disparada sem escuta não serve mais (Demanda 23);
+- o regente precisa de um jeito simples de pedir reforço sem falar inglês (Demanda 24);
+- a aula normal ganha os recursos que já existem no Playground (Demanda 25).
+
+### A.2 Verificado em produção (10/11/2026, logado como `maria`)
+
+| O que | Resultado | Demanda |
+|---|---|---|
+| Professor pergunta em português: "Kevin, o que vamos fazer agora com a turma?" | Kevin responde em **inglês**: *"Hello, Teacher! Let's start with a quick Hello song. Can you play it, please?"* | 21 |
+| Abertura da aula `Y5-WUW1C1` | Tocam **5 falas gravadas em sequência**, sem esperar a turma: `hi-kids` → `todos-dizem-hi-kevin` → `como-estao-se-sentindo` → `agora-em-inglês` → `how-are-you-feeling` | 22, 23 |
+| Voz sintetizada (respostas) | OpenAI TTS, voz **`nova` (feminina)**. O ElevenLabs com a voz do Kevin (`ULGe8LE8nicX7u7kcwBn`) responde **401**: o campo de chave do Plano guarda a chave usada pelo OpenAI | 23 |
+| Botões do telão | Aula: **3** (Falar, Conversa ao vivo, Atenção). Playground: **6** (os mesmos + Whisper, Só inglês, Música). Rótulos quase ilegíveis sobre o cenário | 25 |
+| Prompts por TG | Nenhum dos 3 TGs tem bloco customizado: roda o padrão de `apps/chat/prompts/` | 21, 22 |
+| Roteiro da aula `Y5-WUW1C1` | **Vazio** (sem título e sem blocos). O Kevin improvisa ("Hello song") | — conteúdo |
+
+### A.3 Conferência das notas da reunião
+
+| Ponto | Situação |
+|---|---|
+| "metodologia Tefelhar" | Erro de transcrição de **TEFL** |
+| "áudios produzidos por Torch" | Provável erro de transcrição; não muda o escopo |
+| Mensagem do Paulo: "o Kevin não deve falar em inglês" / "para conversar com o professor ele deve falar em inglês" | As duas frases se contradizem e a segunda contradiz a reunião. **Confirmado pelo Paulo (11/11/2026): vale a reunião**, ou seja, português com o professor e inglês com a turma (D56) |
+| Botão de repetição ativo por 2 minutos | Consta só nas notas; mantido (D59) |
+| Aula normal igual ao Playground | Vem do pedido do Paulo, **não** dos próximos passos combinados com o Lucas |
+
+### A.4 Backlog do épico
+
+| # | Demanda | Prioridade | Esforço | Depende de |
+|---|---|---|---|---|
+| 21 | Kevin fala português com o professor | Must | P | texto validado pelo Lucas |
+| 22 | Sequência didática TEFL com repetição tripla | Must | P | 21 (mesmo texto) |
+| 23 | Kevin responsivo: fim das falas gravadas | Must | M | ⛔ chave válida do ElevenLabs |
+| 24 | Botão Repetir | Must | M | 22 (registro da palavra ensinada) |
+| 25 | Aula estruturada com os recursos do Playground | Should | G | 23 |
+
+Esforço é estimativa de engenharia, sem validação: **P** até 1 dia, **M** 2 a 3
+dias, **G** uma semana ou mais.
+
+### A.5 Plano de entrega
+
+Combinado na reunião: mudanças pequenas, cada uma testada pelo Lucas antes da
+próxima.
+
+| Entrega | Conteúdo | Checkpoint |
+|---|---|---|
+| 0 | Prompts atuais enviados ao Lucas | Lucas devolve correções + 2 ou 3 diálogos-modelo escritos por ele |
+| 1 | Demandas 21 + 22 (só texto de prompt) | Lucas testa no Playground |
+| 2 | Chave do ElevenLabs + Demanda 23 | Lucas testa abertura e Atenção sem gravação |
+| 3 | Demanda 24 no Playground (onde o quadro já existe) | Lucas testa o Repetir |
+| 4 | Demanda 25: aula com os recursos do Playground, inclusive Repetir | Validação final, depois apresentação ao Renato |
+
+**Pronto, para cada entrega:** texto validado pelo Lucas · suíte passando ·
+Playwright com screenshot conferido · deploy feito · **Lucas avisado** (próximo
+passo da reunião).
+
+### A.6 Riscos
+
+- **O modelo volta para o inglês** em conversa longa, mesmo com a regra nova.
+  Mitigação: roteiro fixo de teste (10 falas típicas do regente) rodado antes de
+  cada entrega; os diálogos-modelo do Lucas entram no prompt como exemplo.
+- **Escuta ruidosa:** com muitas crianças falando, a transcrição erra e o Kevin
+  pode "ouvir" resposta que não veio. O prompt já manda comemorar a participação
+  em vez de corrigir pela transcrição.
+- **Aula sem roteiro:** o Kevin improvisa. Não é deste épico, mas a validação
+  com o Lucas precisa de uma aula cadastrada de ponta a ponta.
+
+---
+
+## Demanda 21 — Kevin fala português com o professor
+
+**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço P.
+
+> **Como** professor regente que não fala inglês, **quero** que o Kevin fale
+> comigo em português, **para** entender o que ele está fazendo e conduzir a
+> turma junto com ele.
+
+**Regra (D56):** tudo o que o Kevin diz **ao professor** (combinados,
+instruções, pedidos, respostas às perguntas dele) é em **português**. O inglês
+fica só no que é dirigido **à turma**, dentro da sequência da Demanda 22.
+
+### Critérios de aceite
+
+- [ ] Na aula e no Playground, quando o professor fala com o Kevin (em qualquer língua), o Kevin responde em português
+- [ ] Pedidos ao professor ("pode tocar a música?", "vamos fazer uma atividade com a turma") saem em português
+- [ ] A fala de abertura do Playground, hoje *"Hello, Teacher! Hello, kids!…"*, se dirige ao professor em português
+- [ ] O tratamento do professor é definido (hoje o prompt manda chamar de "Teacher")
+- [ ] Teste de produção da seção A.2 refeito: a mesma pergunta recebe resposta em português
+
+### Notas técnicas
+
+- Só texto de prompt: blocos `papel` e `idioma` da aula e do Playground, em
+  `apps/chat/prompts/`. Como nenhum TG customizou blocos, o novo padrão vale
+  para os 3 TGs sem migração de dados.
+- A Instant Translation ("valida em português, responde em inglês") sai do
+  bloco de idioma.
+
+### Contradiz
+
+Regra 16 do `CLAUDE.md` e o bloco de idioma da D13. Ver D56.
+
+---
+
+## Demanda 22 — Sequência didática TEFL com repetição tripla
+
+**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço P.
+
+> **Como** coordenação pedagógica, **quero** que o Kevin ensine cada termo em
+> inglês numa sequência fixa, **para** que a turma saiba o que responder antes
+> de ser cobrada em inglês.
+
+**A sequência (D57):**
+
+1. O Kevin avisa a turma em português: *"Turma, vou perguntar em português e quero que vocês respondam em português."*
+2. Pergunta em português e **espera** a resposta.
+3. Com a resposta em português, diz *"Agora em inglês, turma!"* e apresenta o termo em inglês.
+4. **Repetição tripla:** a turma repete o termo três vezes com o Kevin.
+5. Só então o Kevin cobra a resposta em inglês.
+
+Exemplo, com o problema visto em produção: em vez de abrir com *"How are you
+feeling?"*, o Kevin pergunta *"Como vocês estão se sentindo hoje?"*, valida
+"feliz", ensina *happy*, repete três vezes, e só depois pergunta em inglês.
+
+### Critérios de aceite
+
+- [ ] Toda palavra ou expressão nova segue os 5 passos, na ordem
+- [ ] A repetição tripla acontece sempre que um termo é apresentado, não só na primeira vez
+- [ ] O Kevin espera a resposta entre os passos (com escuta real depende da Demanda 23)
+- [ ] Lucas valida a sequência numa aula de teste (sugestão: objetos da sala de aula, já testada no Playground)
+
+### Notas técnicas
+
+- Prompt: bloco `execucao` da aula e do Playground. O exemplo atual
+  (*"Isso! Dog. Repeat with me: dog!"*) dá lugar ao novo padrão.
+- Proposta: o termo apresentado vai para o quadro. Serve de apoio visual e de
+  **registro da palavra ensinada**, que o botão Repetir usa (Demanda 24).
+
+### Perguntas em aberto
+
+- Repetição tripla é **a turma repetindo três vezes depois do Kevin**, ou o Kevin dizendo três vezes? (Assumido: o Kevin fala, a turma repete, três vezes.)
+- Quando a turma já domina o termo, a sequência pode encurtar?
+
+---
+
+## Demanda 23 — Kevin responsivo: fim das falas gravadas
+
+**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço M.
+⛔ **Bloqueada** pela chave do ElevenLabs (ver pré-requisito).
+
+> **Como** turma, **quero** que o Kevin espere a gente responder antes de
+> seguir, **para** que valha a pena participar.
+
+**Problema (verificado em produção):** ao iniciar a aula, o Kevin toca 5 falas
+gravadas em sequência (`playOpenClass`, D46) e o botão Atenção dispara outra
+sequência gravada (`playPayAttention`). Nenhuma espera a turma: as crianças
+percebem que o Kevin não escuta e param de responder. O Playground já resolveu
+isso (D54).
+
+**O que muda (D58):** a aula segue o modelo do Playground. Abertura sem Open
+class gravado, Atenção como gesto + frase da IA, celebrate sem o *"yeah, you
+got it"*, despedida pela voz sintetizada. Toda fala sai em tempo real pela voz
+do Kevin no ElevenLabs, e ele só avança depois de ouvir a resposta.
+
+### Critérios de aceite
+
+- [ ] Nenhuma fala gravada (MP3) na aula: uma voz só, a do Kevin
+- [ ] Abertura: o Kevin cumprimenta e espera a resposta da turma antes de seguir
+- [ ] Atenção: gesto + frase dita pelo Kevin, e ele espera a turma
+- [ ] A voz feminina (`nova`) não aparece em momento nenhum
+
+### Pré-requisito ⛔
+
+Hoje a voz sintetizada é a `nova` (feminina) do OpenAI porque o ElevenLabs
+responde 401. **Se esta demanda entrar antes de trocar a chave, a aula inteira
+passa a falar com a voz feminina** — pior que hoje. Precisa: chave `sk_…` do
+ElevenLabs no Plano, `tts_provider = elevenlabs`, `tts_modelo` vazio (o valor
+`nova` é nome de voz do OpenAI e o ElevenLabs recusa como modelo).
+
+### Notas técnicas
+
+- Frontend: levar para a aula o caminho de fala que hoje fica atrás de
+  `MODO_PLAYGROUND` (D54).
+- Escuta: depende do modo ao vivo (VAD) ligado na aula.
+- Some a dívida da D46 (falas resolvidas relativas ao `.js`).
+
+### Respondido
+
+- **O ronco fica** (D61). É efeito sonoro: toca num player próprio e não
+  passa pelo volume das falas gravadas (`voiceVolume`).
+
+---
+
+## Demanda 24 — Botão Repetir
+
+**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Must** · esforço M.
+
+> **Como** professor regente, **quero** um botão que faz o Kevin repetir a
+> última palavra ensinada, **para** reforçar o vocabulário sem falar inglês nem
+> dar comando de voz.
+
+**Regra (D59):** o botão só fica ativo nos **2 minutos** seguintes ao ensino de
+uma palavra nova. Ao clicar, o Kevin **reintroduz** a palavra. Exemplo: ensinou
+*book*; o professor aperta Repetir; o Kevin diz *"Book! Repeat after me: book,
+book, book!"*.
+
+### Critérios de aceite
+
+- [ ] Botão "Repetir" no telão, ao lado de Atenção (Playground primeiro; aula com a Demanda 25)
+- [ ] Desativado se nenhuma palavra foi ensinada nos últimos 2 minutos
+- [ ] Repete exatamente a última palavra ensinada, nunca outra
+- [ ] A reintrodução usa a repetição tripla (Demanda 22)
+- [ ] A janela de 2 minutos reinicia a cada palavra nova
+
+### Notas técnicas
+
+- **Guard rail (levantado pelo Paulo na reunião):** "a última palavra" não pode
+  ser deduzida do histórico pela IA, porque o histórico é ambíguo. O Kevin
+  registra a palavra **no momento em que ensina**, com `mostrar_no_quadro` ou
+  uma ferramenta nova `ensinar_palavra`, gravando
+  `Conversa.estado['ultima_palavra'] = {texto, em}`. O botão lê esse estado.
+- **Decidido (Paulo, 11/11/2026): a IA conduz a reintrodução** (D59
+  revisada). O guard rail fica no servidor. A palavra vem do registro
+  `estado['ultima_palavra']`, gravado por `mostrar_no_quadro` no momento do
+  ensino, e vai escrita no evento. Um endpoint próprio
+  (`conversas/<pk>/repetir/`) recusa o pedido quando não há palavra ou quando a
+  janela de 2 minutos já passou.
+
+---
+
+## Demanda 25 — Aula estruturada com os recursos do Playground
+
+**Status:** 🚧 Planejada (11/11/2026), guia no `CLAUDE.md`. Épico A · **Should** · esforço G.
+Pedido do Paulo; não consta dos próximos passos combinados com o Lucas.
+
+> **Como** professor regente, **quero** na aula normal os mesmos botões e
+> animações do Playground, **para** ter a mesma experiência nos dois modos.
+
+**Diferença hoje (verificada em produção):** aula com 3 botões; Playground com
+6, além de quadro-negro, troca de cenário, jogos do catálogo e overlays de
+Whisper / Só inglês. No backend, a aula só oferece a ferramenta
+`celebrar_acerto` à IA.
+
+### Critérios de aceite
+
+- [ ] Telão da aula com os botões do Playground, mais o Repetir (Demanda 24)
+- [ ] Quadro-negro, overlays e animações funcionando na aula
+- [ ] O Kevin usa as ferramentas sem sair do roteiro cadastrado
+- [ ] Rótulos dos botões legíveis sobre qualquer cenário (hoje quase somem)
+- [ ] Aula em que nenhum recurso é acionado continua igual: suíte + Playwright
+
+### Contradiz
+
+A regra da Demanda 20 de que a aula estruturada não ganha caminho novo, a
+D51 (no modo aula só existe `celebrar_acerto`) e o teste
+`test_conversa_de_aula_continua_so_com_celebrar`, que precisa ser trocado de
+propósito. Ver D60.
+
+### Perguntas respondidas (D61, 11/11/2026)
+
+O Paulo pediu para "seguir a reunião". Como o Kevin passa a conduzir a aula, os
+recursos ficam todos disponíveis, sempre a serviço do roteiro:
+
+- **Cenário:** começa no `Aula.background`. O Kevin só troca quando o cenário combinar claramente com a atividade.
+- **Música:** um botão Música igual ao do Playground (catálogo), com "Música desta aula" em primeiro quando a aula tiver música própria.
+- **Jogos e músicas:** primeiro os do roteiro; os do catálogo quando o professor pedir.
+- **Só inglês:** vale só para a turma. Com o professor, sempre português.
+- **Listening:** o botão continua como está.
+
+### Notas técnicas
+
+- O telão já é montado por partials compartilhados (`kevin_palco`,
+  `kevin_scripts`, `kevin_config`). O trabalho é tirar de `MODO_PLAYGROUND` o
+  que vale nos dois modos e liberar as ferramentas para `modo='aula'` em
+  `apps/chat/ferramentas.py`.
+- O bloco `execucao` da aula ganha a seção de recursos, adaptada ao roteiro.
+- É a demanda com maior risco de regressão do épico: a aula é o produto
+  principal.
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -1896,6 +2202,13 @@ uma tem consequência em cascata sobre as demais.
 | **D52** | Everybody Whisper e No Portuguese Allowed: estado em `Conversa.estado`, sinalização por **overlay HTML/CSS** e voz sussurrada via **ElevenLabs `eleven_v3` + tag `[whispers]`**, aplicada só na síntese | Esperar pose/efeito do animador; ou guardar a tag no texto | O overlay não depende de entrega do animador. A tag nunca chega ao texto salvo nem à tela. Outros providers de TTS ignoram o estilo; o frontend baixa o volume como reforço |
 | **D53** | A **fala de abertura do Playground é fixa**, não gerada pela IA: sintetizada pelo TTS e gravada como primeira mensagem do Kevin | Gerar a abertura pela IA | O pedido é "sempre o mesmo texto". Fixa também elimina uma chamada à IA e a latência no momento mais visível da sessão |
 | **D54** | **No Playground o Kevin fala SÓ pela ElevenLabs**, sintetizada em tempo real. Nada das falas gravadas do motor: sem Open class na 1ª resposta, Pay attention vira só o gesto (aceno em silêncio) + a frase da IA na voz da ElevenLabs — o botão Atenção vira evento para a IA, celebrate sem o "yeah, you got it" (gesto, confete e efeito continuam) e despedida por TTS no lugar do "bye" gravado | Reaproveitar as sequências gravadas do motor (o que o guia da Demanda 20 previa) | Teste em produção (Arthur, 20/10/2026): os MP3 do motor têm OUTRA voz e entravam no meio das respostas — duas vozes "embaralhadas" na mesma sessão. A voz do Kevin é a da ElevenLabs. **A aula estruturada ainda usa as falas gravadas (D46)** — não mudou aqui |
+| **D55** | **O Kevin assume o lugar do professor de inglês.** Quem fica na sala é o professor regente, que não fala inglês | Kevin como assistente do professor de inglês (D11) | Reunião com Lucas Albertoni (10/11/2026). A aula observada que motivou o modelo anterior era de um professor de inglês, que será substituído. Revisa a D11 e a regra 15 do `CLAUDE.md`: na aula, o Kevin passa a se dirigir à turma, como já fazia no Playground (D48). Épico A |
+| **D56** | **Português com o professor, inglês só com a turma**, dentro da sequência didática | Instant Translation (valida em português, responde em inglês); ou tudo em inglês | O regente não entende inglês: instrução em inglês para ele inviabiliza a aula. Verificado em produção: pergunta em português recebia resposta em inglês. Revisa a regra 16 do `CLAUDE.md` e o bloco de idioma (D13). Demanda 21 |
+| **D57** | **Sequência TEFL obrigatória:** aviso e pergunta em português → termo em inglês → repetição tripla → só então cobrar em inglês | Perguntar direto em inglês ("How are you feeling?") | Sem a ponte em português a turma não sabe o que responder. Metodologia TEFL, apontada pelo Lucas. Demanda 22 |
+| **D58** | **Fim das falas gravadas na aula.** Toda fala do Kevin sai pela voz sintetizada do ElevenLabs e ele espera a resposta da turma para avançar. Estende a D54 à aula | Manter Open class e Pay attention gravados (D46) | Fala disparada sem escuta ensina a turma a não responder. **Revoga a D46.** Exige chave válida do ElevenLabs, que hoje responde 401. Demanda 23 |
+| **D59** | **Botão Repetir condicional:** ativo só nos 2 minutos seguintes ao ensino de uma palavra nova. A **IA conduz** a reintrodução, mas a palavra é a registrada no momento do ensino (`estado['ultima_palavra']`, gravado por `mostrar_no_quadro`) e vai escrita no evento. A janela é validada no servidor | Botão sempre ativo, com a palavra deduzida do histórico; ou frase fixa sem IA | O histórico é ambíguo e a IA pode resgatar o termo errado (guard rail levantado pelo Paulo). Registro explícito + janela curta eliminam a ambiguidade. **Revisada em 11/11/2026:** o Paulo preferiu a IA conduzindo, por soar mais natural que uma frase fixa. Demanda 24 |
+| **D60** | **A aula estruturada ganha os recursos do Playground** (botões, quadro, overlays, animações, ferramentas) | Manter a aula só com `celebrar_acerto` (D51) | Pedido do Paulo (10/11/2026): o Playground ficou melhor e a aula precisa da mesma experiência. Revoga a restrição da Demanda 20/D51 e o teste que a protege. Demanda 25 |
+| **D61** | **Recursos na aula a serviço do roteiro.** O cenário começa no `Aula.background` e só troca quando combinar com a atividade. Um botão Música de catálogo, com a música da aula em primeiro. Jogos e músicas do roteiro primeiro; catálogo quando o professor pedir. Só inglês vale só para a turma. Listening e ronco ficam | Kevin livre como no Playground; ou aula sem recursos novos | O Paulo pediu para "seguir a reunião" (11/11/2026): o Kevin conduz a aula, mas o roteiro cadastrado continua sendo a fonte da aula (regra 4). Responde as perguntas em aberto da Demanda 25 |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)

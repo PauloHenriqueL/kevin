@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> 🚧 **Trabalho em andamento:** Épico A, o Kevin no lugar do professor de inglês.
+> O passo a passo está na seção
+> [🚧 Épico A — guia de implementação](#-épico-a--guia-de-implementação-para-o-fable),
+> logo depois de "Como trabalhamos".
+
 ## 📁 Onde está cada coisa (docs/)
 
 | Arquivo | O que é |
@@ -123,6 +128,386 @@ dívida** e cobrar a correção na origem.
   `documento_escola/` (todos no `.gitignore`)
 - O `CLAUDE.md` **é versionado** — o time todo lê. Mantenha-o atualizado quando
   uma decisão mudar; é a fonte de contexto de quem chega no projeto
+
+## 🚧 Épico A — guia de implementação (para o Fable)
+
+> Planejado em 11/11/2026 e aprovado pelo Paulo. O escopo, as histórias e os
+> critérios de aceite estão em `docs/demandas.md` (Épico A, Demandas 21–25,
+> decisões D55–D61). Esta seção diz **como** implementar.
+
+### Como usar este guia
+
+- Siga as etapas **na ordem**. Cada uma é um commit temático em português, com
+  `Co-Authored-By`, direto na `main`.
+- **Pare ao fim de cada etapa** e avise o Paulo. Ele faz o deploy no Render e
+  marca a validação com o Lucas Albertoni. Não comece a etapa seguinte antes
+  disso.
+- Marque o progresso nos checkboxes abaixo, no mesmo commit da etapa.
+- Os textos de prompt do Anexo são **provisórios**: o Lucas valida e devolve
+  correções. Use-os como estão até lá.
+
+**Progresso**
+
+- [ ] Etapa 1 — Prompts (Demandas 21 + 22)
+- [ ] Etapa 2 — Backend da aula interativa (Demanda 25, parte 1)
+- [ ] Etapa 3 — Telão da aula igual ao Playground e fim das falas gravadas (Demandas 25, parte 2, e 23) ⛔ ElevenLabs
+- [ ] Etapa 4 — Botão Repetir (Demanda 24)
+- [ ] Etapa 5 — Documentação e fechamento
+
+### Contexto
+
+Na reunião de validação com o Lucas Albertoni (10/11/2026), o papel do Kevin
+mudou: **ele passa a ocupar o lugar do professor de inglês**. Fica na sala o
+professor regente, que não fala inglês. Verificado em produção: o Kevin
+responde ao professor em inglês, a aula abre com 5 falas gravadas que não
+esperam a turma, e a aula tem 3 botões contra 6 do Playground.
+
+Decisões fechadas:
+
+- **D56:** português com o professor; inglês só com a turma.
+- **D57:** a turma aprende cada termo por uma sequência fixa, com repetição tripla.
+- **D58:** saem as falas gravadas; toda fala é sintetizada e o Kevin espera a turma responder.
+- **D59 (revisada):** no Repetir, a **IA conduz** a reintrodução. A palavra é a
+  registrada no momento do ensino e vai junto no evento, e a janela de 2
+  minutos é validada no servidor.
+- **D60 + D61:** a aula ganha os recursos do Playground, sempre a serviço do roteiro:
+  - **Cenário:** começa no `Aula.background`. O Kevin só troca quando o cenário combinar com a atividade.
+  - **Música:** um botão Música igual ao do Playground (catálogo), com "Música desta aula" em primeiro.
+  - **Jogos e músicas:** primeiro os do roteiro.
+  - **Só inglês:** vale só para a turma.
+  - **Listening:** continua como está.
+  - **Ronco:** fica. É efeito sonoro, não passa pelo volume das falas.
+
+### Arquitetura (resumo)
+
+- **Backend:** ferramentas, eventos e `estado` passam a valer também em
+  conversas `modo='aula'`. O contexto da aula ganha as seções MÚSICAS, JOGOS e
+  ESTADO DA SALA, com o mesmo código do Playground. Repetir vira endpoint
+  próprio, com guard rail no servidor.
+- **Frontend:** em `static/js/kevin_chat.js` entra
+  `const RECURSOS = MODO_PLAYGROUND || window.KEVIN_RECURSOS === true;`.
+  - Tudo o que é recurso compartilhado passa a depender de `RECURSOS`.
+  - Continua em `MODO_PLAYGROUND` só o que é exclusivo da sessão de Playground: abertura fixa, `pgMostrarContexto`, Encerrar e `urls.sair`.
+  - A aula define `window.KEVIN_RECURSOS = true` e **não** define `KEVIN_MODO`: o teste `test_aula_continua_abrindo_igual` exige isso.
+- **Telão:** botões, overlays e o modal de música vão para partials
+  compartilhados. As regras `.playground-call` dos recursos passam para a
+  classe comum `.kevin-recursos`.
+- **Falas gravadas:** o override da D54 vai para
+  `templates/professor/partials/kevin_config.html` e passa a valer nas duas telas.
+- **Sem migration:** a palavra ensinada fica em `Conversa.estado`, que já é JSON.
+
+### Etapa 1 — Prompts (Demandas 21 + 22)
+
+Muda só texto, mais os rótulos do editor.
+
+- Reescrever os 7 arquivos de `apps/chat/prompts/` com os textos do Anexo.
+  - Na aula, **ainda sem** a seção RECURSOS, porque a aula ainda não tem ferramentas. O parágrafo `[EVENTO]` já entra.
+  - O `idioma.txt` da aula fica sem a última linha (No Portuguese Allowed).
+  - No Playground, tudo menos a linha do Repetir.
+- `apps/chat/tasks.py`: `SEM_CONTEXTO_AINDA` troca "Teacher" por "professor".
+- `static/js/kevin_chat.js`: nos textos de evento ("O Teacher apertou…",
+  "O Teacher escolheu a música…", "O Teacher parou…", "O Teacher
+  ativou/desativou…"), trocar "Teacher" por "professor".
+- Editor da coordenação (`apps/curriculo/coordenacao_views.py`,
+  `EditarPromptTGView` e `EditarPromptPlaygroundTGView`): tirar "Instant
+  Translation" dos rótulos e das ajudas.
+  - Aula, Papel: "Quem o Kevin é: o professor de inglês da turma; com o regente, fala português."
+  - Aula, Idioma: "Português com o professor; inglês com a turma, pela sequência didática."
+  - Aula, Execução: "Como seguir o roteiro e a sequência para ensinar cada termo."
+  - No Playground, as ajudas equivalentes, com "No Portuguese Allowed só para a turma".
+- **Não** mexer nos textos de kickoff (`Aula.get_kickoff`): o teste
+  `ContextoKevinTest` em `apps/curriculo/tests.py` (~95) exige "começar".
+- Teste novo: `montar_prompt()` e `montar_prompt_playground()` não contêm
+  "Instant Translation" e contêm "SEQUÊNCIA PARA ENSINAR UM TERMO".
+- Conferir `test_editor_playground_mostra_os_4_campos_com_o_padrao`
+  (`apps/curriculo/tests.py` ~566), que procura o trecho da abertura antes do
+  primeiro `!`.
+- Bump do `?v=` do `kevin_chat.js` em `templates/professor/partials/kevin_scripts.html`.
+
+### Etapa 2 — Backend da aula interativa (Demanda 25, parte 1)
+
+- `apps/chat/ferramentas.py`: o padrão de `Ferramenta.modos` passa a ser
+  `('aula', 'playground')`. Todas as ferramentas valem nos dois modos.
+- `apps/chat/tasks.py`: extrair de `_montar_contexto_playground` dois helpers:
+  `_secoes_catalogo(conversa)` (MÚSICAS e JOGOS) e `_secao_estado(conversa)`
+  (ESTADO DA SALA AGORA).
+  - A aula fica: prompt do TG → `--- CONTEXTO DA AULA ---` + roteiro → catálogo → estado.
+  - No Playground, **manter a ordem atual**: o teste ~349 confere a ordem dos cabeçalhos.
+- `apps/chat/views.py`:
+  - `EnviarMensagemView`: remover o bloqueio de `tipo=evento` fora do Playground. `Conversa.registrar_contexto` já ignora a aula.
+  - `AtualizarEstadoView`: remover o filtro `modo=PLAYGROUND`, mantendo o filtro do professor dono.
+- `apps/escolas/professor_views.py`, `AulaDetailView`:
+  - Criar a conversa com o estado inicial `{'cenario': aula.background or 'floresta', 'quadro': '', 'whisper': False, 'so_ingles': False, 'jogo_id': None}`. Numa conversa existente, completar as chaves que faltarem.
+  - Contexto da tela: `estado` e `musicas` (vindo de `catalogo_musicas(conversa)`).
+  - Excluir as mensagens EVENTO da lista, como o Playground já faz.
+- `ResetAulaView` também reinicia o `estado`.
+
+### Etapa 3 — Telão da aula igual ao Playground e fim das falas gravadas (Demandas 25, parte 2, e 23)
+
+⛔ **Pré-requisito:** o Plano precisa estar em `tts_provider='elevenlabs'`, com
+`tts_modelo` vazio, e uma amostra de síntese tem que retornar 200. Sem isso,
+**não fazer o deploy**: a aula inteira passaria a falar com a voz feminina
+`nova` do OpenAI. Teste rápido: instanciar `ElevenLabsTTSProvider` com os
+dados do Plano e chamar `sintetizar('Hello')`.
+
+**Templates**
+
+- Criar em `templates/professor/partials/`:
+  - `kevin_controles.html`: Falar, Conversa ao vivo, Atenção, Whisper, Só
+    inglês, Música, Repetir (oculto até a Etapa 4), e Listening só quando
+    `aula.tem_listening`. Manter os IDs atuais: `#btn-mic`, `#btn-mic-live`,
+    `#btn-pay-attention`, `#btn-whisper`, `#btn-so-ingles`, `#btn-musica-pg`,
+    `#btn-listening`.
+  - `kevin_overlays.html`: `pg-vinheta`, `pg-faixas` e `pg-selo-ingles`.
+  - `kevin_modal_musicas.html`: `#modal-musicas`, com "Música desta aula" em
+    primeiro quando houver.
+- `aula_detail.html` e `playground.html` incluem os partials. A raiz das duas
+  telas ganha a classe `kevin-recursos` e os atributos `data-whisper` e
+  `data-so-ingles`.
+- A aula ganha `window.KEVIN_RECURSOS = true` e os `json_script`
+  `kevin-estado-inicial` e `kevin-musicas`. Também passa a usar
+  `cenario=estado.cenario` no `kevin_config`.
+- `partials/kevin_config.html`:
+  - ganha `urls.estado`, que sai de `playground.html`, e `urls.repetir` (para a Etapa 4);
+  - recebe o override da D54 (`celebrateVoiceUrl = null`, `hiVoiceUrls = []`,
+    `byeVoiceUrls = []`, `voiceVolume = 0`), que sai de `playground.html`. O
+    teste ~570 continua passando, porque o partial é renderizado.
+
+**JS (`static/js/kevin_chat.js`)**
+
+- Trocar por `RECURSOS` os gates de:
+  - texto digitado, que passa por `sendTextAndSpeak` com fala e ações;
+  - resposta de voz (`pgResponder`);
+  - `enviarEvento`, `pgAntesDeInteragir`, `pgEstiloVoz` e o volume do TTS;
+  - os bindings de Atenção (evento), Whisper, Só inglês, modal de música e Repetir.
+- `iniciarAula`: tirar o `openClass()`. Fica a entrada, com `playEntrada`
+  limitado a 8s como no Playground, e depois o kickoff, que agora passa por
+  ações e fala.
+- Concluir: trocar o `sayBye()` gravado por `playTTS(PG_DESPEDIDA)`, com
+  limite de 8s, antes do submit.
+- Modal de música, opção da aula: chamar direto
+  `pgTocarMusica({nome: 'Música desta aula', url: window.KEVIN_MUSICA_URL})`.
+  Quando a música termina, o evento "A música terminou." devolve a vez ao
+  Kevin.
+- Remover os ramos que ficarem mortos (`pollResposta`, o `payAttention`
+  gravado, a leitura só de `celebrar`), conferindo o modo demo
+  (`KEVIN_DEMO_MODE`) nas duas telas.
+
+**CSS (`static/css/style.css`)**
+
+- As ~10 regras `.playground-call` dos overlays e da barra de botões
+  (~4003–4097) passam para `.kevin-recursos`.
+- Legibilidade: `.call-btn-label` (~3764) ganha fundo próprio (pílula) e
+  contraste. A `opacity: 0.5` sai de `.call-btn-wrap` (~3744) e fica só no
+  botão, para o rótulo nunca apagar.
+- Criar um estilo de desabilitado para o Repetir.
+
+**Prompt da aula**
+
+- `execucao.txt` ganha a seção RECURSOS do Anexo, sem a linha do Repetir.
+- `idioma.txt` ganha a linha do No Portuguese Allowed.
+- `templates/coordenacao/_card_prompt_aula.html` ganha o aviso de não
+  renomear ferramentas, igual ao do Playground.
+
+**Cache-busters:** `kevin_chat.js` em `kevin_scripts.html` e `style.css?v=`
+em `templates/base.html`.
+
+### Etapa 4 — Botão Repetir (Demanda 24)
+
+**Backend**
+
+- `apps/chat/ferramentas.py`, `_mostrar_no_quadro`: quando gravar um texto
+  novo e não vazio, gravar também
+  `estado['ultima_palavra'] = {'texto': texto, 'em': timezone.now().isoformat()}`.
+  Criar a constante `JANELA_REPETIR_SEGUNDOS = 120`.
+- Novo `RepetirPalavraView` (POST) em `apps/chat/views.py`, na URL
+  `conversas/<pk>/repetir/` com o nome `repetir_palavra`. Usa `IsProfessor`
+  e só aceita conversa do próprio professor, em qualquer modo.
+  - Sem palavra registrada → 409 "Nenhuma palavra ensinada agora."
+  - Janela vencida → 409 "O tempo para repetir passou."
+  - Senão, cria a mensagem EVENTO `O professor apertou Repetir. Reapresente agora a palavra "<texto>", com os passos 3 a 5 da sequência, inclusive a repetição tripla.` e chama `responder_ia_sync`.
+  - Responde no mesmo formato do envio síncrono (`mensagem_user` + `resposta`). Falha da IA → 502.
+- As duas telas recebem `repetir_restante` no estado inicial: os segundos que
+  faltam na janela, calculados no servidor.
+
+**Frontend**
+
+- O botão Repetir começa desabilitado. Uma ação `quadro` com texto o habilita
+  por 120s, e o timer reinicia a cada palavra nova. Ao carregar a página, usa
+  `repetir_restante`.
+- O clique entra na mesma fila do `enviarEvento` (`pgEsperarVez`, descarta a
+  gravação), faz POST em `urls.repetir` e depois chama `pgResponder`. Resposta
+  409 desabilita o botão.
+- No modo demo, o botão fica oculto.
+
+**Prompt:** a linha do Repetir entra na RECURSOS da aula e do Playground.
+
+### Etapa 5 — Documentação e fechamento
+
+- Neste `CLAUDE.md`:
+  - reescrever as regras 15 e 16 conforme D55–D57 e retirar o aviso de "em revisão";
+  - na seção do Playground, tirar a regra "a aula não ganha caminho novo" e registrar que a D54 vale nas duas telas;
+  - na tabela de assets, marcar as falas gravadas como "não usadas desde o Épico A";
+  - atualizar a contagem de testes;
+  - reduzir esta seção a um resumo do que foi entregue.
+- `docs/demandas.md`: status das Demandas 21–25.
+- Avisar o Lucas.
+
+### Testes que mudam de propósito (`apps/chat/tests.py`)
+
+| Teste (linha aprox.) | Passa a afirmar |
+|---|---|
+| `test_modo_aula_so_tem_celebrar` (~394) | `ferramentas_do_modo('aula')` == todas as do REGISTRO |
+| `test_modo_aula_oferece_so_celebrar` (~471) | o default do provider oferece todas |
+| `test_conversa_de_aula_continua_so_com_celebrar` (~532) | a conversa de aula recebe todas as ferramentas |
+| `test_evento_e_recusado_na_conversa_de_aula` (~325) | evento é aceito na aula e não grava `contexto` |
+| `test_patch_estado_em_conversa_de_aula_da_404` (~598) | PATCH funciona na aula do próprio professor e dá 404 na de outro |
+| `test_aula_continua_abrindo_igual` (~605) | continua sem `KEVIN_MODO`, agora com `KEVIN_RECURSOS` |
+
+**Testes novos**
+
+- Etapa 1: prompts sem "Instant Translation".
+- Etapas 2–3: a aula tem as seções de catálogo e estado; o estado inicial da aula usa `Aula.background`; a página da aula tem `voiceVolume = 0`.
+- Etapa 4:
+  - `mostrar_no_quadro` grava `ultima_palavra`;
+  - Repetir dentro da janela → 201, com a palavra no evento;
+  - Repetir sem palavra → 409;
+  - Repetir com a janela vencida (`em` no passado) → 409;
+  - Repetir em conversa de outro professor → 404;
+  - funciona nas duas telas.
+
+Fixtures existentes: `BasePlayground` (`apps/chat/tests.py` ~237). Mock da IA:
+`apps.chat.providers.get_ia_provider` e `apps.chat.views.responder_ia_sync`.
+
+### Verificação
+
+1. `docker compose exec web python manage.py check`.
+2. Testes por app durante o trabalho:
+   `docker compose exec web python manage.py test apps.chat`, depois
+   `apps.curriculo` e `apps.escolas`. A suíte completa (~124 testes) roda só
+   antes do commit e leva ~8 min, porque cria o banco de teste no Neon.
+3. Playwright no localhost, logado como `maria` / `prof123`, na aula
+   `Y5-WUW1C1` e no Playground:
+   - screenshot em 1440px e em 390px;
+   - nenhum erro no console;
+   - na aula: 8 botões com rótulo legível; nenhum MP3 de `voz-kevin/` carregado (o ronco é exceção); Atenção vira evento; palavra no quadro habilita o Repetir; o Repetir reapresenta a mesma palavra.
+4. Depois do deploy, refazer em produção os testes de 10/11:
+   - perguntar "Kevin, o que vamos fazer agora com a turma?" → a resposta tem que vir em **português**;
+   - a abertura não carrega falas gravadas;
+   - a aula mostra os mesmos botões do Playground.
+
+### Armadilhas
+
+- O Docker `web` usa o **banco de produção**. **Nunca** rode `flush`. O test
+  runner cria o banco de teste no Neon. Esta mudança não tem migration.
+- Os nomes das ferramentas aparecem no texto dos prompts. Renomear uma
+  ferramenta exige atualizar os prompts, tanto o padrão quanto os TGs
+  customizados (hoje nenhum TG customizou).
+- Os textos do Anexo são **provisórios**. A coordenação pode ajustá-los por TG
+  no editor, sem deploy.
+
+### Anexo — textos provisórios dos prompts
+
+**`apps/chat/prompts/papel.txt`** (aula)
+```
+Você é o Kevin, o professor de inglês desta turma de crianças (Elementary School). Você aparece numa tela/TV na sala e conduz a aula de inglês seguindo o roteiro abaixo.
+
+Na sala também está o PROFESSOR REGENTE. Ele não fala inglês: é seu parceiro para organizar a turma e falar com você. Com ele você fala SEMPRE em português e o chama de "professor" (ou "professora").
+
+Com a TURMA você fala diretamente, por iniciativa própria: faça perguntas, peça para repetirem, chame alguém para responder. Se o professor pedir algo, atenda.
+
+Quando aparecer uma mensagem começando com [EVENTO], não é fala de ninguém: é um fato da sala (um botão que o professor apertou, uma música que terminou). Reaja de forma natural, sem citar a palavra "evento".
+```
+
+**`apps/chat/prompts/idioma.txt`** (aula). A última linha só entra na Etapa 3.
+```
+=== IDIOMA ===
+- Com o PROFESSOR: sempre em português, mesmo que ele fale com você em inglês. Pedidos, combinados e respostas às perguntas dele: tudo em português.
+- Com a TURMA: o inglês entra pela SEQUÊNCIA PARA ENSINAR UM TERMO (abaixo). Fora dela, fale com a turma em português simples; cumprimentos curtos em inglês ("Hello, kids!", "Good job!") estão liberados.
+- Frases curtas e claras. Evite gramática e vocabulário difíceis.
+- NO PORTUGUESE ALLOWED (veja ESTADO DA SALA AGORA): enquanto ativo, fale só em inglês com a TURMA e incentive as crianças a responder em inglês, com gestos e exemplos, sem broncas. Com o professor continue em português.
+```
+
+**`apps/chat/prompts/execucao.txt`** (aula). A seção RECURSOS entra na Etapa 3
+e a linha do Repetir na Etapa 4.
+```
+=== COMO CONDUZIR A AULA ===
+O contexto abaixo traz o roteiro da aula de hoje, em blocos, com as atividades já explicadas (como conduzir cada jogo e técnica). Ele é o seu ROTEIRO INTERNO: descreve O QUE fazer, não o que dizer literalmente.
+
+- NUNCA leia o roteiro em voz alta. Nunca diga "Warm Up", "Development", "Closure", "bloco 1" ou nomes de fase.
+- EXECUTE cada passo de forma natural. Ex: o roteiro diz "cumprimente e peça a música" -> você diz à turma "Hello, kids!" e ao professor "Professor, pode tocar a nossa música de Hello?".
+- UMA ação por vez. Depois, PARE e espere a resposta da turma ou do professor antes de avançar.
+- Respostas CURTAS: 2 a 4 frases. Nada de monólogo. Sem emojis, asteriscos, listas ou colchetes: tudo o que você escreve é falado em voz alta.
+- Muitas crianças falam ao mesmo tempo e a transcrição erra. Não corrija pela transcrição: comemore a participação e repita o modelo certo.
+
+=== SEQUÊNCIA PARA ENSINAR UM TERMO ===
+Todo termo novo em inglês (palavra ou expressão) segue estes passos, esperando a turma entre eles:
+1. Avise em português: "Turma, vou perguntar em português e quero que vocês respondam em português."
+2. Faça a pergunta em português e espere a resposta.
+3. Valide a resposta com carinho e diga "Agora em inglês, turma!". Apresente o termo em inglês.
+4. Repetição tripla: diga o termo e peça para a turma repetir. Faça isso três vezes, esperando a turma a cada vez.
+5. Só então pergunte em inglês e espere a resposta em inglês.
+Exemplo: "Como vocês estão se sentindo hoje?" -> turma: "Feliz!" -> "Isso! Agora em inglês, turma! Happy! Repitam comigo: happy!" (três vezes) -> "How are you feeling today?" -> turma: "Happy!"
+Faça a sequência inteira toda vez que apresentar um termo, mesmo que ele já tenha aparecido.
+
+=== RECURSOS (ferramentas) ===
+Use as ferramentas junto com a sua fala, nunca no lugar dela. Os recursos servem à atividade do roteiro.
+- celebrar_acerto: quando a turma acertar algo que você estava ensinando. Não use para elogio genérico.
+- mostrar_no_quadro: no passo 3 da sequência, escreva no quadro o termo que está apresentando.
+- trocar_cenario: só quando um cenário disponível combinar claramente com a atividade. A aula começa no cenário dela.
+- tocar_musica: quando o roteiro pedir música ou o professor pedir. Prefira a música da atividade do roteiro. Só use nomes da lista MÚSICAS DISPONÍVEIS.
+- iniciar_jogo: quando o roteiro trouxer um jogo ou o professor pedir. Conduza pelas regras que a ferramenta devolver, passo a passo. NUNCA invente regras. encerrar_jogo quando o jogo acabar.
+- pay_attention: quando a turma estiver agitada ou o professor apertar Atenção. A frase de atenção, curta e animada, é para a turma (ex: "Eyes on me, kids!").
+- everybody_whisper: liga para todos falarem baixinho e desliga quando terminar.
+- no_portuguese_allowed: liga quando a turma estiver pronta para o desafio ou o professor pedir. Vale só para a turma.
+- Quando o professor apertar Repetir, o [EVENTO] traz a palavra: reapresente exatamente essa palavra, com os passos 3 a 5 da sequência.
+Não ative um modo que já está ativo (veja ESTADO DA SALA AGORA).
+```
+
+**`apps/chat/prompts/playground_abertura.txt`**
+```
+Olá, professor! Hello, kids! Eu sou o Kevin e estou muito feliz de estar aqui hoje! Professor, me conta: o que a turma está aprendendo hoje? Qual é o tema, o vocabulário ou a gramática da aula?
+```
+
+**`apps/chat/prompts/playground_papel.txt`**
+```
+Você é o Kevin, o professor de inglês desta turma de crianças. Você aparece numa tela/TV na sala.
+
+Este é o PLAYGROUND: não existe roteiro de aula cadastrado. O professor te contou no começo da sessão o tema de hoje, e é a partir disso que você conduz.
+
+Na sala está o PROFESSOR REGENTE. Ele não fala inglês: com ele você fala SEMPRE em português e o chama de "professor" (ou "professora"). Com a TURMA você fala diretamente e por iniciativa própria, o tempo todo: faça perguntas, peça para repetirem, proponha gestos, chame alguém para responder. Se o professor pedir algo, atenda.
+
+Quando aparecer uma mensagem começando com [EVENTO], não é fala de ninguém: é um fato da sala (um botão que o professor apertou, uma música que terminou). Reaja de forma natural, sem citar a palavra "evento".
+```
+
+**`apps/chat/prompts/playground_idioma.txt`**: o mesmo texto do `idioma.txt`
+da aula, já com a linha do No Portuguese Allowed desde a Etapa 1.
+
+**`apps/chat/prompts/playground_execucao.txt`**. A linha do Repetir entra só
+na Etapa 4.
+```
+=== COMO CONDUZIR O PLAYGROUND ===
+- Mantenha-se no tema de hoje (CONTEXTO DA AULA DE HOJE). Se ainda não houver contexto, pergunte de novo ao professor, em uma frase, em português.
+- UMA ação por vez. Depois, PARE e espere a resposta da turma ou do professor.
+- Respostas CURTAS: 2 a 4 frases. Nada de monólogo. Sem emojis, asteriscos, listas ou colchetes: tudo o que você escreve é falado em voz alta.
+- Muitas crianças falam ao mesmo tempo e a transcrição erra. Não corrija pela transcrição: comemore a participação e repita o modelo certo.
+
+=== SEQUÊNCIA PARA ENSINAR UM TERMO ===
+(idêntica à da aula)
+
+=== RECURSOS (ferramentas) ===
+Use as ferramentas junto com a sua fala, nunca no lugar dela. Não use a mesma ferramenta em toda resposta.
+- celebrar_acerto: quando a turma acertar algo que você estava ensinando. Não use para elogio genérico.
+- mostrar_no_quadro: no passo 3 da sequência, escreva no quadro o termo que está apresentando.
+- trocar_cenario: quando um cenário disponível combinar com o tema (ex: quarto para rotina da manhã, escola para material escolar). No máximo uma vez por assunto.
+- tocar_musica: quando o professor pedir uma música ou quando uma música da lista combinar com o momento. Anuncie a música antes. Só use nomes da lista MÚSICAS DISPONÍVEIS.
+- iniciar_jogo: quando o professor pedir um jogo ou quando um jogo da lista servir para praticar o tema. Conduza pelas regras que a ferramenta devolver, passo a passo. NUNCA invente regras. encerrar_jogo quando o jogo acabar.
+- pay_attention: quando a turma estiver agitada ou o professor apertar Atenção. A frase de atenção, curta e animada, é para a turma (ex: "Eyes on me, kids! One, two, three!").
+- everybody_whisper: liga para todos falarem baixinho — ótimo para repetir vocabulário em segredo — e desliga quando terminar.
+- no_portuguese_allowed: liga quando o professor pedir ou a turma estiver pronta para o desafio. Vale só para a turma.
+- Quando o professor apertar Repetir, o [EVENTO] traz a palavra: reapresente exatamente essa palavra, com os passos 3 a 5 da sequência.
+Não ative um modo que já está ativo (veja ESTADO DA SALA AGORA).
+```
 
 ## Project Overview
 
@@ -428,6 +813,14 @@ de IA no plano, o chat cai no modo demo (sem ferramentas).
 16. **Instant Translation é o padrão de idioma**: valida em português, responde
     em inglês. Deve ficar num trecho **isolado e substituível** do prompt
     (vira configuração na Demanda 8).
+
+> ⚠️ **Regras 15 e 16 em revisão (10/11/2026).** Na reunião de validação com o
+> Lucas Albertoni, o Kevin passou a **ocupar o lugar do professor de inglês**.
+> O professor regente, que não fala inglês, fica na sala (D55). Com ele o Kevin
+> fala **português**; com a turma, ensina pela sequência TEFL com repetição
+> tripla (D56, D57). As falas gravadas saem da aula (D58). O código ainda segue
+> as regras acima até o **Épico A** (Demandas 21–25 em `docs/demandas.md`) ser
+> implementado. Não "corrija" nada com base nelas sem ler o épico.
 
 ## 🚀 Produção — NO AR desde 28/09/2026
 
