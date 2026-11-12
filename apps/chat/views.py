@@ -202,8 +202,9 @@ class RepetirPalavraView(APIView):
             role='user',
             tipo=Mensagem.TipoChoices.EVENTO,
             conteudo=(
-                f'O professor apertou Repetir. Reapresente agora a palavra "{palavra}", '
-                'com os passos 3 a 5 da sequência, inclusive a repetição tripla.'
+                f'O professor apertou Repetir. Reapresente agora a palavra "{palavra}" '
+                f'perguntando à turma "How do you say {palavra} in English?" e peça para '
+                'repetirem duas vezes.'
             ),
         )
         try:

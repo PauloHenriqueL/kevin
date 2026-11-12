@@ -139,9 +139,9 @@ dívida** e cobrar a correção na origem.
 **O que mudou, por etapa (um commit cada):**
 
 1. **Prompts** (`apps/chat/prompts/*.txt`): o Kevin é o professor de inglês;
-   fala português com o regente e ensina a turma pela sequência com
-   repetição tripla. Rótulos do editor da coordenação sem "Instant
-   Translation". **Textos provisórios até o Lucas Albertoni validar.**
+   fala português com o regente e ensina a turma pela sequência didática
+   (pergunta em português → termo em inglês → turma repete duas vezes). Rótulos do editor da coordenação sem "Instant
+   Translation". **Textos do Lucas Albertoni (12/11/2026)** — os provisórios foram substituídos.
 2. **Backend da aula**: `Ferramenta.modos` vale nos dois modos; eventos e
    `PATCH estado/` aceitos na aula; contexto da aula ganha MÚSICAS, JOGOS e
    ESTADO DA SALA (`_secoes_catalogo`, `_secao_estado` em `tasks.py`); a
@@ -163,8 +163,8 @@ dívida** e cobrar a correção na origem.
   `sk_…` válida, `tts_provider='elevenlabs'`, `tts_modelo` vazio, e testar com
   `ElevenLabsTTSProvider(...).sintetizar('Hello')` → 200. Sem isso, a aula
   inteira passa a falar com a voz feminina.
-- **Validação do Lucas**: prompts (texto) e teste em sala, uma etapa por vez,
-  como combinado. Página com os prompts para ele: ver `docs/demandas.md`,
+- **Validação do Lucas**: os textos dele já estão nos arquivos (12/11/2026);
+  falta o teste em sala, uma etapa por vez, como combinado. Página com os prompts para ele: ver `docs/demandas.md`,
   Épico A, A.5.
 - Depois do deploy, refazer em produção: pergunta em português ao Kevin →
   resposta em **português**; abertura sem MP3 de `voz-kevin/`; aula com os
@@ -475,9 +475,11 @@ de IA no plano, o chat cai no modo demo (sem ferramentas).
     inglês conduzia e o Kevin só assistia.)*
 16. **Português com o professor, inglês só com a turma** (D56). Tudo o que o
     Kevin diz ao regente é em português. O inglês entra pela **sequência para
-    ensinar um termo** (D57, metodologia TEFL): aviso e pergunta em português →
-    resposta da turma → "Agora em inglês, turma!" e o termo → **repetição
-    tripla** → só então a cobrança em inglês. O **Só inglês** (No Portuguese
+    ensinar um termo** (D57, metodologia TEFL, texto do Lucas em 12/11/2026):
+    pergunta em português que leva a turma à palavra → termo em inglês com
+    "Repitam comigo!" → a turma **repete duas vezes** → o Kevin diz em que
+    língua quer a resposta → pergunta e espera → pede ao professor para
+    passar ao próximo termo. O **Só inglês** (No Portuguese
     Allowed) vale só para a turma. Os blocos de idioma e execução ficam em
     trechos **isolados e substituíveis** do prompt, editáveis por TG
     (Demanda 8). *(Revoga a Instant Translation como padrão.)*
@@ -824,7 +826,7 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | 8 | Prompt editável por TG | Prompt do Kevin em `apps/chat/prompts/*.txt` (default) + 3 campos no `TG` (`prompt_papel/idioma/execucao`). Editor em `/coordenacao/tg/<id>/prompt/` (só coordenador); bloco vazio herda o default (D42–D44) |
 | — | Fix Kevin "robótico" | Modo demo do chat de texto era `true` hardcoded e vazava pra produção. Agora liga ao plano ter chave de IA: com chave → Kevin real (D45) |
 | 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do professor, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), voz só da ElevenLabs, editor por TG na coordenação (D47–D54). **Falta validar em sala** e testar o sussurro com a voz do Kevin |
-| 21–25 | **Épico A** — Kevin no lugar do professor de inglês | Português com o regente e sequência TEFL com repetição tripla nos prompts (D56/D57); aula estruturada com todas as ferramentas, eventos, estado da sala e os botões do Playground (D60/D61); falas gravadas desligadas nas duas telas (D58); botão **Repetir** com guard rail no servidor (D59). Código pronto e commitado em 11/11/2026. **Deploy travado** até o Plano apontar para o ElevenLabs com chave válida; **prompts aguardam validação do Lucas** |
+| 21–25 | **Épico A** — Kevin no lugar do professor de inglês | Português com o regente e sequência TEFL (repete duas vezes) nos prompts (D56/D57); aula estruturada com todas as ferramentas, eventos, estado da sala e os botões do Playground (D60/D61); falas gravadas desligadas nas duas telas (D58); botão **Repetir** com guard rail no servidor (D59). Código pronto e commitado em 11/11/2026. **Deploy travado** até o Plano apontar para o ElevenLabs com chave válida; **prompts aguardam validação do Lucas** |
 
 ---
 

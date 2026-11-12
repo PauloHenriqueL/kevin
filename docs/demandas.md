@@ -1978,7 +1978,7 @@ Regra 16 do `CLAUDE.md` e o bloco de idioma da D13. Ver D56.
 1. O Kevin avisa a turma em português: *"Turma, vou perguntar em português e quero que vocês respondam em português."*
 2. Pergunta em português e **espera** a resposta.
 3. Com a resposta em português, diz *"Agora em inglês, turma!"* e apresenta o termo em inglês.
-4. **Repetição tripla:** a turma repete o termo três vezes com o Kevin.
+4. **Repetição:** a turma repete o termo **duas vezes** com o Kevin (texto do Lucas, 12/11/2026; o registro original dizia três).
 5. Só então o Kevin cobra a resposta em inglês.
 
 Exemplo, com o problema visto em produção: em vez de abrir com *"How are you
@@ -1988,7 +1988,8 @@ feeling?"*, o Kevin pergunta *"Como vocês estão se sentindo hoje?"*, valida
 ### Critérios de aceite
 
 - [ ] Toda palavra ou expressão nova segue os 5 passos, na ordem
-- [ ] A repetição tripla acontece sempre que um termo é apresentado, não só na primeira vez
+- [ ] A repetição (duas vezes) acontece sempre que um termo é apresentado, não só na primeira vez
+- [ ] Depois de cada termo, o Kevin pergunta ao professor se pode passar ao próximo
 - [ ] O Kevin espera a resposta entre os passos (com escuta real depende da Demanda 23)
 - [ ] Lucas valida a sequência numa aula de teste (sugestão: objetos da sala de aula, já testada no Playground)
 
@@ -2001,7 +2002,7 @@ feeling?"*, o Kevin pergunta *"Como vocês estão se sentindo hoje?"*, valida
 
 ### Perguntas em aberto
 
-- Repetição tripla é **a turma repetindo três vezes depois do Kevin**, ou o Kevin dizendo três vezes? (Assumido: o Kevin fala, a turma repete, três vezes.)
+- ~~Repetição tripla é a turma repetindo três vezes depois do Kevin, ou o Kevin dizendo três vezes?~~ Respondido pelo texto do Lucas (12/11/2026): a turma repete **duas vezes**.
 - Quando a turma já domina o termo, a sequência pode encurtar?
 
 ---
@@ -2072,7 +2073,7 @@ book, book!"*.
 - [ ] Botão "Repetir" no telão, ao lado de Atenção (Playground primeiro; aula com a Demanda 25)
 - [ ] Desativado se nenhuma palavra foi ensinada nos últimos 2 minutos
 - [ ] Repete exatamente a última palavra ensinada, nunca outra
-- [ ] A reintrodução usa a repetição tripla (Demanda 22)
+- [ ] A reintrodução pergunta "How do you say … in English?" com a palavra registrada e pede duas repetições (texto do Lucas, 12/11/2026)
 - [ ] A janela de 2 minutos reinicia a cada palavra nova
 
 ### Notas técnicas
@@ -2205,7 +2206,7 @@ uma tem consequência em cascata sobre as demais.
 | **D54** | **No Playground o Kevin fala SÓ pela ElevenLabs**, sintetizada em tempo real. Nada das falas gravadas do motor: sem Open class na 1ª resposta, Pay attention vira só o gesto (aceno em silêncio) + a frase da IA na voz da ElevenLabs — o botão Atenção vira evento para a IA, celebrate sem o "yeah, you got it" (gesto, confete e efeito continuam) e despedida por TTS no lugar do "bye" gravado | Reaproveitar as sequências gravadas do motor (o que o guia da Demanda 20 previa) | Teste em produção (Arthur, 20/10/2026): os MP3 do motor têm OUTRA voz e entravam no meio das respostas — duas vozes "embaralhadas" na mesma sessão. A voz do Kevin é a da ElevenLabs. **A aula estruturada ainda usa as falas gravadas (D46)** — não mudou aqui |
 | **D55** | **O Kevin assume o lugar do professor de inglês.** Quem fica na sala é o professor regente, que não fala inglês | Kevin como assistente do professor de inglês (D11) | Reunião com Lucas Albertoni (10/11/2026). A aula observada que motivou o modelo anterior era de um professor de inglês, que será substituído. Revisa a D11 e a regra 15 do `CLAUDE.md`: na aula, o Kevin passa a se dirigir à turma, como já fazia no Playground (D48). Épico A |
 | **D56** | **Português com o professor, inglês só com a turma**, dentro da sequência didática | Instant Translation (valida em português, responde em inglês); ou tudo em inglês | O regente não entende inglês: instrução em inglês para ele inviabiliza a aula. Verificado em produção: pergunta em português recebia resposta em inglês. Revisa a regra 16 do `CLAUDE.md` e o bloco de idioma (D13). Demanda 21 |
-| **D57** | **Sequência TEFL obrigatória:** aviso e pergunta em português → termo em inglês → repetição tripla → só então cobrar em inglês | Perguntar direto em inglês ("How are you feeling?") | Sem a ponte em português a turma não sabe o que responder. Metodologia TEFL, apontada pelo Lucas. Demanda 22 |
+| **D57** | **Sequência TEFL obrigatória:** pergunta em português que leva a turma à palavra → termo em inglês → a turma **repete duas vezes** → o Kevin diz em que língua quer a resposta → pergunta e espera → pede ao professor para passar ao próximo termo. *(Revisada em 12/11/2026 com o texto do Lucas: era "repetição tripla")* | Perguntar direto em inglês ("How are you feeling?") | Sem a ponte em português a turma não sabe o que responder. Metodologia TEFL, apontada pelo Lucas. Demanda 22 |
 | **D58** | **Fim das falas gravadas na aula.** Toda fala do Kevin sai pela voz sintetizada do ElevenLabs e ele espera a resposta da turma para avançar. Estende a D54 à aula | Manter Open class e Pay attention gravados (D46) | Fala disparada sem escuta ensina a turma a não responder. **Revoga a D46.** Exige chave válida do ElevenLabs, que hoje responde 401. Demanda 23 |
 | **D59** | **Botão Repetir condicional:** ativo só nos 2 minutos seguintes ao ensino de uma palavra nova. A **IA conduz** a reintrodução, mas a palavra é a registrada no momento do ensino (`estado['ultima_palavra']`, gravado por `mostrar_no_quadro`) e vai escrita no evento. A janela é validada no servidor | Botão sempre ativo, com a palavra deduzida do histórico; ou frase fixa sem IA | O histórico é ambíguo e a IA pode resgatar o termo errado (guard rail levantado pelo Paulo). Registro explícito + janela curta eliminam a ambiguidade. **Revisada em 11/11/2026:** o Paulo preferiu a IA conduzindo, por soar mais natural que uma frase fixa. Demanda 24 |
 | **D60** | **A aula estruturada ganha os recursos do Playground** (botões, quadro, overlays, animações, ferramentas) | Manter a aula só com `celebrar_acerto` (D51) | Pedido do Paulo (10/11/2026): o Playground ficou melhor e a aula precisa da mesma experiência. Revoga a restrição da Demanda 20/D51 e o teste que a protege. Demanda 25 |
