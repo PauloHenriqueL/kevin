@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > ✅ **Último trabalho grande:** Épico A, o Kevin no lugar do professor de inglês
-> (11/11/2026) — código pronto, **deploy travado** até a chave do ElevenLabs.
+> (11/11/2026) — **no ar e validado em produção em 13/11/2026**.
 > Resumo e pendências na seção
 > [✅ Épico A](#-épico-a--kevin-no-lugar-do-professor-de-inglês-entregue-em-11112026),
 > logo depois de "Como trabalhamos".
@@ -157,18 +157,27 @@ dívida** e cobrar a correção na origem.
 
 **Pendências para fechar o épico:**
 
-- ⛔ **Deploy travado pelo ElevenLabs.** O Plano ainda está em
-  `tts_provider='openai_tts'` (voz `nova`, feminina) e a chave do ElevenLabs no
-  campo `tts_api_key` responde **401**. Antes de subir: colocar a chave
-  `sk_…` válida, `tts_provider='elevenlabs'`, `tts_modelo` vazio, e testar com
-  `ElevenLabsTTSProvider(...).sintetizar('Hello')` → 200. Sem isso, a aula
-  inteira passa a falar com a voz feminina.
+- ✅ **ElevenLabs no ar (13/11/2026).** O Plano aponta para
+  `tts_provider='elevenlabs'`, `tts_modelo='eleven_multilingual_v2'` e a voz
+  **`ULGe8LE8nicX7u7kcwBn`** (`kevin v3`) — a **única** voz customizada da
+  conta; as outras 24 são `premade`. Se um dia a voz voltar a sair errada,
+  confira esse `voice_id` antes de suspeitar da chave: um id inválido devolve
+  **404** (não 401), e o 401 do `/v1/user` é só falta do escopo `user_read` —
+  não quer dizer que a chave esteja ruim.
+- ✅ **Validado em produção (13/11/2026)**, Playground da Turma 5A: abertura
+  fixa sintetizada (`POST /api/chat/tts/` → 200 `audio/mpeg`, sem MP3 de
+  `voz-kevin/`); pergunta em português → resposta em português; sequência TEFL
+  completa com `mostrar_no_quadro` (quadro acendeu "LION"), o que prova **tool
+  calling com o `gpt-5.6-terra`**; Whisper (`PATCH estado/` + TTS com
+  `estilo='sussurro'`) → 200; Repetir (`POST .../repetir/`) → 201. Console
+  limpo. **Falta o mesmo roteiro na aula estruturada** (o Playground não tem
+  roteiro cadastrado).
 - **Validação do Lucas**: os textos dele já estão nos arquivos (12/11/2026);
   falta o teste em sala, uma etapa por vez, como combinado. Página com os prompts para ele: ver `docs/demandas.md`,
   Épico A, A.5.
-- Depois do deploy, refazer em produção: pergunta em português ao Kevin →
-  resposta em **português**; abertura sem MP3 de `voz-kevin/`; aula com os
-  mesmos botões do Playground.
+- **Mobile não é alvo** (decisão do Paulo, 13/11/2026): a 390px o Kevin sai do
+  enquadramento e o label do FAB corta. O telão é projetado na TV da sala —
+  não abrir demanda por isso.
 
 ## Project Overview
 
@@ -825,8 +834,8 @@ window.KEVIN_CHAT_CONFIG = { ... };
 | — | Correção de segurança | As 5 views em função de `coordenacao_views.py` estavam sem guarda de papel — qualquer usuário logado podia editar o TG oficial. `role_required` em `apps/accounts/decorators.py` (D40) |
 | 8 | Prompt editável por TG | Prompt do Kevin em `apps/chat/prompts/*.txt` (default) + 3 campos no `TG` (`prompt_papel/idioma/execucao`). Editor em `/coordenacao/tg/<id>/prompt/` (só coordenador); bloco vazio herda o default (D42–D44) |
 | — | Fix Kevin "robótico" | Modo demo do chat de texto era `true` hardcoded e vazava pra produção. Agora liga ao plano ter chave de IA: com chave → Kevin real (D45) |
-| 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do professor, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), voz só da ElevenLabs, editor por TG na coordenação (D47–D54). **Falta validar em sala** e testar o sussurro com a voz do Kevin |
-| 21–25 | **Épico A** — Kevin no lugar do professor de inglês | Português com o regente e sequência TEFL (repete duas vezes) nos prompts (D56/D57); aula estruturada com todas as ferramentas, eventos, estado da sala e os botões do Playground (D60/D61); falas gravadas desligadas nas duas telas (D58); botão **Repetir** com guard rail no servidor (D59). Código pronto e commitado em 11/11/2026. **Deploy travado** até o Plano apontar para o ElevenLabs com chave válida; **prompts aguardam validação do Lucas** |
+| 20 | Kevin Playground | Sessão sem aula cadastrada em `/professor/playground/`: abertura fixa, contexto = 1ª resposta do professor, ferramentas (música, jogo, quadro, cenário, Pay Attention, Whisper, Só inglês), voz só da ElevenLabs, editor por TG na coordenação (D47–D54). Sussurro testado com a voz do Kevin em produção (13/11/2026). **Falta validar em sala** |
+| 21–25 | **Épico A** — Kevin no lugar do professor de inglês | Português com o regente e sequência TEFL (repete duas vezes) nos prompts (D56/D57); aula estruturada com todas as ferramentas, eventos, estado da sala e os botões do Playground (D60/D61); falas gravadas desligadas nas duas telas (D58); botão **Repetir** com guard rail no servidor (D59). **No ar e validado em produção em 13/11/2026** (ElevenLabs + voz `kevin v3`); **prompts aguardam validação do Lucas** e falta rodar o roteiro na aula estruturada |
 
 ---
 
