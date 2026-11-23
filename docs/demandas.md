@@ -3,9 +3,13 @@
 > **Status deste documento:** aprovado como escopo. Cada demanda tem seu próprio
 > status de implementação — leia o cabeçalho de cada uma antes de começar.
 >
-> **Última atualização:** 10/11/2026 — reunião de validação com o Lucas
-> Albertoni: o Kevin assume o lugar do professor de inglês. Novo **Épico A**
-> (Demandas 21–25) e decisões D55–D60.
+> **Última atualização:** 23/11/2026 — reunião de 22/11/2026 sobre o rumo do
+> Kevin AI: lei do CNE/MEC, microfone fechado, regente treinado, roteiros à mão.
+> Decisões D62–D69, que revisam partes do Épico A (ver a seção da reunião).
+>
+> **Anterior:** 10/11/2026 — reunião de validação com o Lucas Albertoni: o
+> Kevin assume o lugar do professor de inglês. **Épico A** (Demandas 21–25) e
+> decisões D55–D61.
 
 ---
 
@@ -33,6 +37,7 @@
   - [Demanda 23 — Kevin responsivo: fim das falas gravadas](#demanda-23--kevin-responsivo-fim-das-falas-gravadas) · Must ⛔
   - [Demanda 24 — Botão Repetir](#demanda-24--botão-repetir) · Must
   - [Demanda 25 — Aula estruturada com os recursos do Playground](#demanda-25--aula-estruturada-com-os-recursos-do-playground) · Should
+- **[Reunião de 22/11/2026 — rumo do Kevin AI](#reunião-de-22112026--rumo-do-kevin-ai)** 📋 registrada · nada implementado
 - [Decisões registradas](#decisões-registradas)
 - [Considerado e adiado](#considerado-e-adiado)
 - [Riscos aceitos](#riscos-aceitos)
@@ -2143,6 +2148,113 @@ recursos ficam todos disponíveis, sempre a serviço do roteiro:
 
 ---
 
+## Reunião de 22/11/2026 — rumo do Kevin AI
+
+**Status:** 📋 Registrada. **Nada implementado ainda.** As decisões D62–D69
+revisam partes do Épico A (já no ar); a mudança no código espera os roteiros
+da equipe pedagógica e a autorização do Paulo.
+
+**Fonte:** `Reunião Kevin AI 22-11-26.pdf` (Tactiq, 2h44, 6 falantes sem
+nome; fica fora do Git). A transcrição é ruidosa e os timestamps do resumo
+automático do PDF não batem com a transcrição: este registro segue a
+transcrição.
+
+### R.1 O que foi decidido
+
+| Tema | Decisão | Ref. |
+|---|---|---|
+| Escuta | **Microfone fechado.** A criança não fala com o Kevin; o professor é o único interlocutor e repassa a resposta da turma. Push-to-talk pelo celular do professor (QR code abre o navegador) primeiro; botão físico depois | D62 |
+| Público | **Fica o Fundamental 1** (1º ao 5º ano). Mudar para os anos finais foi considerado e rejeitado | D63 |
+| Papel do regente | **Regente treinado.** O Kevin supõe que ele conhece a metodologia e explica só quando perguntado | D64 |
+| Fala do Kevin | Comando em **português, como proposta** ("vamos jogar batata quente"); inglês só no vocabulário e nas palavras-chave (hello song, circle time); a **última coisa dita é a frase a repetir** | D65 |
+| Correção | **Quem ensina e corrige é o Kevin**, inclusive a atividade do livro ("Kevin, mostra como fica o 1"). A regente facilita | D66 |
+| Imagens | **Banco pré-produzido** com as fotos reais dos flashcards do material; nada de gerar imagem na hora | D67 |
+| Conteúdo | **Roteiros escritos à mão**, sem IA, no formato `Professor: / Kevin: / Aluno:`. Material de referência: **B Junior, 3º ano** | D68 |
+| Pronúncia | "Tudo em português" descartado. Teste A/B: **tudo em inglês × multilíngue com marcação** das palavras em inglês no texto. A opção com ferramenta (o modelo decide o idioma) fica para depois | D69 |
+| Modo | Aprofundar a **aula estruturada** (o Kevin conduz); o Playground não é a prioridade | — |
+| Reuniões | Checkpoint presencial a cada 1–3 meses, com entregáveis definidos antes; no meio, comunicação com prazo e um responsável por frente | — |
+
+### R.2 A lei: resolução CNE/MEC sobre IA na educação (em vigor desde 12/11/2026)
+
+- Educação infantil: nenhuma IA com a criança.
+- **1º ao 5º ano:** só em atividade *planejada, conduzida e mediada* pelo
+  profissional de educação. Vedado o acesso direto, autônomo, individual ou não
+  supervisionado, e a *"interação dos estudantes com sistemas de IA generativa
+  ou conversacional, ainda que sob supervisão"*.
+- 6º ao 9º: uso supervisionado. Ensino médio: regras gerais.
+- Proibido em qualquer escola: treinar IA com dados dos alunos, nota de redação
+  só pela IA, punir por detector de IA, ler emoção de aluno ou professor.
+- Prazo para políticas, práticas e contratos com edtechs: **novembro de 2027**.
+
+**Leitura do grupo:** o caput descreve o que o Kevin faz (professor operando,
+aula planejada). A zona cinzenta é o parágrafo da "interação"; o §5
+(tecnologia assistiva e acessibilidade) seria outra salvaguarda. Para o uso
+com professor operando, a lei não diferencia o 5º do 9º ano. A D62 (microfone
+fechado) é a resposta prática. **Falta o parecer jurídico** (Lucas e Allan).
+
+### R.3 Latência e custo
+
+- A latência foi apontada como o maior problema da experiência. A **GPT Live
+  API** (lançada dias antes) deve reduzi-la; o grupo quer ainda uma pausa de
+  ~2 s, para o Kevin não atropelar.
+- Custo estimado com baixa latência: **US$3 a 5 por hora de uso**, cobrando só
+  o tempo em que o Kevin fala (~R$25–30 por aula). O raciocínio custa quase
+  nada; o caro é a voz personalizada e o texto↔voz rápido. A tendência é cair.
+- Longo prazo, se escalar: voz própria (voice actor, ~2 h de áudio) levaria o
+  custo de ~US$2/h para ~US$0,50/h.
+- O Live troca o motor, não a voz: a voz continua no ElevenLabs.
+
+### R.4 Metodologia descrita na reunião (insumo para os roteiros)
+
+- **Warm-up padronizado:** roda, música e jogo. O Kevin propõe; o regente
+  executa; se não souber o jogo, pergunta ao Kevin.
+- **Development** por tipo de aula (content, culture, communication). Por baixo
+  aparecem dois formatos: **o Kevin mostra → o aluno faz** (introdução de
+  vocabulário, sempre dentro de frase: *"It's a nose"*) e **o aluno faz → o
+  Kevin confere** (prática, livro, batata quente com imagem no quadro e
+  *"What's this?"*).
+- **Repetição:** 3 vezes com a turma toda, com variações (batendo palma, como
+  um leão, cochichando), depois small groups (*only the boys*, *only the
+  girls*), depois 4 alunos individuais. **Diverge da D57** (duas vezes, texto do
+  Lucas): ver R.6.
+
+### R.5 Impacto no que está no ar
+
+| O que existe hoje | O que muda | Onde |
+|---|---|---|
+| Regra 15 e D55: o Kevin pergunta à turma, chama alguém e espera a resposta dela | A turma não fala com o Kevin (D62). Ele pode propor coisas à turma, mas a resposta chega pelo professor | `CLAUDE.md`, prompts `papel`/`execucao` |
+| D58 e Demanda 23: o Kevin espera **ouvir** a turma antes de avançar; modo ao vivo (VAD) na aula | Com microfone fechado, quem avança é o professor (push-to-talk). Revisar o botão Conversa ao vivo | `kevin_chat.js` (`liveMode`), D58 |
+| `execucao.txt`: o Kevin pergunta direto à turma ("Kids, qual é a parte do corpo…?") e comenta que "muitas crianças falam ao mesmo tempo" | Reescrever supondo que a resposta vem do professor | `apps/chat/prompts/execucao.txt` |
+| O Kevin explica cada passo ao regente | Supõe regente treinado; explica só se perguntado (D64) | `papel.txt`, `execucao.txt` |
+| D57: a turma repete duas vezes | Em aberto (R.6) | `execucao.txt` |
+| TG do Y5 como referência de conteúdo | B Junior, 3º ano (D68) | conteúdo / coordenação |
+| Whisper → IA → ElevenLabs | Pode virar GPT Live + ElevenLabs, conforme o teste | `apps/chat/providers/` |
+
+### R.6 Em aberto
+
+- **Repetição:** duas vezes (D57, texto do Lucas) ou o esquema 3× turma +
+  grupos + individuais descrito na reunião? Confirmar com a equipe pedagógica
+  antes de mexer no prompt.
+- **Parecer jurídico** sobre a resolução (Lucas e Allan).
+- **Plano de treinamento do regente:** formato e dono não definidos.
+- **Animação:** lista de movimentos essenciais, com prioridade de 1 a 4, para o
+  Vitor. Virar de lado ou de costas exige redesenhar boa parte das 150+ camadas.
+- **Kevin para escola bilíngue ou curso livre:** adiado.
+- **Imagem que aparece ao balançar o celular:** ideia, sem decisão.
+
+### R.7 Próximos passos
+
+| O quê | Quem | Quando |
+|---|---|---|
+| Roteiros à mão (4–5 fragmentos ou aulas inteiras, de tipos bem diferentes, sem estrutura imposta). A equipe técnica extrai as categorias depois | Equipe pedagógica (contato: Mila) | Envio em ~10 dias (sugestão: 04/12/2026). **Prioridade máxima** |
+| Parecer jurídico | Lucas e Allan | Semana de 23/11/2026 |
+| Teste da GPT Live API | Equipe técnica | — |
+| Teste A/B de pronúncia (D69) | Equipe técnica | — |
+| Banco de vocabulário e imagens | Equipe pedagógica | Depois dos roteiros |
+| Data da próxima reunião | Todos | WhatsApp |
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada
@@ -2211,6 +2323,14 @@ uma tem consequência em cascata sobre as demais.
 | **D59** | **Botão Repetir condicional:** ativo só nos 2 minutos seguintes ao ensino de uma palavra nova. A **IA conduz** a reintrodução, mas a palavra é a registrada no momento do ensino (`estado['ultima_palavra']`, gravado por `mostrar_no_quadro`) e vai escrita no evento. A janela é validada no servidor | Botão sempre ativo, com a palavra deduzida do histórico; ou frase fixa sem IA | O histórico é ambíguo e a IA pode resgatar o termo errado (guard rail levantado pelo Paulo). Registro explícito + janela curta eliminam a ambiguidade. **Revisada em 11/11/2026:** o Paulo preferiu a IA conduzindo, por soar mais natural que uma frase fixa. Demanda 24 |
 | **D60** | **A aula estruturada ganha os recursos do Playground** (botões, quadro, overlays, animações, ferramentas) | Manter a aula só com `celebrar_acerto` (D51) | Pedido do Paulo (10/11/2026): o Playground ficou melhor e a aula precisa da mesma experiência. Revoga a restrição da Demanda 20/D51 e o teste que a protege. Demanda 25 |
 | **D61** | **Recursos na aula a serviço do roteiro.** O cenário começa no `Aula.background` e só troca quando combinar com a atividade. Um botão Música de catálogo, com a música da aula em primeiro. Jogos e músicas do roteiro primeiro; catálogo quando o professor pedir. Só inglês vale só para a turma. Listening e ronco ficam | Kevin livre como no Playground; ou aula sem recursos novos | O Paulo pediu para "seguir a reunião" (11/11/2026): o Kevin conduz a aula, mas o roteiro cadastrado continua sendo a fonte da aula (regra 4). Responde as perguntas em aberto da Demanda 25 |
+| **D62** | **Microfone fechado: a turma não fala com o Kevin.** O professor é o único interlocutor e repassa a resposta das crianças. Push-to-talk pelo celular do professor (QR code + navegador) primeiro; botão físico depois | Microfone aberto captando a sala; ou microfone no celular apontado para a criança | Resolução CNE/MEC (12/11/2026): nos anos iniciais é vedada a interação do aluno com IA conversacional, mesmo supervisionada. De quebra elimina o ruído da sala. Botão físico custa 4–6 h por unidade. **Revisa a D55, a D58 e a regra 15 do `CLAUDE.md`** na parte em que o Kevin ouve a turma. Reunião de 22/11/2026 |
+| **D63** | **O público continua sendo o Fundamental 1** (1º ao 5º ano) | MVP nos anos finais (6º ano em diante), para fugir da discussão legal | Nos anos finais o professor de inglês é obrigatório (dor menor) e um personagem infantil não pega com adolescente. Para o uso com professor operando, a lei não diferencia o 5º do 9º ano. Pendente: parecer jurídico. Reunião de 22/11/2026 |
+| **D64** | **Regente treinado.** O Kevin supõe que o professor conhece a metodologia (roda, jogos, técnicas) e só explica quando ele pergunta | O Kevin treinar o professor ao vivo, explicando cada passo | O treinamento do regente vira peça central do produto e da venda ("os professores serão treinados"). Explicação a cada passo cansa o regente e alonga a aula. Reunião de 22/11/2026 |
+| **D65** | **Comando em português, como proposta à turma**; inglês só no vocabulário e nas palavras-chave; **a última coisa que o Kevin diz é a frase a repetir** | Instrução dirigida ao professor ("Professor, peça à turma que…") | É assim que o professor de inglês faria. Terminar na frase em inglês dá à turma o modelo certo para repetir. Complementa a D56. Reunião de 22/11/2026 |
+| **D66** | **Quem ensina e corrige é o Kevin**, inclusive a atividade do livro; a regente facilita | A regente corrigindo pelo livro do professor | O regente não sabe pronunciar nem conferir a resposta em inglês. Reunião de 22/11/2026 |
+| **D67** | **Banco de imagens pré-produzido**, com as fotos reais dos flashcards do material (~20 palavras por unidade, ~160 por livro) | Gerar imagem por IA na hora (~R$0,25 e 8–18 s por imagem) | A criança associa melhor quando vê sempre a mesma imagem; a equipe pedagógica usa foto real de propósito. Não é gargalo. Reunião de 22/11/2026 |
+| **D68** | **Roteiros escritos à mão pela equipe pedagógica**, sem IA, no formato `Professor: / Kevin: / Aluno:`, em fragmentos de tipos bem diferentes e sem estrutura imposta. A equipe técnica extrai as categorias. Material de referência: **B Junior, 3º ano** | Gerar os roteiros com IA a partir do TG; ou escrever direto num molde de categorias | Exemplos humanos e distantes entre si geram categorias melhores; IA gerando em série repete o padrão. A falta de um resultado final claro travou a rodada anterior. Reunião de 22/11/2026 |
+| **D69** | **Pronúncia: teste A/B entre tudo em inglês e multilíngue com marcação** das palavras em inglês no texto. "Tudo em português" descartado; a opção em que o modelo decide o idioma e chama uma ferramenta fica para depois | Manter como está (a voz decide o idioma de cada frase sozinha) | A voz pronuncia em português a palavra inglesa no meio de frase em português. A opção com ferramenta acerta sempre, mas soma latência. Reunião de 22/11/2026 |
 
 > **Nota sobre D27 e D29:** ambas nascem da leitura dos TGs completos do Y5
 > (3x e 5x, recebidos em 24/07/2026). A D19 (4x = 3x + uma Communication)

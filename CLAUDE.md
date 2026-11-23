@@ -8,6 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > [✅ Épico A](#-épico-a--kevin-no-lugar-do-professor-de-inglês-entregue-em-11112026),
 > logo depois de "Como trabalhamos".
 
+> 📋 **Reunião de 22/11/2026 (rumo do Kevin AI), registrada e ainda não
+> implementada.** Por causa da resolução do CNE/MEC sobre IA na educação, a
+> turma não fala mais com o Kevin: microfone fechado, e o professor repassa a
+> resposta (D62). Também: regente treinado (D64), roteiros escritos à mão
+> sobre o B Junior do 3º ano (D68) e teste A/B de pronúncia (D69). Isso revisa
+> as regras 15–17 abaixo. Detalhes e impacto no código em `docs/demandas.md`,
+> seção "Reunião de 22/11/2026". **Não mude prompt nem telão sem o Paulo
+> autorizar:** a mudança espera os roteiros da equipe pedagógica.
+
 ## 📁 Onde está cada coisa (docs/)
 
 | Arquivo | O que é |
@@ -473,6 +482,14 @@ de IA no plano, o chat cai no modo demo (sem ferramentas).
     retrato pronto — **não substitui a reunião**.
 
 ### O Kevin em sala
+
+> ⚠️ **Revisão pendente (reunião de 22/11/2026, D62–D69):** as regras 15–17
+> descrevem o que está no ar. Pelo que foi decidido, o Kevin **não ouve mais a
+> turma**: microfone fechado, push-to-talk do professor, que repassa as
+> respostas (D62). Ele supõe que o regente foi treinado e só explica quando
+> perguntado (D64). Dá o comando em português, como proposta, e termina na
+> frase em inglês a repetir (D65). O número de repetições (duas, pela D57, ou
+> 3× turma + grupos + individuais) está em aberto. Ver `docs/demandas.md`.
 
 15. **O Kevin é o professor de inglês da turma** (D55, reunião de 10/11/2026).
     Quem fica na sala é o **professor regente, que não fala inglês**: parceiro
