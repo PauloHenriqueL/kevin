@@ -801,6 +801,12 @@ class ControleCelularTest(BasePlayground):
         self.assertTrue(dados['qr_svg'].startswith('<svg'))
         self.assertEqual(controle_mod.ler_token(dados['url'].rstrip('/').split('/')[-1]).conversa, self.conversa)
 
+    def test_link_do_qr_sai_em_https_em_producao(self):
+        from django.test import override_settings
+        with override_settings(DEBUG=False, SECURE_SSL_REDIRECT=False, ALLOWED_HOSTS=['testserver']):
+            url = self._qr().json()['url']
+        self.assertTrue(url.startswith('https://'), url)
+
     def test_celular_sem_login_manda_comando_e_telao_recebe(self):
         self._qr()
         celular = Client()  # sem sessão

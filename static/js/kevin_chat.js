@@ -64,6 +64,10 @@
       voz_openai: p.get('voz_openai') || '',
     };
   })();
+  // Tela de espera: marca qual versão está escolhida (atual ou Live).
+  document.querySelectorAll('.versao-opcao').forEach((a) => {
+    a.setAttribute('aria-current', (a.dataset.versao === 'live') === !!LIVE_CFG ? 'true' : 'false');
+  });
   const liveAtivo = () => !!(LIVE_CFG && window.KevinLive && window.KevinLive.conectado());
   const pg = {
     estado: Object.assign(

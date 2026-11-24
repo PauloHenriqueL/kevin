@@ -4117,9 +4117,9 @@ table.data tbody tr:hover {
 /* ---------- Controle pelo celular (D62): modal do QR ---------- */
 .modal-card.modal-celular { max-width: 420px; text-align: center; }
 .modal-celular-qr {
-  width: 240px; height: 240px; margin: 4px auto 14px;
+  width: 260px; height: 260px; margin: 4px auto 14px;
   display: grid; place-items: center;
-  background: #fff; border: 2px solid var(--cinza-borda); border-radius: 18px; padding: 8px;
+  background: #fff; border: 2px solid var(--cinza-borda); border-radius: 18px; padding: 0; overflow: visible;
 }
 .modal-celular-qr img, .modal-celular-qr svg { width: 100%; height: 100%; display: block; }
 .modal-celular-carregando { color: var(--texto-sec); font-weight: 700; font-size: 0.9rem; padding: 12px; }
@@ -4144,7 +4144,7 @@ table.data tbody tr:hover {
 
 /* ---------- Modo ao vivo (teste, ?live=1) ---------- */
 .live-selo {
-  position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 6;
+  position: absolute; top: 76px; right: 24px; z-index: 6;
   padding: 6px 14px; border-radius: 999px;
   background: rgba(124, 58, 237, 0.92); color: #fff;
   font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 0.8rem; letter-spacing: 0.02em;
@@ -4161,3 +4161,14 @@ table.data tbody tr:hover {
 }
 .btn-standby-celular:hover { background: var(--azul-claro); }
 .btn-standby-celular svg { width: 18px; height: 18px; }
+/* Tela de espera: escolher a versão (teste do GPT Live, Demanda 27). */
+.versao-seletor {
+  display: inline-flex; margin: 0 auto 16px; padding: 4px; gap: 4px;
+  background: var(--azul-claro); border-radius: 14px;
+}
+.versao-opcao {
+  padding: 8px 14px; border-radius: 10px; text-decoration: none;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.9rem; color: var(--azul-escuro);
+}
+.versao-opcao small { font-weight: 700; opacity: 0.7; }
+.versao-opcao[aria-current="true"] { background: #fff; box-shadow: 0 2px 8px rgba(26,95,180,0.18); }

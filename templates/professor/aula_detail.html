@@ -186,6 +186,10 @@
             <div class="standby-code">{{ aula.codigo }} · Turma {{ turma.year }}{{ turma.nome }}</div>
             <h2>{{ aula.titulo }}</h2>
             <p>Quando a turma estiver pronta, comece a aula. O Kevin vai receber vocês e conduzir a partir daí.</p>
+            <div class="versao-seletor" role="group" aria-label="Versão do Kevin">
+                <a class="versao-opcao" data-versao="atual" href="?">Versão atual</a>
+                <a class="versao-opcao" data-versao="live" href="?live=1&amp;voz=kevin">Versão Live <small>(teste)</small></a>
+            </div>
             <button class="btn-iniciar" id="btn-iniciar-aula" type="button">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                 <span>Iniciar aula</span>

@@ -87,4 +87,7 @@ def online(visto_em) -> bool:
 def qr_svg(url: str) -> str:
     """O QR do link como SVG inline (segno: Python puro, sem dependência de sistema)."""
     import segno
-    return segno.make(url, error='m').svg_inline(scale=8, border=2, dark='#0b2a55')
+    # omitsize: só viewBox, sem width/height fixos — o SVG se ajusta à caixa do
+    # modal. Com tamanho fixo ele saía cortado (sem a margem branca) e a câmera
+    # não lia. border=4 é a margem mínima da norma; error='l' deixa menos denso.
+    return segno.make(url, error='l').svg_inline(border=4, dark='#000000', omitsize=True)
