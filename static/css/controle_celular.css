@@ -1,0 +1,129 @@
+/* Controle do Kevin pelo celular (D62). Tela de um polegar só: o botão de
+   falar no centro, grande, e os recursos da aula embaixo. */
+:root {
+  --azul: #2B7DE9;
+  --azul-escuro: #1A5FB4;
+  --azul-noite: #0b2a55;
+  --azul-claro: #E8F0FE;
+  --vermelho: #D93025;
+  --amarelo: #FFB830;
+  --verde: #16A34A;
+  --texto: #0F172A;
+  --texto-sec: #64748B;
+  --borda: #E5EAF2;
+  --fundo: #F4F7FC;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: 'Nunito', system-ui, sans-serif;
+  background: linear-gradient(180deg, var(--azul-escuro) 0%, var(--azul) 26%, #dce9fc 52%, var(--fundo) 70%) fixed;
+  color: var(--texto);
+  overscroll-behavior: none;
+}
+
+.cc {
+  min-height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Topo ── */
+.cc-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #fff; }
+.cc-marca { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cc-logo {
+  width: 40px; height: 40px; border-radius: 12px; flex: none;
+  display: grid; place-items: center;
+  background: #fff; color: var(--azul); font-weight: 900; font-size: 1.3rem;
+}
+.cc-titulo { font-weight: 900; font-size: 1.05rem; line-height: 1.1; }
+.cc-sub { font-weight: 700; font-size: 0.82rem; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-conexao {
+  flex: none; white-space: nowrap; font-size: 0.72rem; font-weight: 800; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+}
+.cc[data-conectado="true"] .cc-conexao { background: rgba(22, 163, 74, 0.95); }
+.cc[data-conectado="false"] .cc-conexao { background: rgba(217, 48, 37, 0.95); }
+
+/* ── Status do telão ── */
+.cc-status {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border-radius: 16px; padding: 14px 16px;
+  box-shadow: 0 6px 20px rgba(11, 42, 85, 0.12);
+  font-weight: 800; font-size: 1rem;
+}
+.cc-status-ponto { width: 12px; height: 12px; border-radius: 50%; background: var(--texto-sec); flex: none; }
+.cc[data-fase="ocioso"] .cc-status-ponto { background: var(--verde); }
+.cc[data-fase="gravando"] .cc-status-ponto { background: var(--vermelho); animation: cc-pulso 1s infinite; }
+.cc[data-fase="pensando"] .cc-status-ponto { background: var(--amarelo); animation: cc-pulso 1.2s infinite; }
+.cc[data-fase="falando"] .cc-status-ponto,
+.cc[data-fase="musica"] .cc-status-ponto { background: var(--azul); animation: cc-pulso 0.8s infinite; }
+
+@keyframes cc-pulso { 50% { transform: scale(1.35); opacity: 0.6; } }
+
+/* ── Iniciar ── */
+.cc-iniciar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 16px; padding: 16px;
+  background: var(--verde); color: #fff; font: inherit; font-weight: 900; font-size: 1.1rem;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
+}
+.cc-iniciar svg { width: 22px; height: 22px; }
+.cc-iniciar[hidden] { display: none; }
+
+/* ── Botão de falar ── */
+.cc-falar-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 8px 0; }
+.cc-falar {
+  width: min(64vw, 240px); aspect-ratio: 1; border-radius: 50%; border: 0;
+  background: radial-gradient(circle at 35% 30%, #4d97f5, var(--azul) 55%, var(--azul-escuro));
+  color: #fff; display: grid; place-items: center;
+  box-shadow: 0 14px 34px rgba(26, 95, 180, 0.45), inset 0 -6px 0 rgba(0, 0, 0, 0.12);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.cc-falar svg { width: 38%; height: 38%; pointer-events: none; }
+.cc-falar:disabled { filter: grayscale(0.8); opacity: 0.55; }
+/* Apertou, mas o telão ainda não confirmou que o microfone abriu. */
+.cc[data-falando="abrindo"] .cc-falar {
+  transform: scale(1.03);
+  background: radial-gradient(circle at 35% 30%, #ffd27a, var(--amarelo) 55%, #c98a10);
+  animation: cc-pulso-botao 0.8s infinite;
+}
+.cc[data-falando="abrindo"] .cc-falar-dica { color: #9a6700; font-weight: 900; }
+@keyframes cc-pulso-botao { 50% { box-shadow: 0 0 0 16px rgba(255, 184, 48, 0.25), 0 14px 34px rgba(201, 138, 16, 0.4); } }
+.cc[data-falando="true"] .cc-falar {
+  transform: scale(1.06);
+  background: radial-gradient(circle at 35% 30%, #f07167, var(--vermelho) 55%, #a1231b);
+  box-shadow: 0 0 0 14px rgba(217, 48, 37, 0.18), 0 14px 34px rgba(217, 48, 37, 0.45);
+}
+.cc-falar-dica { margin: 0; text-align: center; font-weight: 700; font-size: 0.9rem; color: var(--texto-sec); max-width: 300px; }
+.cc[data-falando="true"] .cc-falar-dica { color: var(--vermelho); font-weight: 900; }
+
+/* ── Recursos ── */
+.cc-botoes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.cc-botoes .cc-btn { grid-column: span 2; }
+.cc-botoes .cc-btn:nth-child(n+4) { grid-column: span 3; }
+.cc-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 76px; border-radius: 16px; border: 2px solid var(--borda);
+  background: #fff; color: var(--azul-noite); font: inherit; font-weight: 800; font-size: 0.85rem;
+  box-shadow: 0 3px 10px rgba(11, 42, 85, 0.06);
+}
+.cc-btn svg { width: 26px; height: 26px; }
+.cc-btn:active:not(:disabled) { transform: scale(0.96); background: var(--azul-claro); }
+.cc-btn:disabled { opacity: 0.4; }
+.cc-btn[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
+
+/* ── Link inválido ── */
+.cc-invalido {
+  min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; background: var(--fundo);
+}
+.cc-invalido-icone { font-size: 3rem; }
+.cc-invalido h1 { font-weight: 900; font-size: 1.4rem; margin: 12px 0 8px; }
+.cc-invalido p { color: var(--texto-sec); font-weight: 700; max-width: 320px; margin: 0; }

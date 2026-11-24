@@ -34,7 +34,9 @@ class EscolaMiddleware:
 class LoginRequiredMiddleware:
     """Redireciona para login se não autenticado."""
 
-    PUBLIC_PATHS = ['/login/', '/admin/', '/api/']
+    # /chat/controle/: tela do celular do professor (D62). Sem login de
+    # propósito — o token assinado do link (QR do telão) é a credencial.
+    PUBLIC_PATHS = ['/login/', '/admin/', '/api/', '/chat/controle/']
 
     def __init__(self, get_response):
         self.get_response = get_response

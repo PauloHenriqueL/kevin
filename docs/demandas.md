@@ -2255,6 +2255,105 @@ fechado) é a resposta prática. **Falta o parecer jurídico** (Lucas e Allan).
 
 ---
 
+## Demanda 26 — Controle da aula pelo celular (D62)
+
+**Status:** ✅ Implementada em 23/11/2026 no branch `claude/kevin-ai-meeting-summary-d377b4`;
+validada no localhost (testes + Playwright). **Não está no ar.**
+
+> **Como** professor regente, **quero** controlar a aula pelo meu celular,
+> apertando um botão para falar com o Kevin, **para** que o microfone só
+> abra quando eu quiser (microfone fechado, D62) e eu possa andar pela sala.
+
+**Como funciona:**
+
+- O telão ganha o botão **Celular** (e um atalho na tela de espera, para
+  parear antes de começar). Ele mostra um QR com um link assinado.
+- O celular abre o link **sem login**: o token (conversa + chave do controle,
+  vale 8 h) é a credencial. Gerar QR novo troca a chave e derruba o link antigo.
+- Botão de falar: **segurar** = fala enquanto segura; **toque curto** = abre, e
+  outro toque envia. O botão fica amarelo ("abrindo") até o telão confirmar que
+  o microfone abriu, e só então vermelho ("fale agora"): entre o toque e a
+  confirmação passa meio segundo, e quem falasse na hora perderia o começo.
+- Também no celular: Começar/Iniciar aula, Atenção, Repetir, Parar, Whisper e
+  Só inglês. O celular mostra o que o telão está fazendo (ouvindo, pensando,
+  falando, música).
+- O microfone que grava é o **do telão** (o celular não grava nada): evita a
+  permissão de microfone no celular, que trava em iPhone.
+- **Push-to-talk sem esperar silêncio:** quem fecha a fala é o professor. O
+  modo atual espera 2,5 s de silêncio antes de enviar; pelo celular, não.
+
+**Técnica:** fila de comandos na tabela `ControleRemoto` (migration
+`chat.0004`, já aplicada no Neon), polling do telão a cada ~350 ms e do
+celular a cada ~0,9 s. Sem Redis/Channels em produção e com o gunicorn
+síncrono, conexão longa (SSE, long polling) prenderia um dos 3 workers. QR
+gerado no servidor com `segno` (nova dependência, Python puro).
+
+**Fora desta entrega:** o microfone do celular (opção discutida na reunião) e
+o botão físico.
+
+## Demanda 27 — Teste do GPT Live (D69) e diagnóstico da latência
+
+**Status:** 🧪 Implementado **como teste**, ligado pela URL (`?live=1`) no
+branch acima; o modo tradicional continua o padrão. Medições na seção
+"Latência — diagnóstico de 23/11/2026" abaixo.
+
+**Como ligar:** abrir a aula ou o Playground com
+`?live=1&voz=openai` (voz da OpenAI) ou `?live=1&voz=kevin` (voz do Kevin,
+ElevenLabs). Opcional: `&modelo=gpt-realtime-2.1-mini`, `&voz_openai=cedar`.
+
+**Como funciona:** o navegador do telão fala direto com a OpenAI por WebRTC
+(token efêmero de `/v1/realtime/client_secrets`, modelo `gpt-realtime-2.1`).
+O nosso servidor só emite o token, executa as ferramentas do Kevin (mesmo
+código, `ferramentas.executar`) e grava a transcrição no histórico. Na voz do
+Kevin, o modelo responde em texto e cada pedaço vai para o WebSocket de
+streaming da ElevenLabs (`eleven_flash_v2_5`, PCM 24 kHz, token de uso único).
+Microfone fechado: sem detecção de turno no servidor; o botão de falar fecha
+o turno. "Conversa ao vivo" liga a detecção do servidor, para comparar.
+
+**Ainda não coberto:** sussurro (Whisper) na voz do Kevin ao vivo; o teste
+A/B de pronúncia da D69 (precisa de ouvido humano: gravar as duas vozes e
+mandar para a equipe).
+
+### Latência — diagnóstico de 23/11/2026
+
+"Latência" = do fim da fala do professor até o Kevin começar a falar.
+Playwright (Chromium headless, microfone falso tocando WAV), 3 turnos por
+cenário, **localhost** (Docker → Neon em Ohio). Medianas (mín–máx):
+
+| Cenário | Até o 1º áudio | Etapas (acumulado) |
+|---|---|---|
+| Tradicional, botão do telão (como está no ar: fecha após 2,5 s de silêncio) | **12,2 s** (11,4–13,3) | STT 5,4 s → IA 10,2 s → TTS 12,2 s |
+| Tradicional, push-to-talk pelo celular | **9,1 s** (8,1–9,9) | STT 1,8 s → IA 7,4 s → TTS 9,1 s |
+| GPT Live, voz OpenAI, pelo celular | **1,5 s** (0,8–1,8) | 1º texto 1,3 s |
+| GPT Live, voz do Kevin (ElevenLabs flash), pelo celular | **1,6 s** (1,1–1,9) | 1º texto 1,2 s |
+
+Provedores medidos direto (sem o app), medianas: Whisper 1,4 s;
+`gpt-5.6-terra` 2,2 s sem streaming (1º token em 1,2 s com streaming);
+ElevenLabs `multilingual_v2` 1,3 s para o MP3 inteiro, 0,5 s até o 1º áudio em
+`/stream`, 0,3 s com `eleven_flash_v2_5`.
+
+**Causa raiz:** a arquitetura do modo tradicional, não o Render. Cada turno é
+espera de silêncio (2,5 s) + três requisições em série, nenhuma em streaming
+(Whisper → IA → MP3 inteiro da ElevenLabs), e uma 2ª rodada de IA quando uma
+ferramenta precisa de resposta. O protótipo do Live que rodou bem localmente
+falava direto com a OpenAI por WebRTC — e nunca foi para o Render (o Render
+roda o commit `552a54a`, só o modo tradicional).
+
+**Render (Ohio, Starter 0,5 CPU / 512 MB):** CPU máxima medida 0,002 de 0,5;
+memória 310–330 MB de 512; sem OOM nem reinício; mesma região do Neon.
+Rede Brasil → Render: TCP ~25 ms (borda da Cloudflare), ~0,3 s até o 1º byte
+por requisição. O fluxo autenticado no Render **não foi medido** (precisa de
+login de produção ou deploy deste branch); a estimativa pelos componentes é
+~8,5 s no modo atual e ~6 s com push-to-talk. No Live, o áudio não passa pelo
+Render.
+
+**Local é mais lento que produção** neste app: o `runserver` abre conexão nova
+com o Neon (Ohio) a cada requisição — 1,2 s de conexão + ~0,18 s por query.
+Por isso a fila do celular leva ~1,2 s por busca no local; no Render, na mesma
+região do banco, deve ficar em ~0,2–0,3 s.
+
+---
+
 ## Decisões registradas
 
 Decisões tomadas na sessão de alinhamento. **Não reabrir sem discussão** — cada

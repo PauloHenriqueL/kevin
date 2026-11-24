@@ -1,0 +1,88 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1A5FB4">
+    <meta name="robots" content="noindex">
+    <title>Controle do Kevin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%232B7DE9'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='white' font-family='Nunito,sans-serif' font-weight='900'%3EK%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/controle_celular.css' %}?v=2">
+</head>
+<body>
+{% if not valido %}
+    <main class="cc-invalido">
+        <div class="cc-invalido-icone" aria-hidden="true">⏱️</div>
+        <h1>Este link não vale mais</h1>
+        <p>O QR foi trocado ou venceu. No telão, toque em <strong>Celular</strong> e leia o QR de novo.</p>
+    </main>
+{% else %}
+    <main class="cc" id="cc" data-fase="desconectado" data-falando="false">
+        <header class="cc-topo">
+            <div class="cc-marca">
+                <span class="cc-logo" aria-hidden="true">K</span>
+                <div>
+                    <div class="cc-titulo">Controle do Kevin</div>
+                    <div class="cc-sub">{{ titulo }}</div>
+                </div>
+            </div>
+            <span class="cc-conexao" id="cc-conexao" role="status">Conectando…</span>
+        </header>
+
+        <section class="cc-status" aria-live="polite">
+            <span class="cc-status-ponto" aria-hidden="true"></span>
+            <span id="cc-status-texto">Procurando o telão…</span>
+        </section>
+
+        <button type="button" class="cc-iniciar" id="cc-iniciar" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            {% if modo_playground %}Começar{% else %}Iniciar aula{% endif %}
+        </button>
+
+        <section class="cc-falar-area">
+            <button type="button" class="cc-falar" id="cc-falar" aria-label="Falar com o Kevin" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <p class="cc-falar-dica" id="cc-falar-dica">Segure para falar · ou toque uma vez para começar e outra para enviar</p>
+        </section>
+
+        <nav class="cc-botoes" aria-label="Recursos da aula">
+            <button type="button" class="cc-btn" data-comando="atencao">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Atenção</span>
+            </button>
+            <button type="button" class="cc-btn" data-comando="repetir" id="cc-repetir" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                <span>Repetir</span>
+            </button>
+            <button type="button" class="cc-btn" data-comando="parar">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                <span>Parar</span>
+            </button>
+            <button type="button" class="cc-btn" data-comando="whisper" id="cc-whisper" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 10.5a2.5 2.5 0 0 1 0 3"/></svg>
+                <span>Whisper</span>
+            </button>
+            <button type="button" class="cc-btn" data-comando="so_ingles" id="cc-so-ingles" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Só inglês</span>
+            </button>
+        </nav>
+    </main>
+    <script>
+    window.CONTROLE_CONFIG = {
+        estado: "{% url 'chat_api:controle_estado' token %}",
+        comando: "{% url 'chat_api:controle_comando' token %}"
+    };
+    </script>
+    <script src="{% static 'js/controle_celular.js' %}?v=2" defer></script>
+{% endif %}
+</body>
+</html>

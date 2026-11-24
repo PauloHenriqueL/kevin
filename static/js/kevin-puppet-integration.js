@@ -101,7 +101,28 @@ function createTtsAudioInput(audioEl) {
       this.enabled = false;
       this.level = 0;
     },
+    /**
+     * Fonte de nível alternativa para o lipsync: um AnalyserNode de fora (modo
+     * ao vivo — o áudio vem por WebRTC ou por PCM da ElevenLabs, não pelo
+     * <audio> compartilhado). null volta ao <audio>.
+     */
+    externo: null,
+    _dadosExterno: null,
+    usarAnalisador(node) {
+      this.externo = node || null;
+      this._dadosExterno = node ? new Uint8Array(node.fftSize) : null;
+    },
     update() {
+      if (this.enabled && this.externo) {
+        this.externo.getByteTimeDomainData(this._dadosExterno);
+        let soma = 0;
+        for (let i = 0; i < this._dadosExterno.length; i++) {
+          const v = (this._dadosExterno[i] - 128) / 128;
+          soma += v * v;
+        }
+        this.level = Math.sqrt(soma / this._dadosExterno.length);
+        return this.level;
+      }
       if (!this.enabled || !analyser) return 0;
       analyser.getByteTimeDomainData(dataArray);
       let sum = 0;
@@ -336,6 +357,11 @@ class KevinPuppetIntegration {
   /** Devolve o <audio> compartilhado; kevin_chat.js usa pra playTTS. */
   getAudioElement() {
     return this.audioEl;
+  }
+
+  /** Modo ao vivo: o lipsync passa a ler este AnalyserNode (null = volta ao <audio>). */
+  usarAnalisadorDeFala(node) {
+    if (this.audioInput && this.audioInput.usarAnalisador) this.audioInput.usarAnalisador(node);
   }
 
   /**

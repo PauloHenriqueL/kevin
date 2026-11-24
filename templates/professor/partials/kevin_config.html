@@ -14,6 +14,14 @@ window.KEVIN_CHAT_CONFIG = {
         tts:          "/api/chat/tts/",
         estado:       "/api/chat/conversas/{{ conversa.id }}/estado/",
         repetir:      "/api/chat/conversas/{{ conversa.id }}/repetir/",
+        // Controle pelo celular (D62)
+        controle:     "/api/chat/conversas/{{ conversa.id }}/controle/",
+        controleSync: "/api/chat/conversas/{{ conversa.id }}/controle/sync/",
+        // Modo ao vivo (GPT Live / Realtime), em teste
+        liveSessao:     "/api/chat/conversas/{{ conversa.id }}/live/sessao/",
+        liveTokenVoz:   "/api/chat/conversas/{{ conversa.id }}/live/token-voz/",
+        liveFerramenta: "/api/chat/conversas/{{ conversa.id }}/live/ferramenta/",
+        liveRegistrar:  "/api/chat/conversas/{{ conversa.id }}/live/registrar/",
     }
 };
 // Mapa de cenários → URL do asset (Demanda 12). A chave vem de Aula.background.

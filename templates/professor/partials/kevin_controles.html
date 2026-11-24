@@ -67,6 +67,15 @@
             </button>
             <span class="call-btn-label" id="btn-musica-pg-label">Música</span>
         </div>
+        <div class="call-btn-wrap">
+            {# Controle pelo celular (D62): mostra o QR; o celular vira o botão de falar. #}
+            <button class="btn-musica" id="btn-celular" type="button" data-abrir-celular aria-label="Controlar a aula pelo celular" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/>
+                </svg>
+            </button>
+            <span class="call-btn-label">Celular</span>
+        </div>
         {% if aula and aula.tem_listening %}
         <div class="call-btn-wrap">
             {# Listening da aula (D61): continua como era. Só toca o áudio, sem ukulele nem lipsync. #}

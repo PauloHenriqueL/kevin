@@ -16,6 +16,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > as regras 15–17 abaixo. Detalhes e impacto no código em `docs/demandas.md`,
 > seção "Reunião de 22/11/2026". **Não mude prompt nem telão sem o Paulo
 > autorizar:** a mudança espera os roteiros da equipe pedagógica.
+>
+> 🧪 **Em teste no branch (23/11/2026), fora do ar:** controle da aula pelo
+> celular (Demanda 26: botão Celular → QR → `/chat/controle/<token>/`, sem
+> login; fila em `ControleRemoto`) e o **GPT Live** (Demanda 27: `?live=1` na
+> URL do telão, WebRTC direto com a OpenAI; motor em `static/js/kevin_live.js`).
+> O diagnóstico de latência está em `docs/demandas.md`.
 
 ## 📁 Onde está cada coisa (docs/)
 

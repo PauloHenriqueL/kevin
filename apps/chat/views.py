@@ -197,15 +197,20 @@ class RepetirPalavraView(APIView):
             )
 
         palavra = registro['texto']
+        evento = (
+            f'O professor apertou Repetir. Reapresente agora a palavra "{palavra}" '
+            f'perguntando à turma "How do you say {palavra} in English?" e peça para '
+            'repetirem duas vezes.'
+        )
+        if request.data.get('apenas_palavra') is True:
+            # Modo ao vivo: quem fala é o modelo realtime, que recebe o evento
+            # pelo próprio canal. Aqui só a validação da janela (o guard rail).
+            return Response({'palavra': palavra, 'evento': evento})
         mensagem = Mensagem.objects.create(
             conversa=conversa,
             role='user',
             tipo=Mensagem.TipoChoices.EVENTO,
-            conteudo=(
-                f'O professor apertou Repetir. Reapresente agora a palavra "{palavra}" '
-                f'perguntando à turma "How do you say {palavra} in English?" e peça para '
-                'repetirem duas vezes.'
-            ),
+            conteudo=evento,
         )
         try:
             resposta = responder_ia_sync(conversa.id)
@@ -349,3 +354,245 @@ class SintetizarTextoView(APIView):
             )
 
         return HttpResponse(audio_bytes, content_type='audio/mpeg')
+
+
+def _conversa_do_professor(request, pk):
+    return Conversa.objects.filter(pk=pk, professor=request.user.professor).first()
+
+
+def _nao_encontrada():
+    return Response({'detail': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ── Controle pelo celular (D62) ─────────────────────────────────────────────
+
+class ControleCriarView(APIView):
+    """
+    POST /api/chat/conversas/<id>/controle/
+
+    O telão pede o QR. Cria o controle ou troca a chave (QR novo desconecta os
+    celulares que usavam o anterior). Devolve o link e o QR em SVG.
+    """
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from django.urls import reverse
+
+        from .controle import VALIDADE_SEGUNDOS, gerar_token, novo_controle, qr_svg
+
+        conversa = _conversa_do_professor(request, pk)
+        if not conversa:
+            return _nao_encontrada()
+        controle = novo_controle(conversa)
+        url = request.build_absolute_uri(
+            reverse('chat:controle_celular', args=[gerar_token(controle)]),
+        )
+        return Response({'url': url, 'qr_svg': qr_svg(url), 'validade_segundos': VALIDADE_SEGUNDOS})
+
+
+class ControleSyncView(APIView):
+    """
+    POST /api/chat/conversas/<id>/controle/sync/   body: {"apos": 12, "estado": {...}}
+
+    Busca do telão: publica o estado dele (fase, botões) e recebe os comandos do
+    celular com id maior que `apos`. Sem QR gerado ainda, `ativo: false` — o
+    telão para de perguntar até o professor abrir o QR.
+    """
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from django.utils import timezone
+
+        from .controle import comandos_apos, online
+        from .models import ControleRemoto
+
+        conversa = _conversa_do_professor(request, pk)
+        if not conversa:
+            return _nao_encontrada()
+        controle = ControleRemoto.objects.filter(conversa=conversa).first()
+        if not controle:
+            return Response({'ativo': False, 'comandos': [], 'celular_conectado': False})
+        estado = request.data.get('estado')
+        campos = {'telao_visto_em': timezone.now()}
+        if isinstance(estado, dict):
+            campos['estado_telao'] = estado
+        # update() direto: não regrava a fila, que o celular pode estar mexendo agora.
+        ControleRemoto.objects.filter(id=controle.id).update(**campos)
+        try:
+            apos = int(request.data.get('apos') or 0)
+        except (TypeError, ValueError):
+            apos = 0
+        return Response({
+            'ativo': True,
+            'comandos': comandos_apos(controle, apos),
+            'celular_conectado': online(controle.celular_visto_em),
+        })
+
+
+class _ControleCelularMixin:
+    """Celular: sem login. O token do link é a credencial (e não há cookie, então não há CSRF)."""
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def _controle(self, token):
+        from .controle import ler_token
+        return ler_token(token)
+
+    @staticmethod
+    def _proibido():
+        return Response(
+            {'detail': 'Link vencido ou substituído. Leia o QR do telão de novo.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    @staticmethod
+    def _situacao(controle):
+        from .controle import online
+        return {
+            'telao_online': online(controle.telao_visto_em),
+            'estado': controle.estado_telao or {},
+        }
+
+
+class ControleEstadoView(_ControleCelularMixin, APIView):
+    """GET /api/chat/controle/<token>/estado/ — o celular pergunta como está o telão."""
+
+    def get(self, request, token):
+        from django.utils import timezone
+
+        from .models import ControleRemoto
+
+        controle = self._controle(token)
+        if not controle:
+            return self._proibido()
+        ControleRemoto.objects.filter(id=controle.id).update(celular_visto_em=timezone.now())
+        return Response(self._situacao(controle))
+
+
+class ControleComandoView(_ControleCelularMixin, APIView):
+    """POST /api/chat/controle/<token>/comando/   body: {"tipo": "falar_inicio"}"""
+
+    def post(self, request, token):
+        from .controle import COMANDOS, enfileirar
+
+        controle = self._controle(token)
+        if not controle:
+            return self._proibido()
+        tipo = request.data.get('tipo')
+        if tipo not in COMANDOS:
+            return Response({'detail': 'Comando desconhecido.'}, status=status.HTTP_400_BAD_REQUEST)
+        comando = enfileirar(controle.id, tipo)
+        return Response({'comando': comando, **self._situacao(controle)}, status=status.HTTP_201_CREATED)
+
+
+# ── Modo ao vivo: GPT Live / Realtime (teste) ───────────────────────────────
+
+class LiveSessaoView(APIView):
+    """
+    POST /api/chat/conversas/<id>/live/sessao/
+    body: {"voz": "openai"|"kevin", "modelo": "gpt-realtime-2.1", "voz_openai": "marin"}
+
+    Devolve o token efêmero da OpenAI (o navegador abre o WebRTC direto com
+    ela) e, na voz do Kevin, também um token de uso único da ElevenLabs.
+    """
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from . import live
+
+        conversa = _conversa_do_professor(request, pk)
+        if not conversa:
+            return _nao_encontrada()
+        voz = request.data.get('voz') if request.data.get('voz') in live.VOZES else 'openai'
+        modelo = request.data.get('modelo')
+        modelo = modelo if modelo in live.MODELOS else live.modelo_padrao()
+        voz_openai = request.data.get('voz_openai')
+        voz_openai = voz_openai if voz_openai in live.VOZES_OPENAI else 'marin'
+
+        plano = request.user.professor.escola.plano
+        try:
+            corpo = {
+                'voz': voz,
+                'openai': live.criar_token_openai(
+                    plano, live.config_sessao(conversa, voz, modelo, voz_openai),
+                ),
+            }
+            if voz == 'kevin':
+                corpo['elevenlabs'] = live.criar_token_elevenlabs(plano)
+            corpo['historico'] = live.historico_recente(conversa)
+        except live.LiveIndisponivel as exc:
+            logger.error('Live indisponível (conversa=%s): %s', conversa.id, exc)
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(corpo)
+
+
+class LiveTokenVozView(APIView):
+    """POST /api/chat/conversas/<id>/live/token-voz/ — próximo token de uso único da ElevenLabs."""
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from . import live
+
+        if not _conversa_do_professor(request, pk):
+            return _nao_encontrada()
+        try:
+            return Response(live.criar_token_elevenlabs(request.user.professor.escola.plano))
+        except live.LiveIndisponivel as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class LiveFerramentaView(APIView):
+    """
+    POST /api/chat/conversas/<id>/live/ferramenta/   body: {"nome": "...", "argumentos": "{...}"}
+
+    O modelo realtime pediu uma ferramenta: executa aqui (mesmo código do modo
+    tradicional, D51) e devolve o que vai para a IA e a ação para o telão.
+    """
+    permission_classes = [IsProfessor]
+
+    def post(self, request, pk):
+        from . import live
+        from .ferramentas import executar
+
+        conversa = _conversa_do_professor(request, pk)
+        if not conversa:
+            return _nao_encontrada()
+        resultado = executar(
+            conversa, str(request.data.get('nome') or ''),
+            live.ler_argumentos(request.data.get('argumentos')),
+        )
+        return Response({
+            'saida': resultado.texto_para_ia,
+            'acao': resultado.acao,
+            'precisa_continuar': resultado.precisa_continuar,
+        })
+
+
+class LiveRegistrarView(APIView):
+    """
+    POST /api/chat/conversas/<id>/live/registrar/
+    body: {"role": "user"|"assistant"|"evento", "conteudo": "..."}
+
+    Grava no histórico a transcrição de um turno ao vivo, sem chamar a IA. O
+    histórico continua inteiro se o professor voltar ao modo tradicional, e a
+    1ª fala no Playground segue virando o contexto (D49).
+    """
+    permission_classes = [IsProfessor]
+    TIPOS = {
+        'user': (Mensagem.RoleChoices.USER, Mensagem.TipoChoices.AUDIO),
+        'assistant': (Mensagem.RoleChoices.ASSISTANT, Mensagem.TipoChoices.TEXTO),
+        'evento': (Mensagem.RoleChoices.USER, Mensagem.TipoChoices.EVENTO),
+    }
+
+    def post(self, request, pk):
+        conversa = _conversa_do_professor(request, pk)
+        if not conversa:
+            return _nao_encontrada()
+        conteudo = str(request.data.get('conteudo') or '').strip()
+        papel = self.TIPOS.get(request.data.get('role'))
+        if not papel or not conteudo:
+            return Response({'detail': 'role e conteudo obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+        role, tipo = papel
+        mensagem = Mensagem.objects.create(conversa=conversa, role=role, tipo=tipo, conteudo=conteudo)
+        conversa.registrar_contexto(mensagem)
+        return Response(MensagemSerializer(mensagem).data, status=status.HTTP_201_CREATED)

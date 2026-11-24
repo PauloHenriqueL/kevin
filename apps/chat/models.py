@@ -124,3 +124,35 @@ class Mensagem(models.Model):
 
     def __str__(self):
         return f'[{self.get_role_display()}] {self.conteudo[:50]}'
+
+
+class ControleRemoto(models.Model):
+    """O celular do professor como controle da aula (D62, reunião de 22/11/2026).
+
+    O telão gera um QR com um link assinado; o celular abre o link (sem login) e
+    manda comandos — falar, Atenção, Repetir… — que entram na fila `comandos`.
+    O telão busca a fila a cada poucos centésimos de segundo e executa, e de
+    volta publica o próprio estado em `estado_telao` para o celular mostrar.
+
+    Fila numa linha própria, e não em `Conversa.estado`, de propósito: as
+    ferramentas da IA regravam o `estado` inteiro no fim de uma resposta, e um
+    comando que chegasse no meio seria apagado.
+    """
+    conversa = models.OneToOneField(
+        Conversa, on_delete=models.CASCADE, related_name='controle',
+    )
+    # Entra no token do QR. Gerar QR novo troca a chave e desconecta os celulares antigos.
+    chave = models.CharField(max_length=32)
+    comandos = models.JSONField(default=list, blank=True)
+    proximo_id = models.PositiveIntegerField(default=1)
+    estado_telao = models.JSONField(default=dict, blank=True)
+    telao_visto_em = models.DateTimeField(null=True, blank=True)
+    celular_visto_em = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Controle remoto'
+        verbose_name_plural = 'Controles remotos'
+
+    def __str__(self):
+        return f'Controle da conversa {self.conversa_id}'

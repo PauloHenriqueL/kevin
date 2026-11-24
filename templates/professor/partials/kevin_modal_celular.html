@@ -1,0 +1,16 @@
+{# QR do controle pelo celular (D62). Compartilhado pela aula e pelo Playground. #}
+{# O QR é gerado no servidor (POST .../controle/) quando o modal abre.           #}
+    <div class="modal-overlay" id="modal-celular" hidden>
+        <div class="modal-card modal-celular" role="dialog" aria-modal="true" aria-labelledby="modal-celular-titulo">
+            <button type="button" class="modal-close" id="modal-celular-close" aria-label="Fechar">×</button>
+            <h2 id="modal-celular-titulo">Controlar pelo celular</h2>
+            <p class="modal-sub">Aponte a câmera do celular para o código. O celular vira o botão de falar com o Kevin e o painel da aula.</p>
+            <div class="modal-celular-qr" id="modal-celular-qr" aria-label="QR code do controle"></div>
+            <p class="modal-celular-status" id="modal-celular-status" role="status" data-conectado="false">Aguardando o celular ler o QR…</p>
+            <a class="modal-celular-link" id="modal-celular-link" target="_blank" rel="noopener"></a>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" id="modal-celular-novo">Gerar novo QR</button>
+            </div>
+            <p class="modal-celular-nota">Gerar um novo QR desconecta o celular anterior. O link vale por 8 horas.</p>
+        </div>
+    </div>

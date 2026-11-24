@@ -52,6 +52,19 @@
   // Atenção por evento): valem no Playground E na aula (Épico A, D60). A aula
   // liga com window.KEVIN_RECURSOS = true.
   const RECURSOS = MODO_PLAYGROUND || window.KEVIN_RECURSOS === true;
+  // Modo ao vivo (GPT Live / Realtime), em TESTE: liga pela URL —
+  // ?live=1&voz=openai|kevin&modelo=gpt-realtime-2.1-mini&voz_openai=cedar.
+  // O motor fica em kevin_live.js; aqui só se decide para onde vai cada fala.
+  const LIVE_CFG = (() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('live') !== '1' || window.KEVIN_DEMO_MODE) return null;
+    return {
+      voz: p.get('voz') === 'kevin' ? 'kevin' : 'openai',
+      modelo: p.get('modelo') || '',
+      voz_openai: p.get('voz_openai') || '',
+    };
+  })();
+  const liveAtivo = () => !!(LIVE_CFG && window.KevinLive && window.KevinLive.conectado());
   const pg = {
     estado: Object.assign(
       { whisper: false, so_ingles: false, cenario: 'floresta', quadro: '' },
@@ -251,9 +264,43 @@
     return r.json();
   }
 
+  // ───────────── Medição de latência ─────────────
+  // Do fim da fala do professor até o Kevin começar a falar (o que a turma
+  // sente). Fica em window.__kevinLatencias para o benchmark e para o console.
+  window.__kevinLatencias = window.__kevinLatencias || [];
+  const medida = { fimFala: null, etapas: {} };
+
+  function marcarFimFala(t) {
+    medida.fimFala = t || performance.now();
+    medida.etapas = {};
+  }
+
+  function marcarEtapa(nome) {
+    if (medida.fimFala !== null) medida.etapas[nome] = Math.round(performance.now() - medida.fimFala);
+  }
+
+  function registrarPrimeiroAudio(modo) {
+    if (medida.fimFala === null) return;
+    const registro = {
+      modo,
+      ttfa_ms: Math.round(performance.now() - medida.fimFala),
+      etapas: medida.etapas,
+      // Relógio de parede do fim da fala: cruza com o toque no celular.
+      fim_fala_epoch: Math.round(Date.now() - (performance.now() - medida.fimFala)),
+      em: new Date().toISOString(),
+    };
+    window.__kevinLatencias.push(registro);
+    console.info('[Kevin] latência até o 1º áudio:', registro);
+    medida.fimFala = null;
+  }
+
   // ───────────── Gravação com VAD ─────────────
-  async function startRecording() {
-    if (state.isRecording || state.isSending) return;
+  // `ptt` (push-to-talk, D62): quem fecha é o professor, soltando o botão — sem
+  // esperar 2,5 s de silêncio. Só o teto de 30 s continua valendo.
+  async function startRecording(opts = {}) {
+    if (state.isRecording || state.isSending || state.abrindoMic) return;
+    state.ptt = !!opts.ptt;
+    state.abrindoMic = true;
     pgAntesDeInteragir();
     // Destrava o AudioContext do TTS enquanto ainda há user gesture do clique
     // do mic (será usado pra falar a resposta depois). Só faz sentido na
@@ -273,6 +320,7 @@
       state.mediaRecorder.start();
       state.mediaRecorder._hasSpeech = false;
       state.isRecording = true;
+      state.abrindoMic = false;
       setMicBtnState('recording');
       if (kevinChat) kevinChat.setStatus('listening', 'Te gravando…');
       // Pose de ouvir enquanto grava; showTyping() troca pra "thinking"
@@ -314,11 +362,17 @@
         if (rms > SILENCE_THRESHOLD) {
           speechDetected = true;
           silenceStart = null;
+        } else if (state.ptt) {
+          // Push-to-talk: o silêncio não fecha; o professor solta o botão.
         } else if (speechDetected) {
-          if (silenceStart === null) silenceStart = Date.now();
+          if (silenceStart === null) {
+            silenceStart = Date.now();
+            state.silencioDesde = performance.now();  // fim real da fala, para a medição
+          }
           if (Date.now() - silenceStart >= SILENCE_TIMEOUT_MS) {
             state.mediaRecorder._hasSpeech = true;
             clearTimeout(hardTimeout);
+            marcarFimFala(state.silencioDesde);
             stopRecording();
             return;
           }
@@ -335,11 +389,26 @@
       state.stopMonitor = () => { monitorRunning = false; clearTimeout(hardTimeout); };
       requestAnimationFrame(monitor);
     } catch (err) {
+      state.abrindoMic = false;
       console.error('Mic error:', err);
       alert('Não foi possível acessar o microfone. Verifique as permissões.');
       state.liveMode = false;
       setMicBtnState('idle');
     }
+    // O professor soltou o botão enquanto o microfone ainda abria.
+    if (state.fecharAoAbrir) {
+      state.fecharAoAbrir = false;
+      pararGravacaoPtt();
+    }
+  }
+
+  /** Push-to-talk: o professor soltou o botão. A fala vai para o Kevin. */
+  function pararGravacaoPtt() {
+    if (state.abrindoMic) { state.fecharAoAbrir = true; return; }
+    if (!state.isRecording || !state.mediaRecorder) return;
+    state.mediaRecorder._hasSpeech = true;
+    marcarFimFala();
+    stopRecording();
   }
 
   function stopRecording() {
@@ -376,6 +445,7 @@
       });
       if (!sttRes.ok) throw new Error('STT ' + sttRes.status);
       const sttData = await sttRes.json();
+      marcarEtapa('stt');
       const texto = (sttData.text || '').trim();
       if (!texto) {
         hideTyping();
@@ -393,6 +463,7 @@
       state.isSending = true;
       appendMessage('user', '🎤 ' + texto);
       const data = await pgEnviarTeacher(texto);
+      marcarEtapa('ia');
       state.isSending = false;
       state.liveErros = 0;  // turno OK: zera a contagem de erros consecutivos
       hideTyping();
@@ -429,6 +500,11 @@
   }
 
   function toggleRecording() {
+    if (liveAtivo()) {
+      // Ao vivo: o botão Falar do telão vira push-to-talk (clica, fala, clica).
+      if (window.KevinLive.gravando()) falarFim(); else falarInicio();
+      return;
+    }
     if (state.liveMode) return;
     if (state.isRecording) stopRecording();
     else startRecording();
@@ -436,6 +512,11 @@
 
   // ───────────── Live mode ─────────────
   function toggleLiveMode() {
+    if (liveAtivo()) {
+      const maosLivres = window.KevinLive.alternarMaosLivres();
+      setMicBtnState(maosLivres ? 'live' : 'idle');
+      return;
+    }
     if (state.liveMode) {
       state.liveMode = false;
       stopRecording();
@@ -533,6 +614,7 @@
       // durante a animação de entrada). Sem ele, busca agora — como sempre.
       const blob = blobPronto ? await blobPronto : await buscarTTS(texto, abortController.signal);
       if (isStale() || !blob) return;
+      marcarEtapa('tts');
 
       url = URL.createObjectURL(blob);
       state.currentTtsBlobUrl = url;
@@ -561,6 +643,7 @@
         return;
       }
       if (isStale()) return;
+      registrarPrimeiroAudio('tradicional');
 
       // Espera o áudio terminar (ou erro / abort).
       await new Promise((resolve) => {
@@ -676,6 +759,11 @@
    * falha e seguimos só com o texto.
    */
   async function sendTextAndSpeak(texto) {
+    if (liveAtivo()) {
+      appendMessage('user', texto);
+      window.KevinLive.enviarTexto(texto);
+      return;
+    }
     appendMessage('user', texto);
     if (kevinChat) kevinChat.onUserMessage(texto);
     showTyping();
@@ -720,6 +808,8 @@
       try { await kevinChat.unlockAudio(); } catch (e) {/* já logado */}
     }
     callRoot.dataset.state = 'live';
+    // Ao vivo: a conexão com a OpenAI abre em paralelo com a animação de entrada.
+    const conexaoLive = iniciarLive();
     // Vídeo de entrada ("abre a cortina" e revela o Kevin) antes do kickoff.
     // Teto de 8s: se o vídeo não terminar, a Promise do motor nunca resolve.
     if (kevinChat && kevinChat.playEntrada) {
@@ -727,6 +817,7 @@
         await Promise.race([kevinChat.playEntrada(), new Promise((r) => setTimeout(r, 8000))]);
       } catch (e) {/* segue sem a entrada animada */}
     }
+    await conexaoLive;
     // Página recarregada no meio da aula: restaura o quadro.
     if (pg.estado.quadro) pgMostrarNoQuadro(pg.estado.quadro);
     const kickoff = window.KEVIN_KICKOFF || 'Olá Kevin, o que vamos fazer hoje? Por onde começamos?';
@@ -848,6 +939,7 @@
    */
   async function enviarEvento(texto) {
     if (!RECURSOS || window.KEVIN_DEMO_MODE) return;
+    if (liveAtivo()) { window.KevinLive.enviarEvento(texto); return; }
     await pgEsperarVez();
     // Ao vivo gravando: descarta o trecho (o professor apertou um botão) e
     // não deixa o mic gravar a própria resposta do Kevin.
@@ -979,6 +1071,21 @@
   async function pgRepetir() {
     if (!btnRepetir || btnRepetir.disabled || window.KEVIN_DEMO_MODE) return;
     if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+    if (liveAtivo()) {
+      // Ao vivo: o servidor só valida a janela e devolve a palavra (D59); quem
+      // fala é o modelo realtime, a partir do evento.
+      try {
+        const r = await fetch(cfg.urls.repetir, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify({ apenas_palavra: true }),
+        });
+        if (r.status === 409) { pgArmarRepetir(0); return; }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        window.KevinLive.enviarEvento((await r.json()).evento);
+      } catch (err) { console.error('[Repetir ao vivo]', err); }
+      return;
+    }
     await pgEsperarVez();
     const reabrirAoVivo = state.liveMode;
     if (state.isRecording) {
@@ -1124,9 +1231,10 @@
     }
     callRoot.dataset.state = 'live';
     const abertura = pg.temContexto ? '' : (window.KEVIN_ABERTURA || '');
+    const conexaoLive = iniciarLive();
     // A voz da abertura é pedida JÁ, em paralelo com a animação de entrada:
     // quando a cortina abre, o áudio está pronto e o Kevin fala na hora.
-    const audioAbertura = abertura ? buscarTTS(abertura).catch(() => null) : null;
+    const audioAbertura = (abertura && !LIVE_CFG) ? buscarTTS(abertura).catch(() => null) : null;
     if (kevinChat && kevinChat.playEntrada) {
       // Teto de 8s: se o vídeo de entrada não terminar (falha de rede/decodificação),
       // a Promise do motor nunca resolve e a abertura nunca seria falada.
@@ -1134,12 +1242,15 @@
         await Promise.race([kevinChat.playEntrada(), new Promise((r) => setTimeout(r, 8000))]);
       } catch (e) {/* segue sem a entrada animada */}
     }
+    await conexaoLive;
     // Página recarregada no meio da sessão: restaura o quadro e não repete a abertura.
     if (pg.temContexto) {
       if (pg.estado.quadro) pgMostrarNoQuadro(pg.estado.quadro);
       return;
     }
-    if (abertura) {
+    if (abertura && liveAtivo()) {
+      window.KevinLive.dizer(abertura);
+    } else if (abertura) {
       try { await playTTS(abertura, audioAbertura); } catch (e) { /* TTS é opcional */ }
     }
   }
@@ -1185,16 +1296,7 @@
     // Atenção: o Kevin chama a turma com a própria voz (ElevenLabs), via IA.
     // Sem IA (demo), fica só o gesto.
     const btnAtencao = document.getElementById('btn-pay-attention');
-    if (btnAtencao) {
-      btnAtencao.addEventListener('click', () => {
-        if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
-        if (window.KEVIN_DEMO_MODE) {
-          if (kevinChat && kevinChat.waveHello) kevinChat.waveHello();
-          return;
-        }
-        enviarEvento('O professor apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
-      });
-    }
+    if (btnAtencao) btnAtencao.addEventListener('click', acaoAtencao);
 
     const btnWhisper = document.getElementById('btn-whisper');
     if (btnWhisper) btnWhisper.addEventListener('click', () => pgAlternarModo('whisper'));
@@ -1266,6 +1368,237 @@
       });
     }
   }
+
+  /** Atenção: o Kevin acena e chama a turma com a própria voz, via IA (sem IA, só o gesto). */
+  function acaoAtencao() {
+    if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+    if (window.KEVIN_DEMO_MODE) {
+      if (kevinChat && kevinChat.waveHello) kevinChat.waveHello();
+      return;
+    }
+    enviarEvento('O professor apertou o botão Atenção: use pay_attention e chame a atenção da turma, numa frase curta e animada.');
+  }
+
+  // ───────────── Falar por push-to-talk (D62) ─────────────
+  // Usado pelo celular e, ao vivo, pelo botão Falar do telão. Microfone
+  // fechado: abre quando o professor aperta e fecha quando solta.
+
+  function aulaIniciada() {
+    return !!callRoot && callRoot.dataset.state === 'live';
+  }
+
+  function falarInicio() {
+    if (!aulaIniciada()) return;
+    pgAntesDeInteragir();
+    if (liveAtivo()) {
+      window.KevinLive.falarInicio();
+      setMicBtnState('recording');
+      return;
+    }
+    if (state.isSending) return;  // o Kevin ainda está respondendo a fala anterior
+    if (state.liveMode) {         // mãos livres ligado: o botão manda mais
+      state.liveMode = false;
+      stopRecording();
+    }
+    stopAllAudio();               // aperta enquanto o Kevin fala = interrompe
+    startRecording({ ptt: true });
+  }
+
+  function falarFim() {
+    if (liveAtivo()) {
+      window.KevinLive.falarFim();
+      setMicBtnState('idle');
+      return;
+    }
+    pararGravacaoPtt();
+  }
+
+  // ───────────── Modo ao vivo (teste) ─────────────
+  let liveIniciando = null;
+
+  /** Abre a sessão realtime (só com ?live=1). Falhou: segue no modo tradicional. */
+  function iniciarLive() {
+    if (!LIVE_CFG || !window.KevinLive) return Promise.resolve(false);
+    if (liveIniciando) return liveIniciando;
+    window.KevinLive.conectar({
+      cfg: LIVE_CFG,
+      urls: cfg.urls,
+      csrf: () => getCookie('csrftoken'),
+      kevin: () => kevinChat,
+      appendMessage,
+      executarAntes: pgExecutarAntes,
+      executarDepois: pgExecutarDepois,
+      marcarFimFala,
+      marcarEtapa,
+      registrarPrimeiroAudio,
+    });
+    const selo = document.getElementById('live-selo');
+    liveIniciando = window.KevinLive.iniciar().then((ok) => {
+      if (selo) {
+        selo.hidden = false;
+        selo.textContent = ok
+          ? `AO VIVO (teste) · voz ${LIVE_CFG.voz === 'kevin' ? 'do Kevin' : 'OpenAI'}`
+          : 'Ao vivo falhou: modo normal';
+        selo.dataset.ok = ok ? 'true' : 'false';
+      }
+      return ok;
+    });
+    return liveIniciando;
+  }
+
+  // ───────────── Controle pelo celular (D62) ─────────────
+  // O telão publica o próprio estado e executa os comandos que o celular põe
+  // na fila do servidor. Polling: sem Redis/Channels em produção, e o gunicorn
+  // é síncrono (conexão longa prenderia um worker).
+  const ctl = {
+    ativo: false,
+    ultimoId: null,        // null = ainda não sincronizou (não reexecuta fila antiga)
+    timer: null,
+    celularConectado: false,
+    executando: Promise.resolve(),
+  };
+  const modalCelular = document.getElementById('modal-celular');
+  const btnCelular = document.getElementById('btn-celular');
+
+  function faseTelao() {
+    const audioEl = kevinChat && kevinChat.getAudioElement && kevinChat.getAudioElement();
+    if (pg.musicaTocando) return 'musica';
+    if (liveAtivo()) return window.KevinLive.fase();
+    if (state.isRecording || state.abrindoMic) return 'gravando';
+    if (audioEl && !audioEl.paused && state.currentTtsBlobUrl) return 'falando';
+    if (state.isSending || pg.respondendo) return 'pensando';
+    return 'ocioso';
+  }
+
+  // Para o console e o benchmark: em que fase o telão está agora.
+  window.__kevinFase = () => faseTelao();
+
+  function estadoTelao() {
+    return {
+      fase: faseTelao(),
+      iniciado: aulaIniciada(),
+      repetir: !!(btnRepetir && !btnRepetir.disabled),
+      whisper: !!pg.estado.whisper,
+      so_ingles: !!pg.estado.so_ingles,
+      modo: liveAtivo() ? 'live' : 'tradicional',
+    };
+  }
+
+  const COMANDOS_TELAO = {
+    iniciar: () => (MODO_PLAYGROUND ? iniciarPlayground() : iniciarAula()),
+    falar_inicio: falarInicio,
+    falar_fim: falarFim,
+    atencao: acaoAtencao,
+    repetir: pgRepetir,
+    whisper: () => pgAlternarModo('whisper'),
+    so_ingles: () => pgAlternarModo('so_ingles'),
+    parar: () => {
+      if (liveAtivo()) window.KevinLive.interromper();
+      stopAllAudio();
+      if (pg.musicaTocando) pgFinalizarMusica(null);
+    },
+  };
+
+  function executarComando(comando) {
+    const fn = COMANDOS_TELAO[comando.tipo];
+    if (!fn) return;
+    // Em ordem, mas sem esperar o Kevin terminar de falar: falar_fim precisa
+    // valer logo depois de falar_inicio.
+    ctl.executando = ctl.executando.then(() => {
+      try { fn(); } catch (e) { console.error('[Controle] comando', comando, e); }
+    });
+  }
+
+  async function sincronizarControle() {
+    ctl.timer = null;
+    try {
+      const r = await fetch(cfg.urls.controleSync, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ apos: ctl.ultimoId || 0, estado: estadoTelao() }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const dados = await r.json();
+      if (dados.ativo === false) { ctl.ativo = false; return; }  // ainda sem QR
+      const comandos = dados.comandos || [];
+      if (ctl.ultimoId === null) {
+        // 1ª busca depois de carregar a página: o que já estava na fila é velho.
+        ctl.ultimoId = comandos.reduce((m, c) => Math.max(m, c.id), 0);
+      } else {
+        comandos.forEach((c) => { ctl.ultimoId = Math.max(ctl.ultimoId, c.id); executarComando(c); });
+      }
+      atualizarStatusCelular(!!dados.celular_conectado);
+    } catch (err) {
+      console.warn('[Controle] sync:', err);
+    }
+    if (ctl.ativo) {
+      const rapido = ctl.celularConectado || (modalCelular && !modalCelular.hidden);
+      ctl.timer = setTimeout(sincronizarControle, rapido ? 350 : 1500);
+    }
+  }
+
+  function ligarControle() {
+    ctl.ativo = true;
+    if (!ctl.timer) sincronizarControle();
+  }
+
+  function atualizarStatusCelular(conectado) {
+    const mudou = conectado !== ctl.celularConectado;
+    ctl.celularConectado = conectado;
+    const status = document.getElementById('modal-celular-status');
+    if (status) {
+      status.dataset.conectado = conectado ? 'true' : 'false';
+      status.textContent = conectado ? 'Celular conectado' : 'Aguardando o celular ler o QR…';
+    }
+    if (btnCelular) btnCelular.setAttribute('aria-pressed', conectado ? 'true' : 'false');
+    if (mudou && conectado && kevinChat) kevinChat.setStatus('idle', 'Celular conectado', 2500);
+    // Conectou com o modal aberto: fecha sozinho para liberar a tela.
+    if (mudou && conectado && modalCelular && !modalCelular.hidden) {
+      setTimeout(() => { modalCelular.hidden = true; }, 1200);
+    }
+  }
+
+  async function gerarQrCelular() {
+    const qr = document.getElementById('modal-celular-qr');
+    const link = document.getElementById('modal-celular-link');
+    if (qr) qr.innerHTML = '<div class="modal-celular-carregando">Gerando…</div>';
+    try {
+      const r = await fetch(cfg.urls.controle, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const dados = await r.json();
+      if (qr) qr.innerHTML = dados.qr_svg;
+      if (link) { link.href = dados.url; link.textContent = dados.url; }
+      ctl.ultimoId = 0;  // controle novo: fila vazia
+      atualizarStatusCelular(false);
+      ligarControle();
+    } catch (err) {
+      console.error('[Controle] QR:', err);
+      if (qr) qr.innerHTML = '<div class="modal-celular-carregando">Não deu para gerar o QR. Tente de novo.</div>';
+    }
+  }
+
+  if (modalCelular && cfg.urls.controle) {
+    // Botão Celular da barra e o atalho da tela de espera (parear antes de começar).
+    document.querySelectorAll('[data-abrir-celular]').forEach((el) => el.addEventListener('click', () => {
+      // Este clique é o gesto do usuário que libera o áudio: depois dele, os
+      // comandos do celular podem fazer o Kevin falar sem outro clique no telão.
+      if (kevinChat && kevinChat.unlockAudio) kevinChat.unlockAudio().catch(() => {});
+      modalCelular.hidden = false;
+      if (!ctl.ativo || !document.getElementById('modal-celular-link').href) gerarQrCelular();
+    }));
+    modalCelular.addEventListener('click', (e) => {
+      if (e.target === modalCelular || e.target.closest('#modal-celular-close')) modalCelular.hidden = true;
+      if (e.target.closest('#modal-celular-novo')) gerarQrCelular();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modalCelular.hidden) modalCelular.hidden = true;
+    });
+  }
+  // Página recarregada com um celular já pareado: retoma a busca (404 = sem QR, para).
+  if (cfg.urls.controleSync && !window.KEVIN_DEMO_MODE) ligarControle();
 
   chatBody.scrollTop = chatBody.scrollHeight;
 })();

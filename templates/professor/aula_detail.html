@@ -190,10 +190,15 @@
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                 <span>Iniciar aula</span>
             </button>
+            <button class="btn-standby-celular" type="button" data-abrir-celular>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                <span>Usar o celular como controle</span>
+            </button>
         </div>
     </div>
 
     {% include "professor/partials/kevin_modal_musicas.html" %}
+    {% include "professor/partials/kevin_modal_celular.html" %}
 
     <!-- Modal de conclusão da aula (Demanda 11) -->
     <div class="modal-overlay" id="modal-concluir" hidden>

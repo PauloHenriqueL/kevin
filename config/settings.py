@@ -236,3 +236,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# Modo ao vivo (GPT Live / Realtime), em teste: o modelo padrão da sessão. O
+# telão pode escolher outro da lista em apps/chat/live.py (?modelo=...).
+LIVE_MODELO = config('LIVE_MODELO', default='gpt-realtime-2.1')

@@ -776,3 +776,183 @@ class TTSWhisperTest(TestCase):
         from apps.chat.providers.tts import limpar_para_fala
         self.assertEqual(limpar_para_fala('*Great* job! 🎉 [laughs] Repeat: dog'),
                          'Great job! Repeat: dog')
+
+
+# ── Controle pelo celular (D62) ─────────────────────────────────────────────
+
+from apps.chat import controle as controle_mod  # noqa: E402
+from apps.chat.models import ControleRemoto  # noqa: E402
+
+
+class ControleCelularTest(BasePlayground):
+    """O celular abre um link assinado (sem login) e manda comandos ao telão."""
+
+    def _qr(self, conversa=None):
+        return self.client.post(f'/api/chat/conversas/{(conversa or self.conversa).id}/controle/')
+
+    def _token(self):
+        return controle_mod.gerar_token(ControleRemoto.objects.get(conversa=self.conversa))
+
+    def test_telao_gera_qr_com_link_assinado(self):
+        r = self._qr()
+        self.assertEqual(r.status_code, 200)
+        dados = r.json()
+        self.assertIn('/chat/controle/', dados['url'])
+        self.assertTrue(dados['qr_svg'].startswith('<svg'))
+        self.assertEqual(controle_mod.ler_token(dados['url'].rstrip('/').split('/')[-1]).conversa, self.conversa)
+
+    def test_celular_sem_login_manda_comando_e_telao_recebe(self):
+        self._qr()
+        celular = Client()  # sem sessão
+        r = celular.post(f'/api/chat/controle/{self._token()}/comando/',
+                         {'tipo': 'falar_inicio'}, content_type='application/json')
+        self.assertEqual(r.status_code, 201)
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/controle/sync/',
+                             {'apos': 0, 'estado': {'fase': 'gravando', 'iniciado': True}},
+                             content_type='application/json')
+        dados = r.json()
+        self.assertEqual([c['tipo'] for c in dados['comandos']], ['falar_inicio'])
+        self.assertTrue(dados['celular_conectado'])
+        # O celular vê o estado que o telão publicou.
+        r = celular.get(f'/api/chat/controle/{self._token()}/estado/')
+        self.assertTrue(r.json()['telao_online'])
+        self.assertEqual(r.json()['estado']['fase'], 'gravando')
+
+    def test_sync_so_devolve_comandos_novos(self):
+        self._qr()
+        controle = ControleRemoto.objects.get(conversa=self.conversa)
+        a = controle_mod.enfileirar(controle.id, 'falar_inicio')
+        controle_mod.enfileirar(controle.id, 'falar_fim')
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/controle/sync/',
+                             {'apos': a['id']}, content_type='application/json')
+        self.assertEqual([c['tipo'] for c in r.json()['comandos']], ['falar_fim'])
+
+    def test_qr_novo_derruba_o_link_antigo(self):
+        self._qr()
+        antigo = self._token()
+        self._qr()
+        r = Client().post(f'/api/chat/controle/{antigo}/comando/', {'tipo': 'atencao'},
+                          content_type='application/json')
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Client().get(f'/chat/controle/{antigo}/').status_code, 200)
+        self.assertContains(Client().get(f'/chat/controle/{antigo}/'), 'Este link não vale mais')
+
+    def test_token_adulterado_e_comando_desconhecido(self):
+        self._qr()
+        self.assertEqual(Client().get('/api/chat/controle/lixo/estado/').status_code, 403)
+        r = Client().post(f'/api/chat/controle/{self._token()}/comando/', {'tipo': 'apagar_tudo'},
+                          content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_token_vencido_nao_vale(self):
+        self._qr()
+        token = self._token()
+        with patch.object(controle_mod, 'VALIDADE_SEGUNDOS', -1):
+            self.assertIsNone(controle_mod.ler_token(token))
+
+    def test_outro_professor_nao_gera_qr_nem_sincroniza(self):
+        outro = Professor.objects.create(
+            user=User.objects.create_user('joao', password='x', role='professor'), escola=self.escola_a)
+        conversa = Conversa.objects.create(professor=outro)
+        self.assertEqual(self._qr(conversa).status_code, 404)
+        controle_mod.novo_controle(conversa)
+        r = self.client.post(f'/api/chat/conversas/{conversa.id}/controle/sync/', {},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 404)
+
+    def test_sync_sem_qr_avisa_que_nao_esta_ativo(self):
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/controle/sync/', {},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.json()['ativo'], False)
+
+    def test_tela_do_celular_e_botao_no_telao(self):
+        self._qr()
+        r = Client().get(f'/chat/controle/{self._token()}/')
+        self.assertContains(r, 'id="cc-falar"')
+        self.assertContains(r, 'Começar')  # Playground
+        r = self.client.get(f'/professor/playground/{self.conversa.id}/')
+        self.assertContains(r, 'id="btn-celular"')
+        self.assertContains(r, 'id="modal-celular"')
+
+
+# ── Modo ao vivo (GPT Live / Realtime), em teste ────────────────────────────
+
+class LiveTest(BasePlayground):
+    def setUp(self):
+        super().setUp()
+        plano = self.escola_a.plano
+        plano.ia_provider, plano.ia_api_key = 'openai', 'sk-fake'
+        plano.tts_provider, plano.tts_api_key, plano.tts_voice_id = 'elevenlabs', 'xi-fake', 'voz-kevin'
+        plano.save()
+
+    def _resposta(self, status_code, corpo):
+        return SimpleNamespace(status_code=status_code, json=lambda: corpo, text=str(corpo))
+
+    @patch('apps.chat.live.httpx.post')
+    def test_sessao_voz_openai_monta_prompt_ferramentas_e_microfone_fechado(self, post):
+        post.return_value = self._resposta(200, {'value': 'ek_x', 'expires_at': 1})
+        self._msg(role='assistant', conteudo='Olá, professor!')
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/live/sessao/',
+                             {'voz': 'openai', 'modelo': 'gpt-realtime-2.1-mini'},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['openai']['value'], 'ek_x')
+        self.assertNotIn('elevenlabs', r.json())
+        self.assertEqual(r.json()['historico'][-1], {'role': 'assistant', 'conteudo': 'Olá, professor!'})
+        sessao = post.call_args.kwargs['json']['session']
+        self.assertEqual(sessao['model'], 'gpt-realtime-2.1-mini')
+        self.assertEqual(sessao['output_modalities'], ['audio'])
+        self.assertIsNone(sessao['audio']['input']['turn_detection'])  # D62
+        self.assertIn('MODO AO VIVO', sessao['instructions'])
+        self.assertIn('mostrar_no_quadro', [f['name'] for f in sessao['tools']])
+        self.assertEqual(post.call_args.kwargs['headers']['Authorization'], 'Bearer sk-fake')
+
+    @patch('apps.chat.live.httpx.post')
+    def test_sessao_voz_kevin_pede_texto_e_token_da_elevenlabs(self, post):
+        post.side_effect = [
+            self._resposta(200, {'value': 'ek_x'}),
+            self._resposta(200, {'token': 'el_1'}),
+        ]
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/live/sessao/', {'voz': 'kevin'},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['elevenlabs'], {'token': 'el_1', 'voice_id': 'voz-kevin',
+                                                  'model_id': 'eleven_flash_v2_5'})
+        sessao = post.call_args_list[0].kwargs['json']['session']
+        self.assertEqual(sessao['output_modalities'], ['text'])
+
+    @patch('apps.chat.live.httpx.post')
+    def test_sessao_com_openai_fora_vira_502(self, post):
+        post.return_value = self._resposta(401, {'error': 'x'})
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/live/sessao/', {},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 502)
+
+    def test_ferramenta_ao_vivo_usa_o_mesmo_executor(self):
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/live/ferramenta/',
+                             {'nome': 'mostrar_no_quadro', 'argumentos': '{"texto": "lion"}'},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['acao'], {'tipo': 'quadro', 'texto': 'lion'})
+        self.conversa.refresh_from_db()
+        self.assertEqual(self.conversa.estado['ultima_palavra']['texto'], 'lion')
+
+    def test_registrar_grava_sem_chamar_ia_e_fixa_contexto(self):
+        url = f'/api/chat/conversas/{self.conversa.id}/live/registrar/'
+        self.client.post(url, {'role': 'user', 'conteudo': 'Hoje: animais'}, content_type='application/json')
+        self.client.post(url, {'role': 'evento', 'conteudo': 'A música terminou.'}, content_type='application/json')
+        self.conversa.refresh_from_db()
+        self.assertEqual(self.conversa.contexto, 'Hoje: animais')
+        self.assertEqual(self.conversa.mensagens.filter(tipo='evento').count(), 1)
+        r = self.client.post(url, {'role': 'system', 'conteudo': 'x'}, content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_repetir_ao_vivo_so_valida_e_devolve_a_palavra(self):
+        ferramentas.executar(self.conversa, 'mostrar_no_quadro', {'texto': 'book'})
+        antes = self.conversa.mensagens.count()
+        r = self.client.post(f'/api/chat/conversas/{self.conversa.id}/repetir/', {'apenas_palavra': True},
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['palavra'], 'book')
+        self.assertEqual(self.conversa.mensagens.count(), antes)  # nada gravado, sem IA
