@@ -803,8 +803,9 @@ class ControleCelularTest(BasePlayground):
 
     def test_link_do_qr_sai_em_https_em_producao(self):
         from django.test import override_settings
-        with override_settings(DEBUG=False, SECURE_SSL_REDIRECT=False, ALLOWED_HOSTS=['testserver']):
-            url = self._qr().json()['url']
+        with override_settings(ALLOWED_HOSTS=['kevin.exemplo.com']):
+            url = self.client.post(f'/api/chat/conversas/{self.conversa.id}/controle/',
+                                   HTTP_HOST='kevin.exemplo.com').json()['url']
         self.assertTrue(url.startswith('https://'), url)
 
     def test_celular_sem_login_manda_comando_e_telao_recebe(self):

@@ -383,8 +383,6 @@ class ControleCriarView(APIView):
         conversa = _conversa_do_professor(request, pk)
         if not conversa:
             return _nao_encontrada()
-        from django.conf import settings
-
         controle = novo_controle(conversa)
         url = request.build_absolute_uri(
             reverse('chat:controle_celular', args=[gerar_token(controle)]),
@@ -392,7 +390,10 @@ class ControleCriarView(APIView):
         # Produção é sempre HTTPS, mas atrás do proxy do Render o link saía com
         # http:// (visto em 24/11/2026): o celular pagava um redirecionamento e
         # alguns leitores de QR avisam "site não seguro".
-        if not settings.DEBUG and url.startswith('http://'):
+        # Não depende do DEBUG: fora de host local, sempre https.
+        host = request.get_host().split(':')[0]
+        local = host in ('localhost', '127.0.0.1', '[::1]') or host.endswith('.localhost')
+        if not local and url.startswith('http://'):
             url = 'https://' + url[len('http://'):]
         return Response({'url': url, 'qr_svg': qr_svg(url), 'validade_segundos': VALIDADE_SEGUNDOS})
 
